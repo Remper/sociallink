@@ -1,0 +1,6 @@
+smt-ui/app/*.js.map
+smt-ui/app/*.js
+smt-ui/app/*/*.js.map
+smt-ui/app/*/*.js
+smt-ui/node_modules
+smt-ui/typings

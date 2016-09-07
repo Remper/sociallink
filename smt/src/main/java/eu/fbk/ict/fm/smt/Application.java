@@ -2,6 +2,7 @@ package eu.fbk.ict.fm.smt;
 
 import eu.fbk.ict.fm.smt.api.ProfilesController;
 
+import eu.fbk.ict.fm.smt.util.CORSResponseFilter;
 import eu.fbk.ict.fm.smt.util.TwitterCredentials;
 import eu.fbk.ict.fm.smt.util.TwitterFactory;
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -37,6 +38,7 @@ public class Application {
 
         final ResourceConfig rc = new ResourceConfig().packages(Application.class.getPackage().getName());
         rc.register(new Binder());
+        rc.register(new CORSResponseFilter());
         URI uri = new URI(null, null, "0.0.0.0", port, null, null, null);
         final HttpServer httpServer =  GrizzlyHttpServerFactory.createHttpServer(uri, rc);
 
