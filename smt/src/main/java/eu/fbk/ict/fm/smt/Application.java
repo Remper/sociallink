@@ -1,6 +1,7 @@
 package eu.fbk.ict.fm.smt;
 
 import eu.fbk.ict.fm.smt.services.AlignmentsService;
+import eu.fbk.ict.fm.smt.services.TwitterService;
 import eu.fbk.ict.fm.smt.util.CORSResponseFilter;
 import eu.fbk.ict.fm.smt.util.ConnectionFactory;
 import eu.fbk.ict.fm.smt.util.TwitterCredentials;
@@ -61,6 +62,7 @@ public class Application {
             bindFactory(TwitterFactory.class).to(Twitter.class);
             bindFactory(ConnectionFactory.class).to(Connection.class);
             bind(AlignmentsService.class).to(AlignmentsService.class);
+            bind(TwitterService.class).to(TwitterService.class);
         }
     }
 
@@ -99,6 +101,7 @@ public class Application {
             return config;
         } catch (ParseException exp) {
             // oops, something went wrong
+            System.out.println(String.join(", ", args));
             System.err.println("Parsing failed: " + exp.getMessage() + "\n");
             printHelp(options);
             System.exit(1);
@@ -110,7 +113,7 @@ public class Application {
         HelpFormatter formatter = new HelpFormatter();
         formatter.printHelp(
                 200,
-                "java -Dfile.encoding=UTF-8 "+ConvertOldAlignmentsToNew.class.getName(),
+                "java -Dfile.encoding=UTF-8 "+Application.class.getName(),
                 "\n",
                 options,
                 "\n",
