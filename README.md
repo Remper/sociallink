@@ -7,9 +7,9 @@ Home to our alignments website, SMT API and UI
 
 | Method                         | GET params                    | Example |
 | ------------------------------ | ----------------------------- | ------- |
-| alignments/by_twitter_username | `username` – Twitter username | [example](http://api.futuro.media/smt/alignments/by_twitter_username?username=spacex)  |
-| alignments/by_twiiter_id       | `id` – Twitter ID             | [example](http://api.futuro.media/smt/alignments/by_twitter_id?id=34743251) |
-| alignments/by_resource_uri     | `uri` – KB URI                | [example](http://api.futuro.media/smt/alignments/by_resource_uri?uri=http://dbpedia.org/resource/SpaceX) |
+| alignments/by_twitter_username | `username` – Twitter username | [example](https://api.futuro.media/smt/alignments/by_twitter_username?username=spacex)  |
+| alignments/by_twiiter_id       | `id` – Twitter ID             | [example](https://api.futuro.media/smt/alignments/by_twitter_id?id=34743251) |
+| alignments/by_resource_uri     | `uri` – KB URI                | [example](https://api.futuro.media/smt/alignments/by_resource_uri?uri=http://dbpedia.org/resource/SpaceX) |
 
 #### Result example
 
