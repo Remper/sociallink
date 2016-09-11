@@ -1,18 +1,14 @@
 package eu.fbk.ict.fm.smt.api;
 
-import com.google.gson.Gson;
-import twitter4j.Twitter;
+import eu.fbk.ict.fm.smt.services.TwitterService;
+import eu.fbk.ict.fm.smt.util.InvalidAttributeResponse;
+import eu.fbk.ict.fm.smt.util.Response;
 import twitter4j.TwitterException;
 import twitter4j.User;
 
-import javax.annotation.Nullable;
 import javax.inject.Inject;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -23,16 +19,14 @@ import java.util.List;
  */
 @Path("profiles")
 public class ProfilesController {
-    private static final Gson gson = new Gson();
-
     @Inject
-    Twitter twitterConnection;
+    TwitterService twitterService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public String getProfilesByName(@QueryParam("name") String name) {
         if (name == null || name.length() <= 3) {
-            return new InvalidAttributeResponse(new String[]{"name"}).respond();
+            return new InvalidAttributeResponse("name").respond();
         }
         return getResult(name).respond();
     }
@@ -58,7 +52,7 @@ public class ProfilesController {
         List<User> result = new LinkedList<>();
         Response response = Response.success(null);
         try {
-            result.addAll(twitterConnection.users().searchUsers(query, 0));
+            result.addAll(twitterService.searchUsers(query));
         } catch (TwitterException e) {
             e.printStackTrace();
             response.code = Response.GENERIC_ERROR;
@@ -66,54 +60,5 @@ public class ProfilesController {
         }
         response.data = result;
         return response;
-    }
-
-    private static class InvalidAttributeResponse extends Response {
-        public String[] invalid;
-
-        public InvalidAttributeResponse(Collection<String> invalid) {
-            init();
-            this.invalid = new String[invalid.size()];
-            int i = 0;
-            for (String invAttr : invalid) {
-                this.invalid[i] = invAttr;
-                i++;
-            }
-        }
-
-        public InvalidAttributeResponse(String[] invalid) {
-            init();
-            this.invalid = invalid;
-        }
-
-        private void init() {
-            this.code = INVALID_PARAMS_ERROR;
-            this.message = INVALID_PARAMS_ERROR_MESSAGE;
-            this.data = null;
-        }
-    }
-
-    private static class Response {
-        public static final int SUCCESS = 0;
-        public static final String SUCCESS_MESSAGE = "ok";
-        public static final int GENERIC_ERROR = -1;
-        public static final int INVALID_PARAMS_ERROR = -2;
-        public static final String INVALID_PARAMS_ERROR_MESSAGE = "invalid parameters";
-
-        public int code;
-        public String message;
-        public Object data;
-
-        public static Response success(@Nullable Object data) {
-            Response response = new Response();
-            response.data = data;
-            response.code = SUCCESS;
-            response.message = SUCCESS_MESSAGE;
-            return response;
-        }
-
-        public String respond() {
-            return gson.toJson(this);
-        }
     }
 }
