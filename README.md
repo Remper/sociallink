@@ -13,7 +13,7 @@ Home to our alignments website, SMT API and UI
 
 #### Result example
 
-http://api.futuro.media/smt/alignments/by_twitter_username?username=spacex
+https://api.futuro.media/smt/alignments/by_twitter_username?username=spacex
 ```
 {
   code: 0,
