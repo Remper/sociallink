@@ -36,7 +36,6 @@ public class ConnectionFactory implements Factory<Connection> {
 
     @Override
     public void dispose(Connection instance) {
-
     }
 
     public static class Credentials {

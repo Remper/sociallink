@@ -13,6 +13,7 @@ import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import twitter4j.Twitter;
 
+import javax.inject.Singleton;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -60,8 +61,8 @@ public class Application {
             bind(credentials).to(TwitterCredentials.class);
             bind(alignments).to(ConnectionFactory.Credentials.class);
             bindFactory(TwitterFactory.class).to(Twitter.class);
-            bindFactory(ConnectionFactory.class).to(Connection.class);
-            bind(AlignmentsService.class).to(AlignmentsService.class);
+            bindFactory(ConnectionFactory.class).to(Connection.class).in(Singleton.class);
+            bind(AlignmentsService.class).to(AlignmentsService.class).in(Singleton.class);
             bind(TwitterService.class).to(TwitterService.class);
         }
     }

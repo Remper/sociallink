@@ -7,9 +7,13 @@ import eu.fbk.ict.fm.smt.db.alignments.tables.records.ProfilesRecord;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
+import org.jvnet.hk2.annotations.Service;
 
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -17,12 +21,22 @@ import java.util.List;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
+@Service @Singleton
 public class AlignmentsService {
     private Connection connection;
 
     @Inject
     public AlignmentsService(Connection connection) {
         this.connection = connection;
+    }
+
+    @PreDestroy
+    public void dispose() {
+        try {
+            this.connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public List<AlignmentsRecord> getRecordsByTwitterId(long twitterId) {
