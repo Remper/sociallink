@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 import org.glassfish.hk2.api.Factory;
 import org.jooq.ConnectionProvider;
-import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DataSourceConnectionProvider;
 
 import javax.inject.Inject;
@@ -12,7 +11,6 @@ import javax.inject.Singleton;
 import javax.sql.DataSource;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
@@ -56,27 +54,5 @@ public class ConnectionFactory implements Factory<ConnectionProvider> {
         datasource.setUser(credentials.user);
         datasource.setPassword(credentials.pass);
         return datasource;
-    }
-
-    public static class WatcherConnectionProvider extends DataSourceConnectionProvider {
-        private int counter;
-
-        public WatcherConnectionProvider(DataSource dataSource) {
-            super(dataSource);
-        }
-
-        @Override
-        public Connection acquire() {
-            counter++;
-            System.out.println(counter);
-            return super.acquire();
-        }
-
-        @Override
-        public void release(Connection connection) {
-            counter--;
-            System.out.println(counter);
-            super.acquire();
-        }
     }
 }

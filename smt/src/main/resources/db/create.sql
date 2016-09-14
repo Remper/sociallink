@@ -13,7 +13,7 @@ CREATE TABLE `alignments` (
 CREATE TABLE `resources` (
   `resource_id` varchar(255) NOT NULL,
   `is_dead` bool NOT NULL,
-  `dataset` varchar(255) NOT NULL DEFAULT 'generic',
+  `dataset` varchar(255) NOT NULL DEFAULT 'default',
   KEY (`dataset`),
   PRIMARY KEY (`resource_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

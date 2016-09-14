@@ -1,9 +1,12 @@
 package eu.fbk.ict.fm.smt.api;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import eu.fbk.ict.fm.smt.db.alignments.tables.records.AlignmentsRecord;
 import eu.fbk.ict.fm.smt.services.AlignmentsService;
 import eu.fbk.ict.fm.smt.util.InvalidAttributeResponse;
 import eu.fbk.ict.fm.smt.util.Response;
+import org.jooq.Record2;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -11,7 +14,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Retrieve an alignment records from the DB
@@ -25,19 +32,36 @@ public class AlignmentsController {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("datasets")
+    public String getAvailableDatasets() {
+        return Response
+            .success(alignments
+                .getAvailableDatasets()
+                .stream()
+                .map(Dataset::new)
+                .collect(Collectors.toList())
+            )
+            .respond();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("by_twitter_id")
-    public String getAlignmentsByTwitterID(@QueryParam("id") Long id) {
-        if (id <= 0) {
+    public String getAlignmentsByTwitterID(@QueryParam("id") Long id, @QueryParam("whitelist") String whitelist) {
+        if (id == null || id <= 0) {
             return new InvalidAttributeResponse("id").respond();
         }
 
-        return getResultById(id);
+        return getResultById(id, getWhitelistFromParameter(whitelist));
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("by_twitter_username")
-    public String getAlignmentsByTwitterUsername(@QueryParam("username") String username) {
+    public String getAlignmentsByTwitterUsername(
+            @QueryParam("username") String username,
+            @QueryParam("whitelist") String whitelist) {
+
         if (username == null || username.length() <= 3) {
             return new InvalidAttributeResponse("username").respond();
         }
@@ -46,27 +70,29 @@ public class AlignmentsController {
         if (id == null) {
             return Response.notFound("username").respond();
         }
-        return getResultById(id);
+        return getResultById(id, getWhitelistFromParameter(whitelist));
     }
 
-    private String getResultById(Long id) {
-        List<AlignmentsRecord> records = alignments.getRecordsByTwitterId(id);
-        TwitterResult result = new TwitterResult();
-        result.request = id;
-        result.alignment = null;
-        result.candidates = new ResourceEntity[records.size()];
-        int order = 0;
-        for (AlignmentsRecord record : records) {
-            ResourceEntity entity = new ResourceEntity();
-            entity.resourceId = record.getResourceId();
-            entity.score = Double.valueOf(record.getScore());
-            if (record.getIsAlignment() != 0) {
-                result.alignment = entity.resourceId;
-            }
-            result.candidates[order] = entity;
-            order++;
+    private Collection<String> getWhitelistFromParameter(String whitelist) {
+        Collection<String> whitelistArr = tryConstructWhitelistArray(whitelist);
+        if (whitelistArr == null && whitelist != null && whitelist.length() > 0) {
+            whitelistArr = new LinkedList<String>() {{
+                add(whitelist);
+            }};
         }
-        return Response.success(result).respond();
+        return whitelistArr;
+    }
+
+    private Collection<String> tryConstructWhitelistArray(String whitelist) {
+        try {
+            String[] whitelistArr = new Gson().fromJson(whitelist, String[].class);
+            if (whitelistArr == null) {
+                return null;
+            }
+            return Arrays.stream(whitelistArr).collect(Collectors.toList());
+        } catch(JsonSyntaxException e) {
+            return null;
+        }
     }
 
     @GET
@@ -94,6 +120,36 @@ public class AlignmentsController {
             order++;
         }
         return Response.success(result).respond();
+    }
+
+    private String getResultById(Long id, Collection<String> whitelist) {
+        List<AlignmentsRecord> records = alignments.getRecordsByTwitterId(id, whitelist);
+        TwitterResult result = new TwitterResult();
+        result.request = id;
+        result.alignment = null;
+        result.candidates = new ResourceEntity[records.size()];
+        int order = 0;
+        for (AlignmentsRecord record : records) {
+            ResourceEntity entity = new ResourceEntity();
+            entity.resourceId = record.getResourceId();
+            entity.score = Double.valueOf(record.getScore());
+            if (record.getIsAlignment() != 0) {
+                result.alignment = entity.resourceId;
+            }
+            result.candidates[order] = entity;
+            order++;
+        }
+        return Response.success(result).respond();
+    }
+
+    private static class Dataset {
+        private String name;
+        private Integer count;
+
+        private Dataset(Record2<String, Integer> record) {
+            name = record.value1();
+            count = record.value2();
+        }
     }
 
     private static class TwitterEntity {

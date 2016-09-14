@@ -18,7 +18,6 @@ import twitter4j.User;
 
 import javax.sql.DataSource;
 import java.io.FileNotFoundException;
-import java.sql.Connection;
 import java.util.*;
 
 /**
@@ -41,10 +40,10 @@ public class ConvertOldAlignmentsToNew {
         DSLContext newContext = DSL.using(alignments, SQLDialect.MYSQL);
         eu.fbk.ict.fm.smt.db.alignments.tables.Alignments ALIGNMENTS = eu.fbk.ict.fm.smt.db.alignments.tables.Alignments.ALIGNMENTS_;
         Cursor<Record1<Long>> cursor = newContext
-                .select(ALIGNMENTS.TWITTER_ID)
-                .from(ALIGNMENTS)
-                .groupBy(ALIGNMENTS.TWITTER_ID)
-                .fetchLazy();
+            .select(ALIGNMENTS.TWITTER_ID)
+            .from(ALIGNMENTS)
+            .groupBy(ALIGNMENTS.TWITTER_ID)
+            .fetchLazy();
 
         int processed = 0;
         List<Long> batch = new LinkedList<>();
@@ -59,13 +58,13 @@ public class ConvertOldAlignmentsToNew {
         processBatch(context, newContext, batch);
     }
 
-    private Set<Long> ids = new HashSet<Long>();
+    private Set<Long> ids = new HashSet<>();
     private void processBatch(DSLContext context, DSLContext newContext, List<Long> batch) {
         System.out.println("Begin query");
         Result<UsersRecord> result = context
-                .selectFrom(Users.USERS)
-                .where(Users.USERS.TWITTER_ID.in(batch))
-                .fetch();
+            .selectFrom(Users.USERS)
+            .where(Users.USERS.TWITTER_ID.in(batch))
+            .fetch();
         System.out.println("Done query");
         List<ProfilesRecord> profiles = new LinkedList<>();
         for (UsersRecord user : result) {
@@ -75,7 +74,7 @@ public class ConvertOldAlignmentsToNew {
             ProfilesRecord profile = newContext.newRecord(Profiles.PROFILES);
             profile.setTwitterId(user.getTwitterId());
             ids.add(user.getTwitterId());
-            profile.setUsername(gson.fromJson(user.getObject(), User.class).getScreenName());
+            profile.setUsername(gson.fromJson(user.getObject(), User.class).getScreenName().toLowerCase());
             profiles.add(profile);
         }
         newContext.batchStore(profiles).execute();
