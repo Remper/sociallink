@@ -3,6 +3,7 @@ package eu.fbk.ict.fm.smt.api;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import eu.fbk.ict.fm.smt.db.alignments.tables.records.AlignmentsRecord;
+import eu.fbk.ict.fm.smt.db.alignments.tables.records.ResourcesRecord;
 import eu.fbk.ict.fm.smt.services.AlignmentsService;
 import eu.fbk.ict.fm.smt.util.InvalidAttributeResponse;
 import eu.fbk.ict.fm.smt.util.Response;
@@ -103,10 +104,17 @@ public class AlignmentsController {
             return new InvalidAttributeResponse("uri").respond();
         }
 
+        ResourcesRecord resource = alignments.getResourceById(uri);
+        if (resource == null) {
+            return Response.notFound("uri").respond();
+        }
+
         List<AlignmentsRecord> records = alignments.getRecordsByResourceId(uri);
         ResourceResult result = new ResourceResult();
         result.request = uri;
         result.alignment = null;
+        result.dataset = resource.getDataset();
+        result.is_dead = resource.getIsDead() == 1;
         result.candidates = new TwitterEntity[records.size()];
         int order = 0;
         for (AlignmentsRecord record : records) {
@@ -171,6 +179,8 @@ public class AlignmentsController {
     private static class ResourceResult {
         private String request;
         private Long alignment;
+        private String dataset;
+        private boolean is_dead;
         private TwitterEntity[] candidates;
     }
 }

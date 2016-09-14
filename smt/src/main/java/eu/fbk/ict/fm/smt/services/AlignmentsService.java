@@ -5,6 +5,7 @@ import eu.fbk.ict.fm.smt.db.alignments.tables.Profiles;
 import eu.fbk.ict.fm.smt.db.alignments.tables.Resources;
 import eu.fbk.ict.fm.smt.db.alignments.tables.records.AlignmentsRecord;
 import eu.fbk.ict.fm.smt.db.alignments.tables.records.ProfilesRecord;
+import eu.fbk.ict.fm.smt.db.alignments.tables.records.ResourcesRecord;
 import org.glassfish.grizzly.utils.Pair;
 import org.jooq.*;
 import org.jooq.impl.DSL;
@@ -73,9 +74,16 @@ public class AlignmentsService {
 
     public List<AlignmentsRecord> getRecordsByResourceId(String resourceId) {
         return context()
-            .selectFrom(Alignments.ALIGNMENTS_)
-            .where(Alignments.ALIGNMENTS_.RESOURCE_ID.eq(resourceId))
+            .selectFrom(ALIGNMENTS)
+            .where(ALIGNMENTS.RESOURCE_ID.eq(resourceId))
             .fetch();
+    }
+
+    public ResourcesRecord getResourceById(String resourceId) {
+        return context()
+            .selectFrom(RESOURCES)
+            .where(RESOURCES.RESOURCE_ID.eq(resourceId))
+            .fetchOne();
     }
 
     public Long getIdByUsername(String username) {
