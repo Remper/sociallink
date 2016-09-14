@@ -6,6 +6,7 @@ package eu.fbk.ict.fm.smt.db.alignments;
 
 import eu.fbk.ict.fm.smt.db.alignments.tables.Alignments;
 import eu.fbk.ict.fm.smt.db.alignments.tables.Profiles;
+import eu.fbk.ict.fm.smt.db.alignments.tables.Resources;
 
 import javax.annotation.Generated;
 
@@ -32,4 +33,9 @@ public class Tables {
      * The table <code>alignments.profiles</code>.
      */
     public static final Profiles PROFILES = eu.fbk.ict.fm.smt.db.alignments.tables.Profiles.PROFILES;
+
+    /**
+     * The table <code>alignments.resources</code>.
+     */
+    public static final Resources RESOURCES = eu.fbk.ict.fm.smt.db.alignments.tables.Resources.RESOURCES;
 }

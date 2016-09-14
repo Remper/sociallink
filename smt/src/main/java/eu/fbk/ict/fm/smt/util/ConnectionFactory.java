@@ -1,9 +1,15 @@
 package eu.fbk.ict.fm.smt.util;
 
 import com.google.gson.Gson;
+import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 import org.glassfish.hk2.api.Factory;
+import org.jooq.ConnectionProvider;
+import org.jooq.exception.DataAccessException;
+import org.jooq.impl.DataSourceConnectionProvider;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
+import javax.sql.DataSource;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.sql.Connection;
@@ -15,35 +21,62 @@ import java.sql.SQLException;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-public class ConnectionFactory implements Factory<Connection> {
-    private Credentials credentials;
+@Singleton
+public class ConnectionFactory implements Factory<ConnectionProvider> {
+    private DataSourceConnectionProvider provider;
 
     @Inject
-    public ConnectionFactory(Credentials credentials) {
-        this.credentials = credentials;
-    }
-
-    @Override
-    public Connection provide() {
+    public ConnectionFactory(DataSource credentials) {
         try {
             DriverManager.registerDriver(new com.mysql.jdbc.Driver());
-            return DriverManager.getConnection(credentials.url, credentials.user, credentials.pass);
+            provider = new DataSourceConnectionProvider(credentials);
         } catch (SQLException e) {
             e.printStackTrace();
-            return null;
         }
     }
 
     @Override
-    public void dispose(Connection instance) {
+    public ConnectionProvider provide() {
+        return provider;
+    }
+
+    @Override
+    public void dispose(ConnectionProvider instance) {
     }
 
     public static class Credentials {
         public String user, pass, url;
     }
 
-    public static ConnectionFactory.Credentials getConf(String file) throws FileNotFoundException {
+    public static DataSource getConf(String file) throws FileNotFoundException {
         Gson gson = new Gson();
-        return gson.fromJson(new FileReader(file), ConnectionFactory.Credentials.class);
+        MysqlDataSource datasource = new MysqlDataSource();
+        Credentials credentials = gson.fromJson(new FileReader(file), Credentials.class);
+        datasource.setURL(credentials.url);
+        datasource.setUser(credentials.user);
+        datasource.setPassword(credentials.pass);
+        return datasource;
+    }
+
+    public static class WatcherConnectionProvider extends DataSourceConnectionProvider {
+        private int counter;
+
+        public WatcherConnectionProvider(DataSource dataSource) {
+            super(dataSource);
+        }
+
+        @Override
+        public Connection acquire() {
+            counter++;
+            System.out.println(counter);
+            return super.acquire();
+        }
+
+        @Override
+        public void release(Connection connection) {
+            counter--;
+            System.out.println(counter);
+            super.acquire();
+        }
     }
 }

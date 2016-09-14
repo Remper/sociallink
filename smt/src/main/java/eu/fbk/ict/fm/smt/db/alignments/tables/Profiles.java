@@ -34,7 +34,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Profiles extends TableImpl<ProfilesRecord> {
 
-    private static final long serialVersionUID = -1257788555;
+    private static final long serialVersionUID = 1040385520;
 
     /**
      * The reference instance of <code>alignments.profiles</code>
@@ -102,7 +102,7 @@ public class Profiles extends TableImpl<ProfilesRecord> {
      */
     @Override
     public List<UniqueKey<ProfilesRecord>> getKeys() {
-        return Arrays.<UniqueKey<ProfilesRecord>>asList(Keys.KEY_PROFILES_PRIMARY);
+        return Arrays.<UniqueKey<ProfilesRecord>>asList(Keys.KEY_PROFILES_PRIMARY, Keys.KEY_PROFILES_USERNAME);
     }
 
     /**

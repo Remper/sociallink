@@ -6,8 +6,10 @@ package eu.fbk.ict.fm.smt.db.alignments;
 
 import eu.fbk.ict.fm.smt.db.alignments.tables.Alignments;
 import eu.fbk.ict.fm.smt.db.alignments.tables.Profiles;
+import eu.fbk.ict.fm.smt.db.alignments.tables.Resources;
 import eu.fbk.ict.fm.smt.db.alignments.tables.records.AlignmentsRecord;
 import eu.fbk.ict.fm.smt.db.alignments.tables.records.ProfilesRecord;
+import eu.fbk.ict.fm.smt.db.alignments.tables.records.ResourcesRecord;
 
 import javax.annotation.Generated;
 
@@ -40,6 +42,8 @@ public class Keys {
 
     public static final UniqueKey<AlignmentsRecord> KEY_ALIGNMENTS_PRIMARY = UniqueKeys0.KEY_ALIGNMENTS_PRIMARY;
     public static final UniqueKey<ProfilesRecord> KEY_PROFILES_PRIMARY = UniqueKeys0.KEY_PROFILES_PRIMARY;
+    public static final UniqueKey<ProfilesRecord> KEY_PROFILES_USERNAME = UniqueKeys0.KEY_PROFILES_USERNAME;
+    public static final UniqueKey<ResourcesRecord> KEY_RESOURCES_PRIMARY = UniqueKeys0.KEY_RESOURCES_PRIMARY;
 
     // -------------------------------------------------------------------------
     // FOREIGN KEY definitions
@@ -53,5 +57,7 @@ public class Keys {
     private static class UniqueKeys0 extends AbstractKeys {
         public static final UniqueKey<AlignmentsRecord> KEY_ALIGNMENTS_PRIMARY = createUniqueKey(Alignments.ALIGNMENTS_, "KEY_alignments_PRIMARY", Alignments.ALIGNMENTS_.RESOURCE_ID, Alignments.ALIGNMENTS_.TWITTER_ID);
         public static final UniqueKey<ProfilesRecord> KEY_PROFILES_PRIMARY = createUniqueKey(Profiles.PROFILES, "KEY_profiles_PRIMARY", Profiles.PROFILES.TWITTER_ID);
+        public static final UniqueKey<ProfilesRecord> KEY_PROFILES_USERNAME = createUniqueKey(Profiles.PROFILES, "KEY_profiles_username", Profiles.PROFILES.USERNAME);
+        public static final UniqueKey<ResourcesRecord> KEY_RESOURCES_PRIMARY = createUniqueKey(Resources.RESOURCES, "KEY_resources_PRIMARY", Resources.RESOURCES.RESOURCE_ID);
     }
 }

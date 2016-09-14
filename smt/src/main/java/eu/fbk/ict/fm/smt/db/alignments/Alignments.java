@@ -5,6 +5,7 @@ package eu.fbk.ict.fm.smt.db.alignments;
 
 
 import eu.fbk.ict.fm.smt.db.alignments.tables.Profiles;
+import eu.fbk.ict.fm.smt.db.alignments.tables.Resources;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,7 +31,7 @@ import org.jooq.impl.SchemaImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Alignments extends SchemaImpl {
 
-    private static final long serialVersionUID = 362063270;
+    private static final long serialVersionUID = -398606517;
 
     /**
      * The reference instance of <code>alignments</code>
@@ -46,6 +47,11 @@ public class Alignments extends SchemaImpl {
      * The table <code>alignments.profiles</code>.
      */
     public final Profiles PROFILES = eu.fbk.ict.fm.smt.db.alignments.tables.Profiles.PROFILES;
+
+    /**
+     * The table <code>alignments.resources</code>.
+     */
+    public final Resources RESOURCES = eu.fbk.ict.fm.smt.db.alignments.tables.Resources.RESOURCES;
 
     /**
      * No further instances allowed
@@ -73,6 +79,7 @@ public class Alignments extends SchemaImpl {
     private final List<Table<?>> getTables0() {
         return Arrays.<Table<?>>asList(
             eu.fbk.ict.fm.smt.db.alignments.tables.Alignments.ALIGNMENTS_,
-            Profiles.PROFILES);
+            Profiles.PROFILES,
+            Resources.RESOURCES);
     }
 }

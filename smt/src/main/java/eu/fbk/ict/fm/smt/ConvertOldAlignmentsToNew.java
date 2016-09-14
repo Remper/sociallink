@@ -2,7 +2,9 @@ package eu.fbk.ict.fm.smt;
 
 import com.google.gson.Gson;
 import eu.fbk.ict.fm.smt.db.alignments.tables.Profiles;
+import eu.fbk.ict.fm.smt.db.alignments.tables.Resources;
 import eu.fbk.ict.fm.smt.db.alignments.tables.records.ProfilesRecord;
+import eu.fbk.ict.fm.smt.db.alignments.tables.records.ResourcesRecord;
 import eu.fbk.ict.fm.smt.db.old_alignments.tables.Alignments;
 import eu.fbk.ict.fm.smt.db.old_alignments.tables.Users;
 import eu.fbk.ict.fm.smt.db.old_alignments.tables.records.AlignmentsRecord;
@@ -14,12 +16,10 @@ import org.jooq.*;
 import org.jooq.impl.DSL;
 import twitter4j.User;
 
+import javax.sql.DataSource;
 import java.io.FileNotFoundException;
 import java.sql.Connection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Conversion script between old schema and a new one
@@ -29,9 +29,9 @@ import java.util.Set;
 public class ConvertOldAlignmentsToNew {
     private static final Gson gson = TwitterDeserializer.getDefault().getBuilder().create();
 
-    public Connection oldAlignments, alignments;
+    public ConnectionProvider oldAlignments, alignments;
 
-    public ConvertOldAlignmentsToNew(ConnectionFactory.Credentials oldAlignments, ConnectionFactory.Credentials alignments) {
+    public ConvertOldAlignmentsToNew(DataSource oldAlignments, DataSource alignments) {
         this.oldAlignments = new ConnectionFactory(oldAlignments).provide();
         this.alignments = new ConnectionFactory(alignments).provide();
     }
@@ -89,9 +89,15 @@ public class ConvertOldAlignmentsToNew {
 
         int processed = 0;
         List<eu.fbk.ict.fm.smt.db.alignments.tables.records.AlignmentsRecord> batch = new LinkedList<>();
+        List<ResourcesRecord> resourcesBatch = new LinkedList<>();
         for (AlignmentsRecord record : cursor) {
             double[] scores = gson.fromJson(record.getScores(), double[].class);
             long[] candidates = gson.fromJson(record.getCandidates(), long[].class);
+            ResourcesRecord resourceRecord = newContext.newRecord(Resources.RESOURCES);
+            resourceRecord.setResourceId(record.getResourceId());
+            resourceRecord.setIsDead((byte) (record.getSource().equals("Dead") ? 1 : 0));
+            resourceRecord.setDataset("default");
+            resourcesBatch.add(resourceRecord);
             if (scores == null || candidates == null) {
                 continue;
             }
@@ -113,7 +119,13 @@ public class ConvertOldAlignmentsToNew {
                 batch.clear();
                 System.out.println("Processed "+processed+" entities");
             }
+            if (processed % 100000 == 0) {
+                newContext.batchStore(resourcesBatch).execute();
+                batch.clear();
+                System.out.println("Resources saved");
+            }
         }
+        newContext.batchStore(resourcesBatch).execute();
         newContext.batchStore(batch).execute();
     }
 
@@ -123,11 +135,17 @@ public class ConvertOldAlignmentsToNew {
             return;
         }
 
-        ConnectionFactory.Credentials oldAlignments = ConnectionFactory.getConf(config.oldAlignments);
-        ConnectionFactory.Credentials alignments = ConnectionFactory.getConf(config.alignments);
+        DataSource oldAlignments = ConnectionFactory.getConf(config.oldAlignments);
+        DataSource alignments = ConnectionFactory.getConf(config.alignments);
         ConvertOldAlignmentsToNew script = new ConvertOldAlignmentsToNew(oldAlignments, alignments);
-        //script.run();
+        System.out.println("Moving alignments info");
+        Date timestamp = new Date();
+        script.run();
+        System.out.println(String.format("Done in %.2f seconds", (float)(new Date().getTime() - timestamp.getTime())/1000));
+        System.out.println("Moving user profiles");
+        timestamp = new Date();
         script.transferProfiles();
+        System.out.println(String.format("Done in %.2f seconds", (float)(new Date().getTime() - timestamp.getTime())/1000));
     }
 
     public static class Configuration {

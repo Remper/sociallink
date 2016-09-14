@@ -11,9 +11,11 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.jooq.ConnectionProvider;
 import twitter4j.Twitter;
 
 import javax.inject.Singleton;
+import javax.sql.DataSource;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -28,7 +30,7 @@ import java.sql.Connection;
  */
 public class Application {
     private static TwitterCredentials credentials;
-    private static ConnectionFactory.Credentials alignments;
+    private static DataSource alignments;
 
     public static void main(String[] args) throws URISyntaxException, FileNotFoundException {
         Configuration config = loadConfiguration(args);
@@ -59,10 +61,10 @@ public class Application {
         @Override
         protected void configure() {
             bind(credentials).to(TwitterCredentials.class);
-            bind(alignments).to(ConnectionFactory.Credentials.class);
+            bind(alignments).to(DataSource.class);
             bindFactory(TwitterFactory.class).to(Twitter.class);
-            bindFactory(ConnectionFactory.class).to(Connection.class).in(Singleton.class);
-            bind(AlignmentsService.class).to(AlignmentsService.class).in(Singleton.class);
+            bindFactory(ConnectionFactory.class).to(ConnectionProvider.class).in(Singleton.class);
+            bind(AlignmentsService.class).to(AlignmentsService.class);
             bind(TwitterService.class).to(TwitterService.class);
         }
     }

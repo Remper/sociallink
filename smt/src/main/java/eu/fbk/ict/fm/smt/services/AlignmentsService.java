@@ -4,6 +4,7 @@ import eu.fbk.ict.fm.smt.db.alignments.tables.Alignments;
 import eu.fbk.ict.fm.smt.db.alignments.tables.Profiles;
 import eu.fbk.ict.fm.smt.db.alignments.tables.records.AlignmentsRecord;
 import eu.fbk.ict.fm.smt.db.alignments.tables.records.ProfilesRecord;
+import org.jooq.ConnectionProvider;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
@@ -21,23 +22,10 @@ import java.util.List;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-@Service @Singleton
+@Service
 public class AlignmentsService {
-    private Connection connection;
-
     @Inject
-    public AlignmentsService(Connection connection) {
-        this.connection = connection;
-    }
-
-    @PreDestroy
-    public void dispose() {
-        try {
-            this.connection.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
+    private ConnectionProvider connection;
 
     public List<AlignmentsRecord> getRecordsByTwitterId(long twitterId) {
         return context()
