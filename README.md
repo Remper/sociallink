@@ -24,26 +24,56 @@ https://api.futuro.media/smt/alignments/by_twitter_username?username=spacex
   data: {
     request: 34743251,
     alignment: "http://dbpedia.org/resource/SpaceX",
+    type: "http://dbpedia.org/ontology/Organisation",
     candidates: [{
-        resourceId: "http://dbpedia.org/resource/Design_(UK_band)",
-        score: 0.21096046707691185
-      }, {
-        resourceId: "http://dbpedia.org/resource/Futures_(band)",
-        score: 2.5151917732731808
-      }, {
-        resourceId: "http://dbpedia.org/resource/Future_(rapper)",
-        score: 1.6833161768847007
-      }, {
-        resourceId: "http://dbpedia.org/resource/Rocket_(band)",
-        score: 2.650455665454094
-      }, {
-        resourceId: "http://dbpedia.org/resource/S._(Archdeacon_of_Lewes)",
-        score: 1.9267610864689648
-      }, {
-        resourceId: "http://dbpedia.org/resource/SpaceX",
-        score: 3.236673068590393
-      }
-    ]
+      resourceId: "http://dbpedia.org/resource/Future_(rapper)",
+      type: "http://dbpedia.org/ontology/Person",
+      score: 1.6833161768847007
+    },
+    {
+      resourceId: "http://dbpedia.org/resource/Rocket_(band)",
+      type: "http://dbpedia.org/ontology/Organisation",
+      score: 2.650455665454094
+    },
+    {
+      resourceId: "http://dbpedia.org/resource/SpaceX",
+      type: "http://dbpedia.org/ontology/Organisation",
+      score: 3.236673068590393
+    },
+    {
+      resourceId: "http://dbpedia.org/resource/Space_(English_band)",
+      type: "http://dbpedia.org/ontology/Organisation",
+      score: 0.1442977292954537
+    },
+    {
+      resourceId: "http://dbpedia.org/resource/Space_(French_band)",
+      type: "http://dbpedia.org/ontology/Organisation",
+      score: 3.163512333075912
+    },
+    {
+      resourceId: "http://dbpedia.org/resource/Space_(TV_channel)",
+      type: "http://dbpedia.org/ontology/Organisation",
+      score: 3.1678481553542235
+    },
+    {
+      resourceId: "http://dbpedia.org/resource/The_Launch",
+      score: 2.2920326658142876
+    },
+    {
+      resourceId: "http://dbpedia.org/resource/The_Rockets_(band)",
+      type: "http://dbpedia.org/ontology/Organisation",
+      score: 2.294920430809601
+    },
+    {
+      resourceId: "http://dbpedia.org/resource/X_(American_band)",
+      type: "http://dbpedia.org/ontology/Organisation",
+      score: 1.4759126893085854
+    },
+    {
+      resourceId: "http://dbpedia.org/resource/X_(Australian_band)",
+      type: "http://dbpedia.org/ontology/Organisation",
+      score: 1.4759126892645242
+    }]
   }
 }
 ```
