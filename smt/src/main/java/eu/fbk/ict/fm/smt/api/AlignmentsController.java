@@ -146,7 +146,9 @@ public class AlignmentsController {
             entity.resourceId = record.getResourceId();
             entity.score = Double.valueOf(record.getScore());
             entity.type = kbService.getType(entity.resourceId);
-            types.put(entity.type, types.getOrDefault(entity.type, 0)+1);
+            if (entity.score > 0) {
+                types.put(entity.type, types.getOrDefault(entity.type, 0)+1);
+            }
             if (record.getIsAlignment() != 0) {
                 result.alignment = entity.resourceId;
                 result.type = entity.type;
