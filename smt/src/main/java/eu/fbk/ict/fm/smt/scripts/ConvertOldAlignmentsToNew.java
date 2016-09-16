@@ -1,4 +1,4 @@
-package eu.fbk.ict.fm.smt;
+package eu.fbk.ict.fm.smt.scripts;
 
 import com.google.gson.Gson;
 import eu.fbk.ict.fm.smt.db.alignments.tables.Profiles;

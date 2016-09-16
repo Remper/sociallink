@@ -5,11 +5,14 @@ Home to our alignments website, SMT API and UI
 
 ### Alignments
 
-| Method                         | GET params                    | Example |
-| ------------------------------ | ----------------------------- | ------- |
-| alignments/by_twitter_username | `username` – Twitter username | [example](https://api.futuro.media/smt/alignments/by_twitter_username?username=spacex)  |
-| alignments/by_twiiter_id       | `id` – Twitter ID             | [example](https://api.futuro.media/smt/alignments/by_twitter_id?id=34743251) |
-| alignments/by_resource_uri     | `uri` – KB URI                | [example](https://api.futuro.media/smt/alignments/by_resource_uri?uri=http://dbpedia.org/resource/SpaceX) |
+| Method                         | GET params                                 | Example |
+| ------------------------------ | ------------------------------------------ | ------- |
+| alignments/by_twitter_username | `username` – Twitter username, `whitelist` | [example](https://api.futuro.media/smt/alignments/by_twitter_username?username=spacex)  |
+| alignments/by_twiiter_id       | `id` – Twitter ID, `whitelist`             | [example](https://api.futuro.media/smt/alignments/by_twitter_id?id=34743251) |
+| alignments/by_resource_uri     | `uri` – KB URI                             | [example](https://api.futuro.media/smt/alignments/by_resource_uri?uri=http://dbpedia.org/resource/SpaceX) |
+| alignments/datasets            | —                                          | [example](https://api.futuro.media/smt/alignments/datasets) |
+
+`whitelist` — a single or many datasets from which to pull the alignments. The list of datasets can be acquired via the alignments/datasets method
 
 #### Result example
 
