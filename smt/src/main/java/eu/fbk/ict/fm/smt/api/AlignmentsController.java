@@ -133,6 +133,14 @@ public class AlignmentsController {
 
     private String getResultById(Long id, Collection<String> whitelist) {
         List<AlignmentsRecord> records = alignments.getRecordsByTwitterId(id, whitelist);
+        //Sort by score in descending order
+        records.sort((o1, o2) -> {
+            double o1v = Double.valueOf(o1.getScore());
+            double o2v = Double.valueOf(o2.getScore());
+
+            return Double.compare(o2v, o1v);
+        });
+
         TwitterResult result = new TwitterResult();
         result.request = id;
         result.alignment = null;
