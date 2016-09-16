@@ -58,6 +58,7 @@ public class ConvertOldAlignmentsToNew {
         processBatch(context, newContext, batch);
     }
 
+    private Set<String> usernames = new HashSet<>();
     private Set<Long> ids = new HashSet<>();
     private void processBatch(DSLContext context, DSLContext newContext, List<Long> batch) {
         System.out.println("Begin query");
@@ -71,10 +72,16 @@ public class ConvertOldAlignmentsToNew {
             if (ids.contains(user.getTwitterId())) {
                 continue;
             }
+            String username = gson.fromJson(user.getObject(), User.class).getScreenName().toLowerCase();
+            if (usernames.contains(username)) {
+                System.out.println("Duplicate username: "+username+" for ID: "+user.getTwitterId());
+                continue;
+            }
             ProfilesRecord profile = newContext.newRecord(Profiles.PROFILES);
             profile.setTwitterId(user.getTwitterId());
+            usernames.add(username);
             ids.add(user.getTwitterId());
-            profile.setUsername(gson.fromJson(user.getObject(), User.class).getScreenName().toLowerCase());
+            profile.setUsername(username);
             profiles.add(profile);
         }
         newContext.batchStore(profiles).execute();
