@@ -1,6 +1,7 @@
 package eu.fbk.ict.fm.smt;
 
 import eu.fbk.ict.fm.smt.services.AlignmentsService;
+import eu.fbk.ict.fm.smt.services.KBAccessService;
 import eu.fbk.ict.fm.smt.services.TwitterService;
 import eu.fbk.ict.fm.smt.util.CORSResponseFilter;
 import eu.fbk.ict.fm.smt.util.ConnectionFactory;
@@ -31,6 +32,7 @@ import java.sql.Connection;
 public class Application {
     private static TwitterCredentials credentials;
     private static DataSource alignments;
+    private static String sparqlLocation = "https://api.futuro.media/dbpedia/sparql";
 
     public static void main(String[] args) throws URISyntaxException, FileNotFoundException {
         Configuration config = loadConfiguration(args);
@@ -62,10 +64,12 @@ public class Application {
         protected void configure() {
             bind(credentials).to(TwitterCredentials.class);
             bind(alignments).to(DataSource.class);
+            bind(sparqlLocation).named("SPARQLEndpoint").to(String.class);
             bindFactory(TwitterFactory.class).to(Twitter.class);
             bindFactory(ConnectionFactory.class).to(ConnectionProvider.class).in(Singleton.class);
             bind(AlignmentsService.class).to(AlignmentsService.class);
             bind(TwitterService.class).to(TwitterService.class);
+            bind(KBAccessService.class).to(KBAccessService.class).in(Singleton.class);
         }
     }
 

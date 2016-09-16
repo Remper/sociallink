@@ -5,6 +5,7 @@ import com.google.gson.JsonSyntaxException;
 import eu.fbk.ict.fm.smt.db.alignments.tables.records.AlignmentsRecord;
 import eu.fbk.ict.fm.smt.db.alignments.tables.records.ResourcesRecord;
 import eu.fbk.ict.fm.smt.services.AlignmentsService;
+import eu.fbk.ict.fm.smt.services.KBAccessService;
 import eu.fbk.ict.fm.smt.util.InvalidAttributeResponse;
 import eu.fbk.ict.fm.smt.util.Response;
 import org.jooq.Record2;
@@ -15,10 +16,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -30,6 +28,9 @@ import java.util.stream.Collectors;
 public class AlignmentsController {
     @Inject
     AlignmentsService alignments;
+
+    @Inject
+    KBAccessService kbService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -135,17 +136,38 @@ public class AlignmentsController {
         TwitterResult result = new TwitterResult();
         result.request = id;
         result.alignment = null;
+        result.type = null;
         result.candidates = new ResourceEntity[records.size()];
         int order = 0;
+        HashMap<String, Integer> types = new HashMap<>();
+        //Add all the entities to the response, figure out the alignment
         for (AlignmentsRecord record : records) {
             ResourceEntity entity = new ResourceEntity();
             entity.resourceId = record.getResourceId();
             entity.score = Double.valueOf(record.getScore());
+            entity.type = kbService.getType(entity.resourceId);
+            types.put(entity.type, types.getOrDefault(entity.type, 0)+1);
             if (record.getIsAlignment() != 0) {
                 result.alignment = entity.resourceId;
+                result.type = entity.type;
             }
             result.candidates[order] = entity;
             order++;
+        }
+
+        //If there is no alignment — at least provide a possible type
+        if (result.alignment == null) {
+            String majorType = null;
+            int majorTypeNum = 0;
+            for (Map.Entry<String, Integer> type : types.entrySet()) {
+                if (type.getValue() > majorTypeNum) {
+                    majorType = type.getKey();
+                    majorTypeNum = type.getValue();
+                } else if (type.getValue() == majorTypeNum) {
+                    majorType = null;
+                }
+            }
+            result.type = majorType;
         }
         return Response.success(result).respond();
     }
@@ -167,12 +189,14 @@ public class AlignmentsController {
 
     private static class ResourceEntity {
         private String resourceId;
+        private String type;
         private double score;
     }
 
     private static class TwitterResult {
         private Long request;
         private String alignment;
+        private String type;
         private ResourceEntity[] candidates;
     }
 
