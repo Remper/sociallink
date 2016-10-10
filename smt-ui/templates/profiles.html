@@ -2,9 +2,10 @@
     <div class="row">
         <div class="col-xl-12">
             <div class="input-group input-group-lg">
-                <input type="text" class="form-control" placeholder="Type name here" aria-describedby="query-name" #searchString>
+                <input type="text" class="form-control" style="margin-right: -150px;" placeholder="Type name here" aria-describedby="query-name" #searchString>
+                <input type="text" class="form-control" style="width: 150px;" placeholder="Topic (optional)" #searchTopic>
                 <span class="input-group-btn">
-                    <button class="btn btn-default" type="button" (click)="search(searchString.value)">Search</button>
+                    <button class="btn btn-default" type="button" (click)="search(searchString.value, searchTopic.value)">Search</button>
                 </span>
             </div>
         </div>
@@ -29,15 +30,16 @@
             <div class="panel panel-default" style="height: 200px; overflow: hidden;">
                 <div class="panel-heading">
                     <h3 class="panel-title" style="overflow: hidden; white-space: nowrap;">
-                        {{candidate.name}}
-                        (<a href="https://twitter.com/{{candidate.screenName}}">@{{candidate.screenName}}</a>)
+                        {{candidate.user.name}}
+                        (<a href="https://twitter.com/{{candidate.user.screenName}}">@{{candidate.user.screenName}}</a>)
                     </h3>
                 </div>
                 <div class="panel-body">
                     <div class="pull-left" style="margin-right: 15px;">
-                        <img src="{{candidate.profileImageUrl}}" alt="user avatar" />
+                        <img src="{{candidate.user.profileImageUrl}}" alt="user avatar" />
                     </div>
-                    {{candidate.description}}
+                    {{candidate.user.description}}
+                    <p *ngIf="candidate.score > 0.0">Score: {{candidate.score.toFixed(4)}}</p>
                 </div>
             </div>
         </div>

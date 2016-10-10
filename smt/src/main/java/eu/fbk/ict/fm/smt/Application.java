@@ -1,8 +1,7 @@
 package eu.fbk.ict.fm.smt;
 
-import eu.fbk.ict.fm.smt.services.AlignmentsService;
-import eu.fbk.ict.fm.smt.services.KBAccessService;
-import eu.fbk.ict.fm.smt.services.TwitterService;
+import com.google.gson.Gson;
+import eu.fbk.ict.fm.smt.services.*;
 import eu.fbk.ict.fm.smt.util.CORSResponseFilter;
 import eu.fbk.ict.fm.smt.util.ConnectionFactory;
 import eu.fbk.ict.fm.smt.util.TwitterCredentials;
@@ -17,12 +16,16 @@ import twitter4j.Twitter;
 
 import javax.inject.Singleton;
 import javax.sql.DataSource;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.sql.Connection;
 
 /**
  * Starting point for the web application
@@ -45,6 +48,7 @@ public class Application {
         final ResourceConfig rc = new ResourceConfig().packages(Application.class.getPackage().getName());
         rc.register(new Binder());
         rc.register(new CORSResponseFilter());
+        rc.register(new GenericExceptionMapper());
         URI uri = new URI(null, null, "0.0.0.0", config.port, null, null, null);
         final HttpServer httpServer =  GrizzlyHttpServerFactory.createHttpServer(uri, rc);
 
@@ -70,7 +74,86 @@ public class Application {
             bind(AlignmentsService.class).to(AlignmentsService.class);
             bind(TwitterService.class).to(TwitterService.class);
             bind(KBAccessService.class).to(KBAccessService.class).in(Singleton.class);
+            bind(MLService.class).to(MLService.class).in(Singleton.class);
+            bind(ResourcesService.class).to(ResourcesService.class).in(Singleton.class);
         }
+    }
+
+    public static class GenericExceptionMapper implements ExceptionMapper<Throwable> {
+
+        @Override
+        public Response toResponse(Throwable ex) {
+
+            ErrorMessage errorMessage = new ErrorMessage();
+            setHttpStatus(ex, errorMessage);
+            errorMessage.setMessage(ex.getMessage());
+            StringWriter errorStackTrace = new StringWriter();
+            ex.printStackTrace(new PrintWriter(errorStackTrace));
+            errorMessage.setDeveloperMessage(errorStackTrace.toString());
+
+            return Response.status(errorMessage.getStatus())
+                    .entity(new Gson().toJson(errorMessage))
+                    .type(MediaType.APPLICATION_JSON)
+                    .build();
+        }
+
+        private void setHttpStatus(Throwable ex, ErrorMessage errorMessage) {
+            if(ex instanceof WebApplicationException) {
+                errorMessage.setStatus(((WebApplicationException)ex).getResponse().getStatus());
+            } else {
+                errorMessage.setStatus(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()); //defaults to internal server error 500
+            }
+        }
+    }
+
+    public static class ErrorMessage {
+        int status;
+        int code;
+        String message;
+        String link;
+        String developerMessage;
+
+        public int getStatus() {
+            return status;
+        }
+
+        public void setStatus(int status) {
+            this.status = status;
+        }
+
+        public int getCode() {
+            return code;
+        }
+
+        public void setCode(int code) {
+            this.code = code;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        public String getDeveloperMessage() {
+            return developerMessage;
+        }
+
+        public void setDeveloperMessage(String developerMessage) {
+            this.developerMessage = developerMessage;
+        }
+
+        public String getLink() {
+            return link;
+        }
+
+        public void setLink(String link) {
+            this.link = link;
+        }
+
+        public ErrorMessage() {}
     }
 
     public static class Configuration {

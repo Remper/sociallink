@@ -7,9 +7,10 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Root level="info">
+        <Root level="debug">
             <AppenderRef ref="stdout" />
         </Root>
         <Logger name="edu.stanford" level="warn" />
+        <Logger name="twitter4j" level="info" />
     </Loggers>
 </Configuration>

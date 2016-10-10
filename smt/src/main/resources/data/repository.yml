@@ -1,0 +1,202 @@
+alignments.homepage.extracted:
+  location: http://futuro.media/data/alignments/homepage.extracted.csv.gz
+  size: 7967442
+  type: csv
+  compression: GZ
+alignments.homepage.filtered:
+  location: http://futuro.media/data/alignments/homepage.filtered.csv.gz
+  size: 3220708
+  type: csv
+  compression: GZ
+ngrams:
+  location: http://futuro.media/data/ngrams.gz
+  size: 156494212
+  type: ngrams
+  compression: GZ
+dbpedia.statistics:
+  location: http://futuro.media/data/dbpedia.statistics.tsv.gz
+  size: 74044502
+  type: tsv
+  compression: GZ
+glove.6B.50d:
+  location: http://futuro.media/data/glove.6B.50d.gz
+  size: 69239637
+  type: wordvectors
+  compression: GZ
+glove.6B.100d:
+  location: http://futuro.media/data/glove.6B.100d.gz
+  size: 134409071
+  type: wordvectors
+  compression: GZ
+glove.6B.200d:
+  location: http://futuro.media/data/glove.6B.200d.gz
+  size: 264545883
+  type: wordvectors
+  compression: GZ
+glove.6B.300d:
+  location: http://futuro.media/data/glove.6B.300d.gz
+  size: 394672355
+  type: wordvectors
+  compression: GZ
+glove.twitter.27B.25d:
+  location: http://futuro.media/data/glove.twitter.27B.25d.gz
+  size: 109906729
+  type: wordvectors
+  compression: GZ
+glove.twitter.27B.50d:
+  location: http://futuro.media/data/glove.twitter.27B.50d.gz
+  size: 209322498
+  type: wordvectors
+  compression: GZ
+glove.twitter.27B.100d:
+  location: http://futuro.media/data/glove.twitter.27B.100d.gz
+  size: 406221060
+  type: wordvectors
+  compression: GZ
+glove.twitter.27B.200d:
+  location: http://futuro.media/data/glove.twitter.27B.200d.gz
+  size: 795980893
+  type: wordvectors
+  compression: GZ
+lorenzo.amazon:
+  location: http://futuro.media/data/lorenzo.amazon.gz
+  size: 124752
+  type: labeledsentences
+  compression: GZ
+lorenzo.tweet:
+  location: http://futuro.media/data/lorenzo.tweet.gz
+  size: 147921
+  type: labeledsentences
+  compression: GZ
+lorenzo.nyt:
+  location: http://futuro.media/data/lorenzo.nyt.gz
+  size: 233464
+  type: labeledsentences
+  compression: GZ
+lorenzo.movies:
+  location: http://futuro.media/data/lorenzo.movies.gz
+  size: 94530
+  type: labeledsentences
+  compression: GZ
+lorenzo.semeval:
+  location: http://futuro.media/data/lorenzo.semeval.gz
+  size: 19721
+  type: labeledsentences
+  compression: GZ
+lorenzo.rnn:
+  location: http://futuro.media/data/lorenzo.rnn.gz
+  size: 1143144
+  type: labeledsentences
+  compression: GZ
+gender.names.wikidata.clean:
+  location: http://futuro.media/data/names.tsv.gz
+  size: 89546
+  type: tsv
+  compression: GZ
+gender.names.facebook:
+  location: http://futuro.media/data/gender.names.facebook.gz
+  size: 127100
+  type: tsv
+  compression: GZ
+personality.essays:
+  location: http://futuro.media/data/personality.essays.gz
+  size: 2978028
+  type: csv
+  compression: GZ
+personality.statuses:
+  location: http://futuro.media/data/personality.statuses.gz
+  size: 493998
+  type: csv
+  compression: GZ
+#Personality models
+personality.model.cagr:
+  location: http://futuro.media/data/personality/cAGR.model
+  size: 32869690
+  type: binary
+  compression: PLAIN
+personality.features.cagr:
+  location: http://futuro.media/data/personality/cAGR.feat.tsv.gz
+  size: 2616789
+  type: features
+  compression: GZ
+personality.model.ccon:
+  location: http://futuro.media/data/personality/cCON.model
+  size: 30352293
+  type: binary
+  compression: PLAIN
+personality.features.ccon:
+  location: http://futuro.media/data/personality/cCON.feat.tsv.gz
+  size: 2616695
+  type: features
+  compression: GZ
+personality.model.cext:
+  location: http://futuro.media/data/personality/cEXT.model
+  size: 31528057
+  type: binary
+  compression: PLAIN
+personality.features.cext:
+  location: http://futuro.media/data/personality/cEXT.feat.tsv.gz
+  size: 2616483
+  type: features
+  compression: GZ
+personality.model.cneu:
+  location: http://futuro.media/data/personality/cNEU.model
+  size: 28684449
+  type: binary
+  compression: PLAIN
+personality.features.cneu:
+  location: http://futuro.media/data/personality/cNEU.feat.tsv.gz
+  size: 2616883
+  type: features
+  compression: GZ
+personality.model.copn:
+  location: http://futuro.media/data/personality/cOPN.model
+  size: 34181273
+  type: binary
+  compression: PLAIN
+personality.features.copn:
+  location: http://futuro.media/data/personality/cOPN.feat.tsv.gz
+  size: 2618363
+  type: features
+  compression: GZ
+
+personality.index.copn:
+  location: http://futuro.media/data/personality/cOPN.rank.tsv.gz
+  size: 9509
+  type: features
+  compression: GZ
+personality.index.cneu:
+  location: http://futuro.media/data/personality/cNEU.rank.tsv.gz
+  size: 9709
+  type: features
+  compression: GZ
+personality.index.cext:
+  location: http://futuro.media/data/personality/cEXT.rank.tsv.gz
+  size: 9658
+  type: features
+  compression: GZ
+personality.index.ccon:
+  location: http://futuro.media/data/personality/cCON.rank.tsv.gz
+  size: 9720
+  type: features
+  compression: GZ
+personality.index.cagr:
+  location: http://futuro.media/data/personality/cAGR.rank.tsv.gz
+  size: 9733
+  type: features
+  compression: GZ
+age.lexica:
+  location: http://futuro.media/data/age_lex.csv.gz
+  size: 120987
+  type: csv
+  compression: GZ
+location.countries:
+  location: http://futuro.media/data/location.countries.gz
+  size: 7278274
+  type: binary
+  compression: GZ
+location.countries.simple:
+  location: http://futuro.media/data/location.countries.simple.gz
+  size: 1093166
+  type: binary
+  compression: GZ

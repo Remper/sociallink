@@ -10,15 +10,21 @@ const CANDIDATES = [{"id":110104666,"name":"Yaroslav Nechaev","screenName":"BSea
 @Injectable()
 class CandidatesService {
     constructor (private http: Http) {}
-    private heroesUrl = 'https://api.futuro.media/smt/profiles?name=';  // URL to web API
+    private domainUrl = 'https://api.futuro.media/smt/';
+    private profilesUrl = this.domainUrl+'profiles?name=';  // URL to web API
+    private profilesTopicUrl = this.domainUrl+'profiles/topic?name=:name&topic=:topic';
     getCandidates(searchString : String): Observable<any[]> {
-        return this.http.get(this.heroesUrl+searchString)
+        return this.http.get(this.profilesUrl+searchString)
+            .map(CandidatesService.extractData)
+            .catch(CandidatesService.handleError);
+    }
+    getCandidatesWithTopic(searchString : string, topic : string): Observable<any[]> {
+        return this.http.get(this.profilesTopicUrl.replace(":name", searchString).replace(":topic", topic))
             .map(CandidatesService.extractData)
             .catch(CandidatesService.handleError);
     }
     private static extractData(res: Response) {
-        let body = res.json();
-        return body.data || [];
+        return res.json().data || [];
     }
     private static handleError (error: any) {
         // In a real world app, we might use a remote logging infrastructure
@@ -41,11 +47,17 @@ export class Profiles {
     private status;
     private errorMessage;
 
-    search(searchString : String) {
+    search(searchString : string, topic : string) {
         let self = this;
         self.status = "LOADING";
         self.rows = [];
-        this.candidateService.getCandidates(searchString).subscribe(
+        var func;
+        if (topic.length == 0) {
+            func = this.candidateService.getCandidates(searchString);
+        } else {
+            func = this.candidateService.getCandidatesWithTopic(searchString, topic);
+        }
+        func.subscribe(
             function(candidates) {
                 self.rawCandidates = candidates;
                 self.loadSearchResults()
@@ -63,6 +75,14 @@ export class Profiles {
         if (this.rawCandidates.length == 0) {
             this.status = "EMPTY";
             return;
+        }
+        if (typeof(this.rawCandidates[0].score) === 'undefined') {
+            this.rawCandidates = this.rawCandidates.map(function(candidate) {
+                return {
+                    user: candidate,
+                    score: 0.0
+                }
+            });
         }
         let curRow = [];
         for (let idx in this.rawCandidates) {
