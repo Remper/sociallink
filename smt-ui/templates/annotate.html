@@ -2,6 +2,9 @@
     .annotation-label {
         font-weight: bold;
     }
+    .token {
+        margin-right: 1em;
+    }
 </style>
 
 <div class="container" style="width:700px">
@@ -10,7 +13,7 @@
             <p class="annotation-label">Text to annotate</p>
         </div>
         <div class="col-md-9">
-            <textarea class="form-control" rows="5" #searchArea>Barack Obama sat on a tree branch</textarea>
+            <textarea class="form-control" rows="5" #searchArea>Born in Honolulu, Hawaii, Obama is a graduate of Columbia University and Harvard Law School, where he served as president of the Harvard Law Review</textarea>
         </div>
     </div>
     <div class="row" style="margin-top: 5px">
@@ -23,7 +26,7 @@
             <p class="annotation-label">Result</p>
         </div>
         <div class="col-md-9">
-            {{ result }}
+            <smt-alignment-result *ngFor="let annotation of result" [annotation]="annotation"></smt-alignment-result>
         </div>
     </div>
 </div>

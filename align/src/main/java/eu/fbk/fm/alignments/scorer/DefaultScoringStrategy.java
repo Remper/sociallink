@@ -30,7 +30,10 @@ public class DefaultScoringStrategy implements ScoringStrategy {
     private HashMap<String, HomepageAlignment> homepageAlignments = new HashMap<>();
     private int numUniqueFeatures = 0;
 
-    public DefaultScoringStrategy() throws Exception {
+    public DefaultScoringStrategy() { }
+
+    public DefaultScoringStrategy(FeatureMappingInterface mapping) {
+        this.mapping = mapping;
     }
 
     public static class HomepageAlignment {
@@ -103,8 +106,10 @@ public class DefaultScoringStrategy implements ScoringStrategy {
             extraction = new MLService()
                     .turnOffStemmer()
                     .provideFeatureExtraction();
-            mapping = provider
-                    .provideNGrams(repository);
+            if (mapping == null) {
+                mapping = provider
+                        .provideNGrams(repository);
+            }
             providers = new FeatureProvider[]{
                     new VerifiedScorer(),
                     new NameScorer(),

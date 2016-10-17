@@ -3,7 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { Navigation, TabBarElement }    from './app.navigation';
 import { CurrentUser }   from './app.cur.user';
 import { Profiles }      from './page/app.profiles';
-import { Annotate }      from "./page/app.annotate";
+import { Annotate, AlignmentResult }      from "./page/app.annotate";
 import { HttpModule }    from "@angular/http";
 
 @Component({
@@ -17,7 +17,7 @@ class CoreDirective { }
 
 @NgModule({
     imports:      [ BrowserModule, HttpModule ],
-    declarations: [ CoreDirective, Navigation, CurrentUser, Profiles, Annotate, TabBarElement ],
+    declarations: [ CoreDirective, Navigation, CurrentUser, Profiles, Annotate, TabBarElement, AlignmentResult ],
     bootstrap:    [ CoreDirective ]
 })
 export class SMT { }

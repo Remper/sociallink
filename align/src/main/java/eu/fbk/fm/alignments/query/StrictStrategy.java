@@ -17,7 +17,9 @@ public class StrictStrategy implements QueryAssemblyStrategy {
     public String getQuery(DBpediaResource resource) {
         List<String> names = resource.getProperty(DBpediaResource.ATTRIBUTE_NAME);
         String cleanId = resource.getCleanResourceId();
-        names.add(cleanId);
+        if (cleanId.length() > 0) {
+            names.add(cleanId);
+        }
 
         Map<String, Integer> counts = new HashMap<>();
         boolean isPerson = resource.isPerson();

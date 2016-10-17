@@ -41,7 +41,7 @@
                     {{candidate.user.description}}
                     <p *ngIf="candidate.user.status != null">{{candidate.user.status.text}}</p>
                     <p *ngIf="candidate.user.location != null">{{candidate.user.location}}</p>
-                    <p *ngIf="candidate.score > 0.0">Score: {{candidate.score.toFixed(4)}}</p>
+                    <p *ngIf="candidate.score > 0.0" style="font-weight: bold;">Score: {{candidate.score.toFixed(4)}}</p>
                 </div>
             </div>
         </div>

@@ -1,13 +1,14 @@
 package eu.fbk.ict.fm.smt;
 
 import com.google.gson.Gson;
-import eu.fbk.ict.fm.data.ngrams.NGramsService;
+import eu.fbk.fm.alignments.persistence.ModelEndpoint;
 import eu.fbk.ict.fm.smt.filters.EncodingResponseFilter;
 import eu.fbk.ict.fm.smt.services.*;
 import eu.fbk.ict.fm.smt.filters.CORSResponseFilter;
 import eu.fbk.ict.fm.smt.util.ConnectionFactory;
 import eu.fbk.ict.fm.smt.util.TwitterCredentials;
 import eu.fbk.ict.fm.smt.util.TwitterFactory;
+import eu.fbk.utils.math.Scaler;
 import org.apache.commons.cli.*;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
@@ -37,16 +38,21 @@ public class Application {
     private static String sparqlLocation = "https://api.futuro.media/dbpedia/sparql";
     private static String wikimachineEndpoint;
     private static String ngramsEndpoint;
+    private static Scaler scaler;
+    private static ModelEndpoint modelEndpoint;
 
     public static void main(String[] args) throws URISyntaxException, FileNotFoundException {
         Configuration config = loadConfiguration(args);
         if (config == null) {
             return;
         }
+        Gson gson = new Gson();
         ngramsEndpoint = config.ngramsEndpoint;
         wikimachineEndpoint = config.wikimachineEndpoint;
         alignments = ConnectionFactory.getConf(config.connection);
         credentials = TwitterCredentials.credentialsFromFile(new File(config.credentials))[0];
+        scaler = gson.fromJson(new FileReader(new File(config.scaler)), Scaler.class);
+        modelEndpoint = new ModelEndpoint(config.modelEndpoint, 5000);
 
         final ResourceConfig rc = new ResourceConfig().packages(Application.class.getPackage().getName());
         rc.register(new Binder());
@@ -73,6 +79,8 @@ public class Application {
             bind(sparqlLocation).named("SPARQLEndpoint").to(String.class);
             bind(ngramsEndpoint).named("NgramsEndpoint").to(String.class);
             bind(wikimachineEndpoint).named("WikimachineEndpoint").to(String.class);
+            bind(scaler).to(Scaler.class);
+            bind(modelEndpoint).to(ModelEndpoint.class);
             bindFactory(TwitterFactory.class).to(Twitter.class);
             bindFactory(ConnectionFactory.class).to(ConnectionProvider.class).in(Singleton.class);
             bind(AlignmentsService.class).to(AlignmentsService.class);
@@ -83,6 +91,7 @@ public class Application {
             bind(MLService.class).to(MLService.class).in(Singleton.class);
             bind(ResourcesService.class).to(ResourcesService.class).in(Singleton.class);
             bind(NGramsService.class).to(NGramsService.class).in(Singleton.class);
+            bind(OnlineAlignmentsService.class).to(OnlineAlignmentsService.class).in(Singleton.class);
         }
     }
 
@@ -167,8 +176,10 @@ public class Application {
         public Integer port;
         public String connection;
         public String credentials;
+        public String scaler;
         public String ngramsEndpoint = "redis://localhost:6379";
         public String wikimachineEndpoint = "http://ml.apnetwork.it/annotate";
+        public String modelEndpoint = "localhost";
     }
 
     public static Configuration loadConfiguration(String[] args) {
@@ -187,7 +198,15 @@ public class Application {
         );
         options.addOption(
                 Option.builder().desc("NGrams endpoint")
-                        .required().hasArg().argName("uri").longOpt("ngrams").build()
+                        .hasArg().argName("uri").longOpt("ngrams").build()
+        );
+        options.addOption(
+                Option.builder().desc("Model endpoint")
+                        .required().hasArg().argName("uri").longOpt("model").build()
+        );
+        options.addOption(
+                Option.builder().desc("Scaler serialisation")
+                        .required().hasArg().argName("file").longOpt("scaler").build()
         );
 
         CommandLineParser parser = new DefaultParser();
@@ -201,6 +220,8 @@ public class Application {
             config.port = Integer.valueOf(line.getOptionValue("port"));
             config.connection = line.getOptionValue("db");
             config.credentials = line.getOptionValue("credentials");
+            config.modelEndpoint = line.getOptionValue("model");
+            config.scaler = line.getOptionValue("scaler");
             if (line.hasOption("ngrams")) {
                 config.ngramsEndpoint = line.getOptionValue("ngrams");
             }

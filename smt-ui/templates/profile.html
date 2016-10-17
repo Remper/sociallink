@@ -1,0 +1,16 @@
+<div class="panel panel-default" style="height: 200px; overflow: hidden;">
+    <div class="panel-heading">
+        <h3 class="panel-title" style="overflow: hidden; white-space: nowrap;">
+            {{user.name}}
+            (<a href="https://twitter.com/{{user.screenName}}">@{{user.screenName}}</a>)
+        </h3>
+    </div>
+    <div class="panel-body">
+        <div class="pull-left" style="margin-right: 15px;">
+            <img src="{{user.profileImageUrl}}" alt="user avatar" />
+        </div>
+        {{user.description}}
+        <p *ngIf="user.status != null">{{user.status.text}}</p>
+        <p *ngIf="user.location != null">{{user.location}}</p>
+    </div>
+</div>

@@ -1,14 +1,10 @@
 package eu.fbk.ict.fm.smt.services;
 
-import eu.fbk.ict.fm.data.Configuration;
-import eu.fbk.ict.fm.data.DatasetRepository;
-import eu.fbk.ict.fm.data.dataset.FeatureMapping;
-import eu.fbk.ict.fm.data.ngrams.NGramsService;
-import eu.fbk.ict.fm.ml.TextSimilarity;
-import eu.fbk.ict.fm.ml.features.FeatureExtraction;
-import org.fbk.cit.hlt.core.analysis.stemmer.Stemmer;
-import org.fbk.cit.hlt.core.analysis.stemmer.StemmerFactory;
-import org.fbk.cit.hlt.core.analysis.stemmer.StemmerNotFoundException;
+import eu.fbk.fm.ml.TextSimilarity;
+import eu.fbk.fm.ml.features.FeatureExtraction;
+import eu.fbk.utils.analysis.stemmer.Stemmer;
+import eu.fbk.utils.analysis.stemmer.StemmerFactory;
+import eu.fbk.utils.analysis.stemmer.StemmerNotFoundException;
 import org.jvnet.hk2.annotations.Service;
 
 import javax.inject.Inject;

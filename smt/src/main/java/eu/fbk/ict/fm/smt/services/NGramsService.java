@@ -1,12 +1,13 @@
-package eu.fbk.ict.fm.data.ngrams;
+package eu.fbk.ict.fm.smt.services;
 
 import com.lambdaworks.redis.RedisClient;
 import com.lambdaworks.redis.RedisFuture;
 import com.lambdaworks.redis.api.async.RedisAsyncCommands;
-import eu.fbk.ict.fm.data.DatasetRepository;
-import eu.fbk.ict.fm.data.dataset.Dataset;
-import eu.fbk.ict.fm.data.dataset.FeatureMapping;
-import eu.fbk.ict.fm.data.dataset.NGramMapping;
+import eu.fbk.utils.data.DatasetRepository;
+import eu.fbk.utils.data.dataset.Dataset;
+import eu.fbk.utils.data.dataset.bow.FeatureMapping;
+import eu.fbk.utils.data.dataset.bow.FeatureMappingInterface;
+import eu.fbk.utils.data.dataset.bow.NGramMapping;
 import org.apache.commons.cli.*;
 import org.jvnet.hk2.annotations.Service;
 import org.slf4j.Logger;
@@ -30,7 +31,7 @@ import java.util.stream.Collectors;
 @Service
 @Singleton
 public class NGramsService implements FeatureMappingInterface {
-    private final static Logger logger = LoggerFactory.getLogger(NGramsService.class);
+    private final static Logger logger = LoggerFactory.getLogger(eu.fbk.fm.alignments.persistence.NGramsService.class);
     private final static int BATCH_SIZE = 1000;
 
     private String endpointUri;
@@ -131,7 +132,7 @@ public class NGramsService implements FeatureMappingInterface {
             return;
         }
 
-        NGramsService service = new NGramsService(config.endpoint);
+        eu.fbk.fm.alignments.persistence.NGramsService service = new eu.fbk.fm.alignments.persistence.NGramsService(config.endpoint);
         service.restoreFromDataset();
         service.close();
     }
@@ -171,7 +172,7 @@ public class NGramsService implements FeatureMappingInterface {
         HelpFormatter formatter = new HelpFormatter();
         formatter.printHelp(
                 200,
-                "java -Dfile.encoding=UTF-8 "+NGramsService.class.getName(),
+                "java -Dfile.encoding=UTF-8 "+ eu.fbk.fm.alignments.persistence.NGramsService.class.getName(),
                 "\n",
                 options,
                 "\n",
