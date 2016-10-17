@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+    <meta name="twitter:site" content="@futuremediafbk">
+    <meta property="twitter:account_id" content="388750814">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="http://alignments.futuro.media/">
+    <meta property="og:site_name" content="Future Media's Alignments">
+    <meta property="og:title" content="Precomputed mappings between Knowledge Bases and Social Media">
+    <meta property="og:description" content="Resource containing the alignments between DBpedia entities and Twitter profiles">
+    <meta property="og:image" content="http://alignments.futuro.media/images/portraits/futuremedia.png" />
+    <meta name="description" content="Resource containing the alignments between DBpedia entities and Twitter profiles">
+    <title>Future Media's Alignments</title>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.3/css/bootstrap.min.css" integrity="sha384-MIwDKRSSImVFAZCVLtU0LMDdON6KVCrZHyVQQj6e8wIEJkW4tvwqXrbMIya1vriY" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/font-awesome.min.css">
+    <style>
+        .minilinks {
+            font-size: 0.8rem;
+            padding-left: 40px;
+        }
+        .dataset {
+            margin-bottom: 8px;
+        }
+        .nav-link.active {
+            color: #55595c;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .author.img-circle {
+            width: 100px;
+            height: 100px;
+        }
+        .portrait {
+            margin-bottom: 20px;
+        }
+        .portrait h4 {
+            margin-top: 20px;
+        }
+        .container {
+            width: 665px;
+        }
+        .jumbotron {
+            background: url(images/pattern.gif);
+            -webkit-box-shadow: 0 0 6px 5px rgba(0,0,0,.25) inset;
+            -moz-box-shadow: 0 0 6px 5px rgba(0,0,0,.25) inset;
+            -o-box-shadow: 0 0 6px 5px rgba(0,0,0,.25) inset;
+            -ms-box-shadow: 0 0 6px 5px rgba(0,0,0,.25) inset;
+            box-shadow: inset 0 0 6px 5px rgba(0,0,0,.25);
+            margin: -2px -2px 0 -2px
+        }
+        .row.content {
+            font-size: 0.875rem;
+        }
+        .dataset .timestamp {
+            width: 190px;
+            text-align: right;
+        }
+        .dataset .version {
+            width: 175px;
+        }
+        .dataset .description {
+            width: 300px
+        }
+        .format-descriptions .toggle {
+            text-decoration: none;
+            border-bottom: 1px dotted;
+        }
+        pre {
+            margin:0;
+            background-color: #f7f7f9;
+        }
+    </style>
+</head>
+<body>
+    <div class="jumbotron">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12" style="width: 665px">
+                    <h2 class="display-3" style="background-color:#fff; padding-left: 10px; padding-bottom: 5px;">Alignments</h2>
+                    <p class="lead" style="background-color:#fff; padding-left: 10px">Precomputed mappings between DBpedia entities and Twitter profiles</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="row" style="margin-top: 30px; margin-bottom: 30px">
+            <div class="col-md-12">
+                <nav class="nav nav-inline">
+                    <a class="nav-link active tab" data-toggle="tab" href="#description" role="tab">Description</a>
+                    <a class="nav-link tab" data-toggle="tab" href="#download" role="tab">Download</a>
+                    <a class="nav-link tab" data-toggle="tab" href="#cite" role="tab">Cite & Read</a>
+                    <!-- <a class="nav-link tab" data-toggle="tab" href="#evaluation" role="tab">Evaluation</a> -->
+                    <a class="nav-link tab" data-toggle="tab" href="#authors" role="tab">Authors</a>
+                </nav>
+            </div>
+        </div>
+        <div class="row content hidden" id="authors" role="tabpanel">
+            <div class="col-md-12" style="min-width: 655px">
+                <div class="row portrait">
+                    <h6>
+                        This work has been carried out in
+                        <img src="images/portraits/futuremedia.png" alt="Future Media" class="img-circle" style="width:16px;height:16px;margin-bottom:3px">
+                        Future Media unit (<a style="font-size: 0.8rem" href="https://twitter.com/futuremediafbk"><i class="fa fa-twitter" aria-hidden="true"></i></a>) by:
+                    </h6>
+                </div>
+                <div class="row portrait">
+                    <div class="col-xs-2"><img src="images/portraits/nechaev.png" alt="Yaroslav Nechaev" class="img-circle author"></div>
+                    <div class="offset-xs-1 col-xs-9" style="margin-left:30px">
+                        <h4>Yaroslav Nechaev</h4>
+                        <a href="https://twitter.com/BSearcher"><i class="fa fa-twitter" aria-hidden="true"></i></a>&nbsp;
+                        <a href="https://ru.linkedin.com/in/remper"><i class="fa fa-linkedin" aria-hidden="true"></i></a>&nbsp;
+                        <a href="https://www.facebook.com/yar.nechaev"><i class="fa fa-facebook" aria-hidden="true"></i></a>
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                        <i class="fa fa-envelope-o" aria-hidden="true">&nbsp;nеchаеv (аt) fbk.еu (contact author)</i>
+                    </div>
+                </div>
+                <div class="row portrait">
+                    <div class="col-xs-2"><img src="images/portraits/corcoglioniti.png" alt="Francesco Corcoglioniti" class="img-circle author"></div>
+                    <div class="offset-xs-1 col-xs-9" style="margin-left:30px">
+                        <h4>Francesco Corcoglioniti</h4>
+                        <a href="https://twitter.com/fracorco"><i class="fa fa-twitter" aria-hidden="true"></i></a>&nbsp;
+                        <a href="https://it.linkedin.com/in/francescocorcoglioniti"><i class="fa fa-linkedin" aria-hidden="true"></i></a>&nbsp;
+                        <a href="#"><i style="width:8px;display:inline-block" aria-hidden="true">&nbsp;</i></a>
+                        <!-- &nbsp;&nbsp;&nbsp;&nbsp;
+                        <i class="fa fa-envelope-o" aria-hidden="true">&nbsp;соrсоgliо (аt) fbk.еu</i> -->
+                    </div>
+                </div>
+                <div class="row portrait">
+                    <div class="col-xs-2"><img src="images/portraits/giuliano.png" alt="Claudio Giuliano" class="img-circle author"></div>
+                    <div class="offset-xs-1 col-xs-9" style="margin-left:30px">
+                        <h4>Claudio Giuliano</h4>
+                        <a href="https://twitter.com/clagiuliano"><i class="fa fa-twitter" aria-hidden="true"></i></a>&nbsp;
+                        <a href="https://it.linkedin.com/in/claudio-giuliano-7886b34"><i class="fa fa-linkedin" aria-hidden="true"></i></a>&nbsp;
+                        <a href="https://www.facebook.com/claudio.giuliano.31"><i class="fa fa-facebook" aria-hidden="true"></i></a>
+                        <!-- &nbsp;&nbsp;&nbsp;&nbsp;
+                        <i class="fa fa-envelope-o" aria-hidden="true">&nbsp;giuliаnо (аt) fbk.еu</i> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row content hidden" id="evaluation" role="tabpanel">
+            evaluation
+        </div>
+        <div class="row content" id="description" role="tabpanel">
+            <div class="col-md-12" style="text-align: justify;">
+                <div class="alert alert-success" role="alert">
+                    <strong>New!</strong> Version 0.6 of the resource is available now
+                </div>
+                The general idea behind our resource is to create a kind of "bridge" between social media and Linked
+                Open Data (LOD) cloud.
+                <br/><br/>
+                On this page you can find 920,625 entities from the 2015-10 edition of English DBpedia with their
+                corresponding alignments to Twitter profiles. In order to produce such amount of alignments we have
+                designed a scalable approach that consists of a query strategy for the Twitter search API to populate
+                the list of candidates and a machine learning-based model to select the best possible candidate.
+                Intermediate results such as the list of candidates and the scores are included in the resource as well.
+                <br/><br/>
+                This is still work in progress and we will update the released resource as well as release more
+                alignments for different versions of DBpedia and different social media websites. The code will also be
+                released.
+                <br/><br/>
+                All data and code on this website is licenced under a <a href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International license</a>
+            </div>
+        </div>
+        <div class="row content hidden" id="cite" role="tabpanel">
+            <div class="col-md-12" style="margin-bottom: 10px">
+                The paper is not yet published. However, you can read the draft version <a href="http://alignments.futuro.media/paper.pdf">here</a>
+                <br/><br/>
+                To cite please use the following bibtex entry:
+            </div>
+            <div class="col-md-12">
+                <pre>
+                    <code>
+@misc{alignments,
+   author = {Yaroslav Nechaev and Francesco Corcoglioniti and Claudio Giuliano},
+   title = {Linking knowledge bases to social media profiles},
+   year = {2016},
+   abstract = {Social media have become an invaluable source of data for a wide variety of tasks. Unfortunately, this data is hard to gather and process due to low amount of machine readable attributes, API limitations and noisiness. In this paper we propose a system that aligns knowledge base entries of people and organisations to the corresponding social media profiles. The motivation is twofold: (1) on the one hand, we facilitate processing of social media data by allowing the import of rich entity descriptions from knowledge bases, (2) on the other hand, we are enabling an automatic enrichment of a knowledge base with additional data from the social media. We used this system to create the resource of almost a million alignments between DBpedia entities and Twitter profiles. This resource allows, effectively, to connect Twitter to the Linked Open Data cloud.},
+   url = {http://alignments.futuro.media}
+}</code>
+                </pre>
+            </div>
+        </div>
+        <div class="row content hidden" id="download" role="tabpanel">
+            <div class="col-md-12">
+                <div class="row">
+                    <h5>Releases</h5>
+                </div>
+                <div class="row">
+                    <h6>Latest release</h6>
+                </div>
+                <div class="row dataset">
+                    <div class="col-xs-12" style="min-width: 655px">
+                        <div class="row">
+                            <div class="col-md-1 description">
+                                Alignments DBpedia -> Twitter
+                            </div>
+                            <div class="col-md-1 version">
+                                Version: v0.6-beta
+                            </div>
+                            <div class="col-md-1 timestamp">
+                                8 September 2016
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 minilinks">
+                                <a class="nav-link" href="http://alignments.futuro.media/v0.6/resource.ttl.gz">[RDF]</a>
+                                <a class="nav-link" href="http://alignments.futuro.media/v0.6/resource.json.gz">[JSON]</a>
+                                <a class="nav-link" href="http://alignments.futuro.media/v0.6/resource.pretty.json.gz">[JSON (pretty)]</a>
+                                <a class="nav-link" href="http://alignments.futuro.media/v0.6/resource.csv.gz">[CSV]</a>
+                                <a class="nav-link" href="http://alignments.futuro.media/v0.6/changelog.txt">[changelog]</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row dataset">
+                    <div class="col-xs-12" style="min-width: 655px">
+                        <div class="row">
+                            <div class="col-md-5 description">
+                                Gold Standard DBpedia -> Twitter
+                            </div>
+                            <div class="col-md-3 version">
+                                Version: v1.0-beta
+                            </div>
+                            <div class="col-md-4 timestamp">
+                                25 August 2016
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 minilinks">
+                                <!-- <a class="nav-link" href="#">[RDF]</a> -->
+                                <a class="nav-link" href="http://alignments.futuro.media/v1.0/gold.csv.gz">[CSV]</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row" style="margin-top: 20px">
+                    <h6>Previous releases</h6>
+                </div>
+                <div class="row dataset">
+                    <div class="col-xs-12" style="min-width: 655px">
+                        <div class="row">
+                            <div class="col-md-1 description">
+                                Alignments DBpedia -> Twitter
+                            </div>
+                            <div class="col-md-1 version">
+                                Version: v0.5-beta
+                            </div>
+                            <div class="col-md-1 timestamp">
+                                30 August 2016
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 minilinks">
+                                <a class="nav-link" href="http://alignments.futuro.media/v0.5/resource.ttl.gz">[RDF]</a>
+                                <a class="nav-link" href="http://alignments.futuro.media/v0.5/resource.json.gz">[JSON]</a>
+                                <a class="nav-link" href="http://alignments.futuro.media/v0.5/resource.pretty.json.gz">[JSON (pretty)]</a>
+                                <a class="nav-link" href="http://alignments.futuro.media/v0.5/resource.csv.gz">[CSV]</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row dataset">
+                    <div class="col-xs-12" style="min-width: 655px">
+                        <div class="row">
+                            <div class="col-md-1 description">
+                                Alignments DBpedia -> Twitter
+                            </div>
+                            <div class="col-md-1 version">
+                                Version: v0.1-alpha
+                            </div>
+                            <div class="col-md-1 timestamp">
+                                25 August 2016
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 minilinks">
+                                <!-- <a class="nav-link" href="#">[RDF]</a> -->
+                                <a class="nav-link" href="http://alignments.futuro.media/v0.1/resource.json.gz">[JSON]</a>
+                                <a class="nav-link" href="http://alignments.futuro.media/v0.1/resource.csv.gz">[CSV]</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row" style="margin-top: 40px">
+                    <h5>Format descriptions</h5>
+                </div>
+                <div class="row format-descriptions">
+                    <h6><a href="#desc-json" class="toggle">JSON</a></h6>
+                </div>
+                <div class="row" id="desc-json">
+                    <div class="col-xs-12" style="text-align: justify;">
+                        <p>
+                            JSON file is a single array containing an object for each DBpedia entity with similar structure:
+                        </p>
+                        <pre><code>{
+  "entity_uri": "http://dbpedia.org/resource/Alex_Gough_(luger)",
+  "candidates": [
+    344383738,
+    615071998,
+    14265520,
+    23833648,
+    ...
+  ],
+  "scores": [
+    1.5554074239158626,
+    0.0,
+    0.0,
+    0.0,
+    ...
+  ],
+  "twitter_id": 344383738
+}</code></pre>
+                        <p>
+                            <br/>Where <code>candidates</code> property contain the list of candidate IDs for each entity,
+                            while <code>scores</code> property contains a confidence score for each candidate
+                            reported by our candidate selection algorithm.
+                        </p>
+                        <p>
+                            <code>twitter_id</code> might be present in case a certain threshold is met (thresholds are
+                            selected according to the high F1 setup from our paper)
+                        </p>
+                    </div>
+                </div>
+                <div class="row format-descriptions">
+                    <h6><a href="#desc-rdf" class="toggle">RDF</a></h6>
+                </div>
+                <div class="row" id="desc-rdf">
+                    <div class="col-xs-12" style="text-align: justify;">
+                        <p>
+                            Each DBpedia entity is associated to an RDF fragment similar to the one reported below,
+                            reusing terms from <a href="http://xmlns.com/foaf/spec/">FOAF</a>, <a href="http://dublincore.org/documents/dcmi-terms/">Dublin Core Terms</a>
+                            , and <a href="https://www.w3.org/TR/prov-o/">PROV-O</a>:
+                        </p>
+                        <pre><code>@prefix dct: &lt;http://purl.org/dc/terms/&gt; .
+    @prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt; .
+    @prefix prov: &lt;http://www.w3.org/ns/prov#&gt; .
+    @prefix : &lt;http://alignments.futuro.media/ontology#&gt; .
+
+    &lt;http://dbpedia.org/resource/AC/DC&gt;
+            foaf:account &lt;http://twitter.com/acdc&gt;;
+            :twitterSource :StrictStrategy;
+            :twitterCandidate [ :account &lt;http://twitter.com/acdc&gt;; :rank "0"^^xsd:int; :confidence "2.877776745385853"^^xsd:double ];
+            :twitterCandidate [ :account &lt;http://twitter.com/AC_DC_Twivia&gt;; :rank "1"^^xsd:int; :confidence "0.6037499606664944"^^xsd:double ];
+            :twitterCandidate [ :account &lt;http://twitter.com/ACDC_BRASIL&gt;; :rank "2"^^xsd:int; :confidence "0.02792038279804432"^^xsd:double ];
+            :twitterCandidate [ :account &lt;http://twitter.com/AC_DC&gt;; :rank "3"^^xsd:int; :confidence "0.4462205906993879"^^xsd:double ];
+            ...
+    </code></pre>
+                        <p>
+                            <br/>Property <code>foaf:account</code> links the DBpedia entity (<code>dbpedia:AC/DC</code>) to
+                            the corresponding Twitter profile as selected by our automatic approach (if any). The profile
+                            (<code>@acdc</code>) is identified through the URI of the user homepage on Twitter, coherently with FOAF.
+                        </p>
+                        <p>
+                            Property <code>twitterSource</code> specifies if and how the twitter profile linked to
+                            an entity was selected (in the example, using the <code> :StrictStrategy</code>, one of
+                            the strategies used in our approach).
+                        </p>
+                        <p>
+                            Property <code>twitterCandidate</code>links an entity to all the candidate profiles found
+                            by our approach, among which the aligned one was selected. For each candidate, property
+                            <code>account</code>specifies the corresponding Twitter profile, while properties
+                            <code>:rank</code> and <code>:confidence</code> provide, respectively, the rank of that
+                            candidate profile in the results provided by the Twitter Search API, and the alignment
+                            confidence computed by our approach, based on which the aligned profile is chosen
+                            (if certain thresholds are met).
+                        </p>
+                        <p>
+                            For each Twitter profile (note that profiles can appear as candidates for multiple DBpedia
+                            entities) we provide additional information as follows:
+                        </p>
+                        <pre><code>&lt;http://twitter.com/acdc&gt; a foaf:OnlineAccount; foaf:accountName "acdc"^^xsd:string; dct:identifier "2836755090"^^xsd:long.</code></pre>
+                        <p>
+                            Here, the Twitter account is typed as a <code>foaf:OnlineAccount</code>, property <code>foaf:accountName</code>
+                            specifies the Twitter screen name for the profile (actually redundant but mandated by FOAF), while property
+                            <code>dct:identifier</code> provides the Twitter unique, immutable, numeric identifier associated to the profile.
+                        </p>
+                    </div>
+                </div>
+                <div class="row format-descriptions">
+                    <h6><a href="#desc-csv" class="toggle">CSV</a></h6>
+                </div>
+                <div class="row" id="desc-csv">
+                    <div class="col-xs-12" style="text-align: justify">
+                        <p>Finally, for each row of our CSV file contains info about a certain entity. Each row looks like this:</p>
+                        <pre><code>http://dbpedia.org/resource/MoShang,"[6887052,26735153,302784580,1331809652,2275404837,2597365788,1516978014,753046765809508356,1512300530,255873440]","[1.579205048600787,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]",6887052</code></pre>
+                        <p>
+                            <br/>The columns contain the same data as in JSON format. If the Twitter ID can't be determined — 0 is used in the last column instead.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12" style="width:665px;">
+                <a class="pull-right" rel="license" href="http://creativecommons.org/licenses/by/4.0/">
+                    <img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/80x15.png" />
+                </a>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12" style="width:665px;">
+                <a class="pull-right" rel="fbk" href="http://fbk.eu">
+                    <img alt="FBK logo" style="border:none" src="images/portraits/fbklogo.png" />
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.0.0/jquery.min.js" integrity="sha384-THPy051/pYDQGanwU6poAc/hOdQxjnOEXzbT+OuUAFqNqFjL+4IGLBgCJC3ZOShY" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.2.0/js/tether.min.js" integrity="sha384-Plbmg8JY28KFelvJVai01l8WyZzrYWG825m+cZ0eDDS1f7d/js6ikvy1+X+guPIB" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.3/js/bootstrap.min.js" integrity="sha384-ux8v3A6CPtOTqOzMKiuo3d/DomGaaClxFYdCu2HPMBEkf6x2xiDyJ7gkXU0MWwaD" crossorigin="anonymous"></script>
+    <script>
+        $('.format-descriptions a.toggle').click(function(e) {
+            e.preventDefault();
+            $($(this).attr('href')).toggleClass("hidden");
+        });
+        $('a.nav-link.tab').click(function(e) {
+            var curTabLink = $('a.nav-link.tab.active');
+            var newHref = $(this).attr('href');
+            e.preventDefault();
+            if (curTabLink.attr('href') == newHref) {
+                return;
+            }
+            var curTab = $(curTabLink.attr('href'));
+            var newTab = $(newHref);
+
+            curTabLink.removeClass('active');
+            $(this).addClass('active');
+            curTab.addClass('hidden');
+            newTab.removeClass('hidden');
+            location.hash = newHref;
+        });
+        $('#download').find('.nav-link').click(function() {
+            ga('send', 'event', [$(this).attr('href')], ['download']);
+        });
+        $(document).ready(function() {
+            var hash = location.hash;
+            var obj = $(hash);
+            if (obj.length > 0 && obj.hasClass('content')) {
+                $('a.nav-link.tab[href="'+hash+'"]').click();
+            }
+        });
+    </script>
+    <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-83206429-1', 'auto');
+        ga('send', 'pageview');
+
+    </script>
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function (d, w, c) {
+            (w[c] = w[c] || []).push(function() {
+                try {
+                    w.yaCounter39267940 = new Ya.Metrika({
+                        id:39267940,
+                        clickmap:true,
+                        trackLinks:true,
+                        accurateTrackBounce:true,
+                        webvisor:true,
+                        trackHash:true,
+                        ut:"noindex"
+                    });
+                } catch(e) { }
+            });
+
+            var n = d.getElementsByTagName("script")[0],
+                    s = d.createElement("script"),
+                    f = function () { n.parentNode.insertBefore(s, n); };
+            s.type = "text/javascript";
+            s.async = true;
+            s.src = "https://mc.yandex.ru/metrika/watch.js";
+
+            if (w.opera == "[object Opera]") {
+                d.addEventListener("DOMContentLoaded", f, false);
+            } else { f(); }
+        })(document, window, "yandex_metrika_callbacks");
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/39267940?ut=noindex" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->
+</body>
+</html>
