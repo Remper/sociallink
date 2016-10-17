@@ -12,5 +12,7 @@
         </Root>
         <Logger name="edu.stanford" level="warn" />
         <Logger name="twitter4j" level="info" />
+        <Logger name="com.lambdaworks.redis" level="info" />
+        <Logger name="io.netty" level="info" />
     </Loggers>
 </Configuration>

@@ -1,0 +1,29 @@
+<style>
+    .annotation-label {
+        font-weight: bold;
+    }
+</style>
+
+<div class="container" style="width:700px">
+    <div class="row">
+        <div class="col-md-3">
+            <p class="annotation-label">Text to annotate</p>
+        </div>
+        <div class="col-md-9">
+            <textarea class="form-control" rows="5" #searchArea>Barack Obama sat on a tree branch</textarea>
+        </div>
+    </div>
+    <div class="row" style="margin-top: 5px">
+        <div class="col-md-offset-9 col-md-3" style="text-align: right">
+            <button type="button" class="btn btn-xs btn-success" (click)="annotate(searchArea.value)">Annotate</button>
+        </div>
+    </div>
+    <div class="row" style="margin-top: 15px;" *ngIf="result != null">
+        <div class="col-md-3">
+            <p class="annotation-label">Result</p>
+        </div>
+        <div class="col-md-9">
+            {{ result }}
+        </div>
+    </div>
+</div>

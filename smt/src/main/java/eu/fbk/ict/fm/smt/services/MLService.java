@@ -3,6 +3,7 @@ package eu.fbk.ict.fm.smt.services;
 import eu.fbk.ict.fm.data.Configuration;
 import eu.fbk.ict.fm.data.DatasetRepository;
 import eu.fbk.ict.fm.data.dataset.FeatureMapping;
+import eu.fbk.ict.fm.data.ngrams.NGramsService;
 import eu.fbk.ict.fm.ml.TextSimilarity;
 import eu.fbk.ict.fm.ml.features.FeatureExtraction;
 import org.fbk.cit.hlt.core.analysis.stemmer.Stemmer;
@@ -26,6 +27,9 @@ public class MLService {
     @Inject
     private ResourcesService resources;
 
+    @Inject
+    private NGramsService ngrams;
+
     public FeatureExtraction provideFeatureExtraction() {
         FeatureExtraction extraction = new FeatureExtraction();
         extraction.setSparse(true);
@@ -48,8 +52,8 @@ public class MLService {
     public synchronized TextSimilarity provideTextSimilarity() throws Exception {
         if (similarity == null) {
             FeatureExtraction extraction = provideFeatureExtraction();
-            FeatureMapping mapping = resources.provideNGrams(new DatasetRepository(new Configuration()));
-            similarity = new TextSimilarity(extraction, mapping);
+            //FeatureMapping mapping = resources.provideNGrams(new DatasetRepository(new Configuration()));
+            similarity = new TextSimilarity(extraction, ngrams);
         }
         return similarity;
     }

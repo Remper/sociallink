@@ -188,6 +188,26 @@
             <artifactId>core</artifactId>
             <version>1.4.1</version>
         </dependency>
+
+        <!-- Redis -->
+        <dependency>
+            <groupId>biz.paluch.redis</groupId>
+            <artifactId>lettuce</artifactId>
+            <version>4.2.2.Final</version>
+        </dependency>
+
+        <!-- Stanford NLP -->
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>3.6.0</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>3.6.0</version>
+            <classifier>models</classifier>
+        </dependency>
     </dependencies>
 
     <properties>

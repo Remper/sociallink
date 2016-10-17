@@ -3,8 +3,8 @@
     <!-- Configure the database connection here -->
     <jdbc>
         <driver>com.mysql.jdbc.Driver</driver>
-        <url>jdbc:mysql://auster.fbk.eu:3306/alignments</url>
-        <user>twitter_dataset</user>
+        <url>jdbc:mysql://localhost/alignments</url>
+        <user>root</user>
         <password></password>
     </jdbc>
 

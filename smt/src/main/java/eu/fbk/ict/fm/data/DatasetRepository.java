@@ -27,6 +27,10 @@ public class DatasetRepository {
   Configuration conf;
   Map<String, DatasetMetaInfo> index = new HashMap<>();
 
+  public DatasetRepository() throws IOException {
+      this(new Configuration());
+  }
+
   @Inject
   public DatasetRepository(Configuration configuration) throws IOException {
     this.conf = configuration;

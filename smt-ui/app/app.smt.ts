@@ -1,13 +1,23 @@
-import { NgModule }      from '@angular/core';
+import { NgModule, Component }      from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { Navigation }    from './app.navigation';
+import { Navigation, TabBarElement }    from './app.navigation';
 import { CurrentUser }   from './app.cur.user';
 import { Profiles }      from './page/app.profiles';
+import { Annotate }      from "./page/app.annotate";
 import { HttpModule }    from "@angular/http";
+
+@Component({
+    selector: 'body',
+    template: '' +
+        '<smt-navigation #tab></smt-navigation>' +
+        '<smt-profiles *ngIf="tab.currentTab == \'profiles\'"></smt-profiles>' +
+        '<smt-annotate *ngIf="tab.currentTab == \'annotate\'"></smt-annotate>'
+})
+class CoreDirective { }
 
 @NgModule({
     imports:      [ BrowserModule, HttpModule ],
-    declarations: [ Navigation, CurrentUser, Profiles ],
-    bootstrap:    [ Navigation, Profiles ]
+    declarations: [ CoreDirective, Navigation, CurrentUser, Profiles, Annotate, TabBarElement ],
+    bootstrap:    [ CoreDirective ]
 })
 export class SMT { }

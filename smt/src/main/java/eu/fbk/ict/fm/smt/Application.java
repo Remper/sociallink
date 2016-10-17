@@ -1,8 +1,10 @@
 package eu.fbk.ict.fm.smt;
 
 import com.google.gson.Gson;
+import eu.fbk.ict.fm.data.ngrams.NGramsService;
+import eu.fbk.ict.fm.smt.filters.EncodingResponseFilter;
 import eu.fbk.ict.fm.smt.services.*;
-import eu.fbk.ict.fm.smt.util.CORSResponseFilter;
+import eu.fbk.ict.fm.smt.filters.CORSResponseFilter;
 import eu.fbk.ict.fm.smt.util.ConnectionFactory;
 import eu.fbk.ict.fm.smt.util.TwitterCredentials;
 import eu.fbk.ict.fm.smt.util.TwitterFactory;
@@ -16,13 +18,10 @@ import twitter4j.Twitter;
 
 import javax.inject.Singleton;
 import javax.sql.DataSource;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -36,18 +35,23 @@ public class Application {
     private static TwitterCredentials credentials;
     private static DataSource alignments;
     private static String sparqlLocation = "https://api.futuro.media/dbpedia/sparql";
+    private static String wikimachineEndpoint;
+    private static String ngramsEndpoint;
 
     public static void main(String[] args) throws URISyntaxException, FileNotFoundException {
         Configuration config = loadConfiguration(args);
         if (config == null) {
             return;
         }
+        ngramsEndpoint = config.ngramsEndpoint;
+        wikimachineEndpoint = config.wikimachineEndpoint;
         alignments = ConnectionFactory.getConf(config.connection);
         credentials = TwitterCredentials.credentialsFromFile(new File(config.credentials))[0];
 
         final ResourceConfig rc = new ResourceConfig().packages(Application.class.getPackage().getName());
         rc.register(new Binder());
         rc.register(new CORSResponseFilter());
+        rc.register(new EncodingResponseFilter());
         rc.register(new GenericExceptionMapper());
         URI uri = new URI(null, null, "0.0.0.0", config.port, null, null, null);
         final HttpServer httpServer =  GrizzlyHttpServerFactory.createHttpServer(uri, rc);
@@ -55,9 +59,7 @@ public class Application {
         try {
             httpServer.start();
             Thread.currentThread().join();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }
@@ -69,13 +71,18 @@ public class Application {
             bind(credentials).to(TwitterCredentials.class);
             bind(alignments).to(DataSource.class);
             bind(sparqlLocation).named("SPARQLEndpoint").to(String.class);
+            bind(ngramsEndpoint).named("NgramsEndpoint").to(String.class);
+            bind(wikimachineEndpoint).named("WikimachineEndpoint").to(String.class);
             bindFactory(TwitterFactory.class).to(Twitter.class);
             bindFactory(ConnectionFactory.class).to(ConnectionProvider.class).in(Singleton.class);
             bind(AlignmentsService.class).to(AlignmentsService.class);
             bind(TwitterService.class).to(TwitterService.class);
             bind(KBAccessService.class).to(KBAccessService.class).in(Singleton.class);
+            bind(WikimachineService.class).to(WikimachineService.class).in(Singleton.class);
+            bind(AnnotationService.class).to(AnnotationService.class).in(Singleton.class);
             bind(MLService.class).to(MLService.class).in(Singleton.class);
             bind(ResourcesService.class).to(ResourcesService.class).in(Singleton.class);
+            bind(NGramsService.class).to(NGramsService.class).in(Singleton.class);
         }
     }
 
@@ -160,6 +167,8 @@ public class Application {
         public Integer port;
         public String connection;
         public String credentials;
+        public String ngramsEndpoint = "redis://localhost:6379";
+        public String wikimachineEndpoint = "http://ml.apnetwork.it/annotate";
     }
 
     public static Configuration loadConfiguration(String[] args) {
@@ -176,6 +185,10 @@ public class Application {
                 Option.builder().desc("Serialized connection to the database")
                         .required().hasArg().argName("db").longOpt("db").build()
         );
+        options.addOption(
+                Option.builder().desc("NGrams endpoint")
+                        .required().hasArg().argName("uri").longOpt("ngrams").build()
+        );
 
         CommandLineParser parser = new DefaultParser();
         CommandLine line;
@@ -188,6 +201,9 @@ public class Application {
             config.port = Integer.valueOf(line.getOptionValue("port"));
             config.connection = line.getOptionValue("db");
             config.credentials = line.getOptionValue("credentials");
+            if (line.hasOption("ngrams")) {
+                config.ngramsEndpoint = line.getOptionValue("ngrams");
+            }
             return config;
         } catch (ParseException exp) {
             // oops, something went wrong
