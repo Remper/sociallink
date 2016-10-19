@@ -38,6 +38,7 @@ public class Application {
     private static String sparqlLocation = "https://api.futuro.media/dbpedia/sparql";
     private static String wikimachineEndpoint;
     private static String ngramsEndpoint;
+    private static String lsaFilename;
     private static Scaler scaler;
     private static ModelEndpoint modelEndpoint;
 
@@ -53,6 +54,7 @@ public class Application {
         credentials = TwitterCredentials.credentialsFromFile(new File(config.credentials))[0];
         scaler = gson.fromJson(new FileReader(new File(config.scaler)), Scaler.class);
         modelEndpoint = new ModelEndpoint(config.modelEndpoint, 5000);
+        lsaFilename = config.lsaFilename;
 
         final ResourceConfig rc = new ResourceConfig().packages(Application.class.getPackage().getName());
         rc.register(new Binder());
@@ -79,6 +81,7 @@ public class Application {
             bind(sparqlLocation).named("SPARQLEndpoint").to(String.class);
             bind(ngramsEndpoint).named("NgramsEndpoint").to(String.class);
             bind(wikimachineEndpoint).named("WikimachineEndpoint").to(String.class);
+            bind(lsaFilename).named("lsaFilename").to(String.class);
             bind(scaler).to(Scaler.class);
             bind(modelEndpoint).to(ModelEndpoint.class);
             bindFactory(TwitterFactory.class).to(Twitter.class);
@@ -180,6 +183,7 @@ public class Application {
         public String ngramsEndpoint = "redis://localhost:6379";
         public String wikimachineEndpoint = "http://ml.apnetwork.it/annotate";
         public String modelEndpoint = "localhost";
+        public String lsaFilename;
     }
 
     public static Configuration loadConfiguration(String[] args) {
@@ -202,11 +206,15 @@ public class Application {
         );
         options.addOption(
                 Option.builder().desc("Model endpoint")
-                        .required().hasArg().argName("uri").longOpt("model").build()
+                        .hasArg().argName("uri").longOpt("model").build()
         );
         options.addOption(
                 Option.builder().desc("Scaler serialisation")
                         .required().hasArg().argName("file").longOpt("scaler").build()
+        );
+        options.addOption(
+                Option.builder().desc("LSA root filename")
+                        .required().hasArg().argName("file").longOpt("lsa").build()
         );
 
         CommandLineParser parser = new DefaultParser();
@@ -220,8 +228,11 @@ public class Application {
             config.port = Integer.valueOf(line.getOptionValue("port"));
             config.connection = line.getOptionValue("db");
             config.credentials = line.getOptionValue("credentials");
-            config.modelEndpoint = line.getOptionValue("model");
             config.scaler = line.getOptionValue("scaler");
+            config.lsaFilename = line.getOptionValue("lsa");
+            if (line.hasOption("model")) {
+                config.modelEndpoint = line.getOptionValue("model");
+            }
             if (line.hasOption("ngrams")) {
                 config.ngramsEndpoint = line.getOptionValue("ngrams");
             }

@@ -45,7 +45,7 @@ public class MLService {
         return extraction;
     }
 
-    public synchronized TextSimilarity provideTextSimilarity() throws Exception {
+    public synchronized TextSimilarity provideTextSimilarity() {
         if (similarity == null) {
             FeatureExtraction extraction = provideFeatureExtraction();
             //FeatureMapping mapping = resources.provideNGrams(new DatasetRepository(new Configuration()));

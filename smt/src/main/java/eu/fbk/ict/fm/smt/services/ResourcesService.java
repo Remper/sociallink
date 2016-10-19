@@ -1,10 +1,10 @@
 package eu.fbk.ict.fm.smt.services;
 
-import eu.fbk.ict.fm.data.DatasetRepository;
-import eu.fbk.ict.fm.data.dataset.Binary;
-import eu.fbk.ict.fm.data.dataset.CSVDataset;
-import eu.fbk.ict.fm.data.dataset.Dataset;
-import eu.fbk.ict.fm.data.dataset.FeatureMapping;
+import eu.fbk.utils.data.DatasetRepository;
+import eu.fbk.utils.data.dataset.Binary;
+import eu.fbk.utils.data.dataset.CSVDataset;
+import eu.fbk.utils.data.dataset.Dataset;
+import eu.fbk.utils.data.dataset.bow.FeatureMapping;
 import org.jvnet.hk2.annotations.Service;
 
 import javax.inject.Singleton;

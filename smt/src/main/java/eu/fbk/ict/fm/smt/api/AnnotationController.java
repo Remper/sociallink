@@ -37,7 +37,83 @@ public class AnnotationController {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public String getAvailableDatasets(@QueryParam("text") String text) throws IOException, URISyntaxException {
+    @Path("ner")
+    public String annotateNerClass(@QueryParam("text") String text) {
+        List<CoreLabel> labels = annotationService.annotate(text).get(CoreAnnotations.TokensAnnotation.class);
+        if (labels.size() == 0) {
+            return new InvalidAttributeResponse("text").respond();
+        }
+
+        List<Annotation> response = new LinkedList<>();
+        Annotation last = null;
+        for (CoreLabel label : labels) {
+            if (last != null && isAllowedType(label.ner()) && last.nerClass.equals(label.ner())) {
+                last.token += " " + label.word();
+            } else {
+                last = new Annotation(label.word(), label.ner());
+                response.add(last);
+            }
+        }
+        return Response.success(response).respond();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("twitter")
+    public String annotateWithTwitter(@QueryParam("token") String token, @QueryParam("ner") String ner, @QueryParam("text") String text) {
+        List<String> errors = new LinkedList<>();
+        if (text.length() < 5 || (token != null && text.length() < token.length())) {
+            errors.add("text");
+        }
+        if (token == null || token.length() < 5) {
+            errors.add("token");
+        }
+        if (ner == null) {
+            errors.add("ner");
+        } else {
+            ner = ner.toUpperCase();
+            if (!isAllowedType(ner)) {
+                errors.add("ner");
+            }
+        }
+        if (errors.size() > 0) {
+            return new InvalidAttributeResponse(errors).respond();
+        }
+
+        DBpediaResource resource = toResource(new Annotation(token, ner), text);
+        List<User> candidates = onlineAlignmentsService.populateCandidates(resource);
+
+        SingleAnnotation response = new SingleAnnotation();
+        response.candidates = candidates;
+        response.token = token;
+        response.nerClass = ner;
+
+        Score alignment = new Score();
+        alignment.type = "alignment";
+        alignment.scores = onlineAlignmentsService.produceAlignment(resource, candidates);
+
+        Score bow = new Score();
+        bow.type = "bow";
+        bow.scores = onlineAlignmentsService.produceBasicSimilarity(resource, candidates);
+
+        OnlineAlignmentsService.LSASimilarity sim = onlineAlignmentsService.produceLSASimilarity(resource, candidates);
+
+        Score lsa = new Score();
+        lsa.type = "lsa";
+        lsa.scores = sim.lsa;
+
+        Score bow_reference = new Score();
+        bow_reference.type = "bow_reference";
+        bow_reference.scores = sim.vectorSim;
+
+        response.results = new Score[] {alignment, bow, lsa, bow_reference};
+
+        return Response.success(response).respond();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    public String annotatePipeline(@QueryParam("text") String text) throws IOException, URISyntaxException {
         List<CoreLabel> labels = annotationService.annotate(text).get(CoreAnnotations.TokensAnnotation.class);
         if (labels.size() == 0) {
             return new InvalidAttributeResponse("text").respond();
@@ -75,20 +151,12 @@ public class AnnotationController {
         }
 
         DBpediaResource tokenResource = toResource(annotation, text);
-        Map<User, Double> prediction = onlineAlignmentsService.produceAlignment(tokenResource);
+        List<User> candidates = onlineAlignmentsService.populateCandidates(tokenResource);
+        users.addAll(candidates);
         Alignment alignment = new Alignment();
-        alignment.candidates = convertPredictionsToResult(prediction, users);
+        alignment.candidates = onlineAlignmentsService.produceAlignment(tokenResource, candidates);
         alignment.query = onlineAlignmentsService.getQuery(tokenResource);
         annotation.alignment = alignment;
-    }
-
-    private static Map<String, Double> convertPredictionsToResult(Map<User, Double> prediction, Set<User> users) {
-        Map<String, Double> result = new HashMap<>();
-        for (Map.Entry<User, Double> entry : prediction.entrySet()) {
-            users.add(entry.getKey());
-            result.put(entry.getKey().getScreenName(), entry.getValue());
-        }
-        return result;
     }
 
     private static DBpediaResource toResource(Annotation annotation, String text) {
@@ -122,6 +190,18 @@ public class AnnotationController {
             this.nerClass = nerClass;
             this.alignment = null;
         }
+    }
+
+    private static class SingleAnnotation {
+        public List<User> candidates;
+        public String token;
+        public String nerClass;
+        public Score[] results;
+    }
+
+    private static class Score {
+        public String type;
+        public Map<String, Double> scores;
     }
 
     private static class Alignment {

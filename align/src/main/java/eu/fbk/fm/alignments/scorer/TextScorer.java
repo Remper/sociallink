@@ -92,7 +92,7 @@ public abstract class TextScorer implements FeatureProvider {
 
             FeatureMapping.Feature feature = mapping.lookup(token);
             if (feature != null) {
-                sum += Math.pow(feature.weight, 4.0d);
+                sum += Math.pow(feature.weight, 2.0d);
             }
         }
         return sum;
@@ -103,7 +103,7 @@ public abstract class TextScorer implements FeatureProvider {
         for (String token : text) {
             FeatureMapping.Feature feature = mapping.lookup(token);
             if (feature != null) {
-                sum += Math.pow(feature.weight, 2.0);
+                sum += Math.pow(feature.weight, 2.0d);
             }
         }
         return Math.sqrt(sum);
