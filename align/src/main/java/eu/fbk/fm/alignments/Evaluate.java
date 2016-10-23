@@ -11,7 +11,7 @@ import eu.fbk.fm.alignments.twitter.SearchRunner;
 import eu.fbk.fm.alignments.twitter.TwitterCredentials;
 import eu.fbk.fm.alignments.twitter.TwitterDeserializer;
 import eu.fbk.utils.core.Stopwatch;
-import eu.fbk.utils.eval.SimpleEvaluation;
+import eu.fbk.utils.eval.PrecisionRecall;
 import eu.fbk.utils.math.Scaler;
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVFormat;
@@ -345,13 +345,12 @@ public class Evaluate {
         IOUtils.closeQuietly(testSetWriter);
     }
 
-    public static class CustomEvaluation extends SimpleEvaluation {
-        private boolean awardFNwithFP = true;
+    public static class CustomEvaluation {
         private boolean alwaysFNwhenNoAlign = false;
+        private PrecisionRecall.Evaluator eval;
 
-        public CustomEvaluation oldEval() {
-            awardFNwithFP = false;
-            return this;
+        public CustomEvaluation() {
+            eval = PrecisionRecall.evaluator();
         }
 
         public CustomEvaluation joint() {
@@ -368,24 +367,40 @@ public class Evaluate {
                 //Prediction aligns
                 if (predicted >= 0) {
                     //Prediction points to exact candidate
-                    tp();
+                    eval.addTP();
                 } else if (alwaysFNwhenNoAlign) {
                     //Candidate not in the list (mistake in case of overall evaluation)
-                    fn();
+                    eval.addFN();
                 }
             } else {
                 //Prediction misaligns: mistake, there is a right candidate somewhere
                 if (predicted >= 0) {
                     //Wrong prediction (not abstain). Counts as two errors
-                    fp();
+                    eval.addFP();
                     if (alwaysFNwhenNoAlign || trueValue != -1) {
-                        fn();
+                        eval.addFN();
                     }
                 } else {
                     //Abstain. Always counts as false negative
-                    fn();
+                    eval.addFN();
                 }
             }
+        }
+
+        public PrecisionRecall.Evaluator getEval() {
+            return eval;
+        }
+
+        public void printResult() {
+            PrecisionRecall result = eval.getResult();
+            logger.info(String.format("Precision: %6.2f%%", result.getPrecision()*100));
+            logger.info(String.format("Recall:    %6.2f%%", result.getRecall()*100));
+            logger.info(String.format("F1:        %6.2f%%", result.getF1()*100));
+        }
+
+        public String printOneliner() {
+            PrecisionRecall result = eval.getResult();
+            return String.format("%.4f\t%.4f\t%.4f", result.getPrecision(), result.getRecall(), result.getF1());
         }
     }
 
@@ -438,10 +453,10 @@ public class Evaluate {
                 if (joint) {
                     for (int i = 0; i < gridScore; i++) {
                         for (int j = 0; j < gridImp; j++) {
-                            nnEvals[i * gridImp + j].fn();
+                            nnEvals[i * gridImp + j].getEval().addFN();
                         }
                     }
-                    baselineStats.fn();
+                    baselineStats.getEval().addFN();
                 }
                 continue;
             }

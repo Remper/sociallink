@@ -1,14 +1,17 @@
 package eu.fbk.ict.fm.smt.services;
 
-import eu.fbk.fm.ml.TextSimilarity;
+import eu.fbk.fm.alignments.scorer.text.*;
 import eu.fbk.fm.ml.features.FeatureExtraction;
 import eu.fbk.utils.analysis.stemmer.Stemmer;
 import eu.fbk.utils.analysis.stemmer.StemmerFactory;
 import eu.fbk.utils.analysis.stemmer.StemmerNotFoundException;
+import eu.fbk.utils.lsa.LSM;
 import org.jvnet.hk2.annotations.Service;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
+import java.io.IOException;
 
 /**
  * Provides machine learning related objects
@@ -18,13 +21,16 @@ import javax.inject.Singleton;
 @Service @Singleton
 public class MLService {
     private boolean turnOffStemmer = true;
-    private TextSimilarity similarity = null;
-
-    @Inject
-    private ResourcesService resources;
+    private VectorProvider bowProvider = null;
+    private VectorProvider lsaProvider = null;
+    private VectorProvider bowClaudioProvider = null;
 
     @Inject
     private NGramsService ngrams;
+
+    @Inject
+    @Named("lsaFilename")
+    private String lsaFilename;
 
     public FeatureExtraction provideFeatureExtraction() {
         FeatureExtraction extraction = new FeatureExtraction();
@@ -45,17 +51,51 @@ public class MLService {
         return extraction;
     }
 
-    public synchronized TextSimilarity provideTextSimilarity() {
-        if (similarity == null) {
-            FeatureExtraction extraction = provideFeatureExtraction();
-            //FeatureMapping mapping = resources.provideNGrams(new DatasetRepository(new Configuration()));
-            similarity = new TextSimilarity(extraction, ngrams);
+    public synchronized void initLSA() throws IOException {
+        if (lsaProvider == null) {
+            LSAVectorProvider lsaProvider = new LSAVectorProvider(new LSM(lsaFilename, 100, true));
+            this.lsaProvider = lsaProvider;
+            this.bowClaudioProvider = lsaProvider.getBOWProvider();
         }
-        return similarity;
+    }
+
+    public synchronized void initBOW() {
+        if (bowProvider == null) {
+            bowProvider = new BOWVectorProvider(provideFeatureExtraction(), ngrams);
+        }
+    }
+
+    public synchronized VectorProvider provideBOWVectors() {
+        initBOW();
+        return bowProvider;
+    }
+
+    public VectorProvider provideLSAVectors() throws IOException {
+        initLSA();
+        return lsaProvider;
+    }
+
+    public VectorProvider provideBOWClaudioVectors() throws IOException {
+        initLSA();
+        return bowClaudioProvider;
+    }
+
+    public SimilarityScorer[] getScorers() throws IOException {
+        initLSA();
+        initBOW();
+        return new SimilarityScorer[]{
+            new CosineScorer(bowProvider.debug()),
+            new CosineScorer(lsaProvider.debug()),
+            new CosineScorer(bowClaudioProvider.debug())
+        };
     }
 
     public MLService turnOffStemmer() {
         turnOffStemmer = true;
         return this;
+    }
+
+    public NGramsService getNgrams() {
+        return ngrams;
     }
 }

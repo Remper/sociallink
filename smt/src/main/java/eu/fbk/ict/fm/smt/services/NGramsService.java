@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 @Service
 @Singleton
 public class NGramsService implements FeatureMappingInterface {
-    private final static Logger logger = LoggerFactory.getLogger(eu.fbk.fm.alignments.persistence.NGramsService.class);
+    private final static Logger logger = LoggerFactory.getLogger(NGramsService.class);
     private final static int BATCH_SIZE = 1000;
 
     private String endpointUri;
@@ -132,7 +132,7 @@ public class NGramsService implements FeatureMappingInterface {
             return;
         }
 
-        eu.fbk.fm.alignments.persistence.NGramsService service = new eu.fbk.fm.alignments.persistence.NGramsService(config.endpoint);
+        NGramsService service = new NGramsService(config.endpoint);
         service.restoreFromDataset();
         service.close();
     }
@@ -172,7 +172,7 @@ public class NGramsService implements FeatureMappingInterface {
         HelpFormatter formatter = new HelpFormatter();
         formatter.printHelp(
                 200,
-                "java -Dfile.encoding=UTF-8 "+ eu.fbk.fm.alignments.persistence.NGramsService.class.getName(),
+                "java -Dfile.encoding=UTF-8 " + NGramsService.class.getName(),
                 "\n",
                 options,
                 "\n",

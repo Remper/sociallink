@@ -1,5 +1,8 @@
 package eu.fbk.ict.fm.smt.api;
 
+import eu.fbk.fm.alignments.scorer.TextScorer;
+import eu.fbk.fm.alignments.scorer.text.CosineScorer;
+import eu.fbk.fm.alignments.scorer.text.SimilarityScorer;
 import eu.fbk.ict.fm.smt.services.MLService;
 import eu.fbk.ict.fm.smt.services.ResourcesService;
 import eu.fbk.ict.fm.smt.services.TwitterService;
@@ -73,8 +76,10 @@ public class ProfilesController {
         }
 
         TreeMap<Double, List<ScoredUser>> scoredUsers = new TreeMap<>();
+        SimilarityScorer scorer = new CosineScorer(mlService.provideLSAVectors());
+        TextScorer textScorer = new TextScorer(scorer);
         for (User curUser : result) {
-            double score = mlService.provideTextSimilarity().matchOnTexts(curUser, topic);
+            double score = scorer.score(textScorer.getUserText(curUser), topic);
             if (score > 0.0d) {
                 List<ScoredUser> users = scoredUsers.getOrDefault(score, new LinkedList<>());
                 users.add(new ScoredUser(curUser, score));

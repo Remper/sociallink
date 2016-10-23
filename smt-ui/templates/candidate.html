@@ -1,0 +1,3 @@
+<td>{{candidate.name}}</td>
+<td>{{candidate.screenName}}</td>
+<td *ngFor="let score of scores" (click)="scoreClick(score)">{{score.score.toFixed(2)}}</td>

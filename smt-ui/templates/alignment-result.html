@@ -1,24 +1,8 @@
-<span style="display: inline-block; padding-right: 3px;">
-    <span [class]="'token '+getClassName()"
-      (mouseenter)="annotation.show = true"
-      (mouseleave)="annotation.show = false">{{annotation.token}}</span>
+<style>
+    .token {
+        margin-right: 0.5em;
+        cursor: pointer;
+    }
+</style>
 
-    <div style="position: absolute; margin-left: 5px; margin-top: 5px; min-width: 300px" *ngIf="hasAlignment()" [hidden]="!annotation.show">
-        <div class="panel panel-default" style="height: 200px; overflow: hidden;">
-            <div class="panel-heading">
-                <h3 class="panel-title" style="overflow: hidden; white-space: nowrap;">
-                    {{annotation.user.name}}
-                    (<a href="https://twitter.com/{{annotation.user.screenName}}">@{{annotation.user.screenName}}</a>)
-                </h3>
-            </div>
-            <div class="panel-body">
-                <div class="pull-left" style="margin-right: 15px;">
-                    <img src="{{annotation.user.profileImageUrl}}" alt="user avatar" />
-                </div>
-                {{annotation.user.description}}
-                <p *ngIf="annotation.user.status != null">{{annotation.user.status.text}}</p>
-                <p *ngIf="annotation.user.location != null">{{annotation.user.location}}</p>
-            </div>
-        </div>
-    </div>
-</span>
+<span [class]="'token '+getClassName()" (click)="selectAnnotation()">{{annotation.token}}</span>

@@ -3,6 +3,8 @@ package eu.fbk.ict.fm.smt.api;
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
 import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.ict.fm.smt.model.Score;
+import eu.fbk.ict.fm.smt.model.ScoreBundle;
 import eu.fbk.ict.fm.smt.services.AnnotationService;
 import eu.fbk.ict.fm.smt.services.OnlineAlignmentsService;
 import eu.fbk.ict.fm.smt.services.WikimachineService;
@@ -84,29 +86,13 @@ public class AnnotationController {
         List<User> candidates = onlineAlignmentsService.populateCandidates(resource);
 
         SingleAnnotation response = new SingleAnnotation();
-        response.candidates = candidates;
+        response.candidates = new HashMap<>();
+        for (User candidate : candidates) {
+            response.candidates.put(candidate.getScreenName(), candidate);
+        }
         response.token = token;
         response.nerClass = ner;
-
-        Score alignment = new Score();
-        alignment.type = "alignment";
-        alignment.scores = onlineAlignmentsService.produceAlignment(resource, candidates);
-
-        Score bow = new Score();
-        bow.type = "bow";
-        bow.scores = onlineAlignmentsService.produceBasicSimilarity(resource, candidates);
-
-        OnlineAlignmentsService.LSASimilarity sim = onlineAlignmentsService.produceLSASimilarity(resource, candidates);
-
-        Score lsa = new Score();
-        lsa.type = "lsa";
-        lsa.scores = sim.lsa;
-
-        Score bow_reference = new Score();
-        bow_reference.type = "bow_reference";
-        bow_reference.scores = sim.vectorSim;
-
-        response.results = new Score[] {alignment, bow, lsa, bow_reference};
+        response.results = onlineAlignmentsService.compare(resource, candidates);
 
         return Response.success(response).respond();
     }
@@ -193,19 +179,14 @@ public class AnnotationController {
     }
 
     private static class SingleAnnotation {
-        public List<User> candidates;
+        public Map<String, User> candidates;
         public String token;
         public String nerClass;
-        public Score[] results;
-    }
-
-    private static class Score {
-        public String type;
-        public Map<String, Double> scores;
+        public ScoreBundle[] results;
     }
 
     private static class Alignment {
         public String query;
-        public Map<String, Double> candidates;
+        public ScoreBundle candidates;
     }
 }

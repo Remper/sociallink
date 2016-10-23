@@ -1,17 +1,14 @@
 package eu.fbk.fm.alignments.scorer;
 
 import eu.fbk.fm.alignments.DBpediaResource;
-import eu.fbk.fm.ml.features.FeatureExtraction;
-import eu.fbk.utils.core.Stopwatch;
-import eu.fbk.utils.data.dataset.bow.FeatureMapping;
-import eu.fbk.utils.data.dataset.bow.FeatureMappingInterface;
+import eu.fbk.fm.alignments.scorer.text.SimilarityScorer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import twitter4j.User;
 
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
+
+import static eu.fbk.fm.alignments.scorer.TextScorer.Mode.*;
 
 /**
  * Scorer that concentrates multiple different fields from the profile and entity
@@ -19,16 +16,20 @@ import java.util.Set;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-public abstract class TextScorer implements FeatureProvider {
+public class TextScorer implements FeatureProvider {
     private static final Logger logger = LoggerFactory.getLogger(TextScorer.class);
 
-    private FeatureExtraction extractor;
-    private FeatureMappingInterface mapping;
-    private boolean includeStatus = true;
+    public enum Mode {
+        ALL, UNIFIED;
+    }
 
-    public TextScorer(FeatureExtraction extractor, FeatureMappingInterface mapping) {
-        this.extractor = extractor;
-        this.mapping = mapping;
+    private SimilarityScorer scorer;
+
+    private boolean includeStatus = true;
+    private Mode mode = ALL;
+
+    public TextScorer(SimilarityScorer scorer) {
+        this.scorer = scorer;
     }
 
     public TextScorer statusOff() {
@@ -36,80 +37,17 @@ public abstract class TextScorer implements FeatureProvider {
         return this;
     }
 
-    @Override
-    public abstract double getFeature(User user, DBpediaResource resource);
-
-    protected double matchOnTexts(User user, String text) {
-        return matchOnTexts(user, new LinkedList<String>() {{
-            add(text);
-        }});
+    public TextScorer all() {
+        mode = ALL;
+        return this;
     }
 
-    protected double matchOnTexts(User user, List<String> texts) {
-        Stopwatch watch = Stopwatch.start();
-        double maxMatch = 0.0d;
-
-        for (String candidate : texts) {
-            double score = getTextScore(user, candidate);
-            if (score > maxMatch) {
-                maxMatch = score;
-            }
-        }
-        if (logger.isDebugEnabled() && maxMatch > 0.0d && texts.size() > 1) {
-            logger.debug(String.format("Matching done in %.2f seconds, result: %.2f (%d texts)",
-                    (double) watch.click() / 1000,
-                    maxMatch,
-                    texts.size()));
-        }
-
-        return maxMatch;
+    public TextScorer unified() {
+        mode = UNIFIED;
+        return this;
     }
 
-    protected double getTextScore(User user, String text) {
-        String userText = getUserText(user);
-
-        return similarity(
-                extractor.extract(userText),
-                extractor.extract(text)
-        );
-    }
-
-    protected double similarity(Set<String> text1, Set<String> text2) {
-        //Compute similarity based on the remaining tokens
-        double norm = norm(text1) * norm(text2);
-        if (norm == 0.0d) {
-            return 0.0d;
-        }
-        return dot(text1, text2) / norm;
-    }
-
-    protected double dot(Set<String> text1, Set<String> text2) {
-        double sum = 0.0d;
-        for (String token : text1) {
-            if (!text2.contains(token)) {
-                continue;
-            }
-
-            FeatureMapping.Feature feature = mapping.lookup(token);
-            if (feature != null) {
-                sum += Math.pow(feature.weight, 2.0d);
-            }
-        }
-        return sum;
-    }
-
-    protected double norm(Set<String> text) {
-        double sum = 0.0d;
-        for (String token : text) {
-            FeatureMapping.Feature feature = mapping.lookup(token);
-            if (feature != null) {
-                sum += Math.pow(feature.weight, 2.0d);
-            }
-        }
-        return Math.sqrt(sum);
-    }
-
-    private String getUserText(User user) {
+    public String getUserText(User user) {
         StringBuilder userText = new StringBuilder();
         if (user.getDescription() != null) {
             userText.append(user.getDescription());
@@ -125,51 +63,27 @@ public abstract class TextScorer implements FeatureProvider {
         return userText.toString().trim();
     }
 
-    public static class Abstract extends TextScorer {
-        public Abstract(FeatureExtraction extractor, FeatureMappingInterface mapping) {
-            super(extractor, mapping);
-        }
+    public List<String> getResourceTexts(DBpediaResource resource) {
+        List<String> texts = resource.getProperty(DBpediaResource.ABSTRACT_PROPERTY);
+        texts.addAll(resource.getProperty(DBpediaResource.COMMENT_PROPERTY));
 
-        @Override
-        public double getFeature(User user, DBpediaResource resource) {
-            return matchOnTexts(user, resource.getProperty(DBpediaResource.ABSTRACT_PROPERTY));
-        }
+        return texts;
     }
 
-    public static class Comment extends TextScorer {
-        public Comment(FeatureExtraction extractor, FeatureMappingInterface mapping) {
-            super(extractor, mapping);
+    @Override
+    public double getFeature(User user, DBpediaResource resource) {
+        List<String> resourceTexts = getResourceTexts(resource);
+        if (mode == ALL) {
+            return this.scorer.score(getUserText(user), String.join(" ", resourceTexts));
         }
 
-        @Override
-        public double getFeature(User user, DBpediaResource resource) {
-            return matchOnTexts(user, resource.getProperty(DBpediaResource.COMMENT_PROPERTY));
+        double topScore = 0.0d;
+        for (String text : resourceTexts) {
+            double curScore = this.scorer.score(getUserText(user), text);
+            if (curScore > topScore) {
+                topScore = curScore;
+            }
         }
-    }
-
-    public static class All extends TextScorer {
-        public All(FeatureExtraction extractor, FeatureMappingInterface mapping) {
-            super(extractor, mapping);
-        }
-
-        @Override
-        public double getFeature(User user, DBpediaResource resource) {
-            List<String> texts = resource.getProperty(DBpediaResource.ABSTRACT_PROPERTY);
-            texts.addAll(resource.getProperty(DBpediaResource.COMMENT_PROPERTY));
-            return matchOnTexts(user, texts);
-        }
-    }
-
-    public static class Unified extends TextScorer {
-        public Unified(FeatureExtraction extractor, FeatureMappingInterface mapping) {
-            super(extractor, mapping);
-        }
-
-        @Override
-        public double getFeature(User user, DBpediaResource resource) {
-            List<String> texts = resource.getProperty(DBpediaResource.ABSTRACT_PROPERTY);
-            texts.addAll(resource.getProperty(DBpediaResource.COMMENT_PROPERTY));
-            return matchOnTexts(user, String.join(" ", texts));
-        }
+        return topScore;
     }
 }

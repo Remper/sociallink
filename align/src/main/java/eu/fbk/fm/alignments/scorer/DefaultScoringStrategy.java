@@ -1,5 +1,8 @@
 package eu.fbk.fm.alignments.scorer;
 
+import eu.fbk.fm.alignments.scorer.text.BOWVectorProvider;
+import eu.fbk.fm.alignments.scorer.text.CosineScorer;
+import eu.fbk.fm.alignments.scorer.text.SimilarityScorer;
 import eu.fbk.fm.alignments.utils.MLService;
 import eu.fbk.fm.alignments.utils.ResourcesService;
 import eu.fbk.fm.ml.features.FeatureExtraction;
@@ -107,19 +110,19 @@ public class DefaultScoringStrategy implements ScoringStrategy {
                     .turnOffStemmer()
                     .provideFeatureExtraction();
             if (mapping == null) {
-                mapping = provider
-                        .provideNGrams(repository);
+                mapping = provider.provideNGrams(repository);
             }
+            SimilarityScorer scorer = new CosineScorer(new BOWVectorProvider(extraction, mapping));
             providers = new FeatureProvider[]{
                     new VerifiedScorer(),
                     new NameScorer(),
                     new NameScorer(new JaroWinklerDistance()),
                     new NameScorer.ScreenNameScorer(new JaroWinklerDistance()),
                     //new DescriptionScorer(new MLProvider().provideFeatureExtraction()),
-                    new TextScorer.All(extraction, mapping),
-                    new TextScorer.Unified(extraction, mapping),
-                    new TextScorer.All(extraction, mapping).statusOff(),
-                    new TextScorer.Unified(extraction, mapping).statusOff(),
+                    new TextScorer(scorer).all(),
+                    new TextScorer(scorer).unified(),
+                    new TextScorer(scorer).all().statusOff(),
+                    new TextScorer(scorer).unified().statusOff(),
                     new FollowersFriendsRatioScorer(),
                     new FriendsScorer(),
                     new FollowersScorer(),

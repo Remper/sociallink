@@ -1,18 +1,31 @@
 <style>
-    .annotation-label {
+    .pipeline-label {
         font-weight: bold;
+        text-align: right;
     }
-    .token {
-        margin-right: 1em;
+
+    .results {
+        font-size: 0.8em;
+        line-height: 2;
+    }
+
+    .entity-label {
+        font-weight: bold;
+        text-align: right;
+        min-width: 95px;
+    }
+
+    .entity-desc {
+        max-width: 430px;
     }
 </style>
 
 <div class="container" style="width:700px">
     <div class="row">
-        <div class="col-md-3">
-            <p class="annotation-label">Text to annotate</p>
-        </div>
-        <div class="col-md-9">
+        <h4>Text to annotate</h4>
+    </div>
+    <div class="row">
+        <div class="col-md-12 results">
             <textarea class="form-control" rows="5" #searchArea>Born in Honolulu, Hawaii, Obama is a graduate of Columbia University and Harvard Law School, where he served as president of the Harvard Law Review</textarea>
         </div>
     </div>
@@ -21,12 +34,50 @@
             <button type="button" class="btn btn-xs btn-success" (click)="annotate(searchArea.value)">Annotate</button>
         </div>
     </div>
-    <div class="row" style="margin-top: 15px;" *ngIf="result != null">
-        <div class="col-md-3">
-            <p class="annotation-label">Result</p>
+    <div class="row" *ngIf="annotations.length > 0">
+        <h4>NER annotation (Stanford NLP)</h4>
+    </div>
+    <div class="row" style="margin-top: 15px;" *ngIf="annotations.length > 0">
+        <div class="col-md-12 results">
+            <smt-alignment-result *ngFor="let annotation of annotations" [annotation]="annotation"
+                                  (selected)="selectAnnotation(searchArea.value, $event)"></smt-alignment-result>
         </div>
-        <div class="col-md-9">
-            <smt-alignment-result *ngFor="let annotation of result" [annotation]="annotation"></smt-alignment-result>
+    </div>
+    <div class="row" style="margin-top: 30px;" *ngIf="selectedAnnotation != null">
+        <div class="col-md-3" style="width: 135px;">
+            <p class="pipeline-label">Selected token:</p>
+        </div>
+        <div class="col-md-4">
+            {{selectedAnnotation.token}}
+        </div>
+    </div>
+    <div class="row" style="margin-top: 1px;" *ngIf="selectedAnnotation != null">
+        <div class="col-md-3" style="width: 135px;">
+            <p class="pipeline-label">Entity class:</p>
+        </div>
+        <div class="col-md-4">
+            {{selectedAnnotation.nerClass}}
+        </div>
+    </div>
+    <div class="row" *ngIf="twitterAnnotation != null">
+        <h4>Results</h4>
+    </div>
+    <div class="row" style="margin-top: 15px;" *ngIf="twitterAnnotation != null">
+        <div class="col-md-12 results">
+            <table class="table table-condensed">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th *ngFor="let scoreBundle of twitterAnnotation.results">{{getTypeName(scoreBundle.type)}}</th>
+                </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let candidate of annotationRepository" smt-candidate
+                       [candidate]="twitterAnnotation.candidates[candidate.username]"
+                       [scores]="candidate.scores"></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
