@@ -32,6 +32,9 @@ public class BOWVectorProvider implements VectorProvider {
 
         Set<String> termSet = extractor.extract(text);
         debug("bow", termSet);
+        if (termSet.size() == 0) {
+            return vector;
+        }
         List<FeatureMapping.Feature> features = mapping.lookup(termSet.stream().collect(Collectors.toList()));
         for (FeatureMapping.Feature token : features) {
             if (token == null) {

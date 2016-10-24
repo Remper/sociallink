@@ -17,6 +17,7 @@
                 <li *ngFor="let tab of tabs()" [class.active]="isCurTab(tab)">
                     <a [tab]="tab" (change)="changeTab($event)" href="#">{{tabsDict[tab]}}</a>
                 </li>
+                <li><a href="doc.html">Documentation</a></li>
             </ul>
             <smt-cur-user></smt-cur-user>
         </div><!-- /.navbar-collapse -->

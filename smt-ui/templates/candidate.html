@@ -1,3 +1,24 @@
-<td>{{candidate.name}}</td>
-<td>{{candidate.screenName}}</td>
-<td *ngFor="let score of scores" (click)="scoreClick(score)">{{score.score.toFixed(2)}}</td>
+<template [ngIf]="chosenScore == null">
+    <td>{{candidate.name}}</td>
+    <td><a href="https://twitter.com/{{candidate.screenName}}">@{{candidate.screenName}}</a></td>
+    <td *ngFor="let score of scores" (click)="scoreClick(score)" width="50px" style="cursor: pointer">{{score.score.toFixed(2)}}</td>
+</template>
+<template [ngIf]="chosenScore != null">
+    <td style="min-width: 100px">
+        <a href="https://twitter.com/{{candidate.screenName}}">@{{candidate.screenName}}</a><br/>
+        (<a href="#" (click)="resetScore()">close</a>)
+    </td>
+    <td [attr.colspan]="scores.length+1">
+        <div>
+            <b>Score: {{chosenScore.score.toFixed(2)}}</b>
+        </div>
+        <div style="margin-top: 10px">
+            <b>Text1 ({{chosenScore.debug.v1count}} non-zero tokens):</b><br/>
+            <span *ngFor="let token of chosenScore.debug.v1text2vec.bow">{{token}} </span>
+        </div>
+        <div style="margin-top: 10px">
+            <b>Text2 ({{chosenScore.debug.v2count}} non-zero tokens):</b><br/>
+            <span *ngFor="let token of chosenScore.debug.v2text2vec.bow">{{token}} </span>
+        </div>
+    </td>
+</template>

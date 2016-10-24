@@ -1,0 +1,118 @@
+FORMAT: 1A
+
+# Social Media Toolkit API
+
+Is used to access our annotation pipeline for the Social Media
+
+# Group Annotation
+
+## Annotate [/annotate{?text}]
+
+Get full annotation pipeline in one call
+
+### Annotate [GET]
+
+Will find ALL named entities in the supplied text, filter them by two allowed types: PERSON and ORGANISATION, find candidates for each one of them and calculate scores for all pairs candidate/entity. Very expensive method. Scores are based on the neural model from Nechaev et al. 2016 paper.
+
++ Parameters
+
+    + text: `Spain’s Socialist Party has voted to abstain` (string) - Text to annotate
+
++ Response 200 (application/json)
+
+    {"code":0,"message":"ok","data":{
+        "users":[{},{},{}],
+        "annotations":[
+            {"token":"Spain","nerClass":"LOCATION"},
+            {"token":"\u0027s","nerClass":"O"},
+            {"token":"Socialist Party","nerClass":"ORGANIZATION","alignment":{
+                "query":"Socialist Party",
+                "candidates":{
+                    "type":"alignments",
+                    "scores":[
+                        {"username":"SocialistParty","score":0.4373689591884613},
+                        {"username":"Socialist_party","score":9.060610851616764E-17},
+                        {"username":"SPofUSA","score":3.876144182868302E-5},
+                        {"username":"sp_australia","score":1.1662086102598278E-17},
+                        {"username":"SocialistAlt","score":0.993809163570404},
+                        {"username":"cwiscot","score":0.9999985694885254},
+                        {"username":"natsocialist","score":0.11410290747880936}
+                    ]
+                }
+            }},
+            {"token":"has","nerClass":"O"},
+            {"token":"voted","nerClass":"O"},
+            {"token":"to","nerClass":"O"},
+            {"token":"abstain","nerClass":"O"}
+        ]
+    }}
+
+## Named Entity Recognition [/annotate/ner{?text}]
+
+Perform Named Entity Recognition on the input text
+
+### Named Entity Recognition [GET]
+
+Will find all named entities in the supplied text using Stanford NLP and return
+
++ Parameters
+
+    + text: `Spain’s Socialist Party has voted to abstain` (string) - Text to annotate
+
++ Response 200 (application/json)
+
+    {"code":0,"message":"ok","data":[
+        {"token":"Spain","nerClass":"LOCATION"},
+        {"token":"\u0027s","nerClass":"O"},
+        {"token":"Socialist Party","nerClass":"ORGANIZATION"},
+        {"token":"has","nerClass":"O"},
+        {"token":"voted","nerClass":"O"},
+        {"token":"to","nerClass":"O"},
+        {"token":"abstain","nerClass":"O"}
+    ]}
+
+## Find&score candidates [/annotate/twitter{?text}{?token}{?ner}]
+
+Find and score candidates
+
+### Find&score candidates [GET]
+
+Find social media candidates for a chosen entity and annotate it with all the scoring pipelines we currently have
+
++ Parameters
+
+    + text: `Spain’s Socialist Party has voted to abstain` (string) - Text to annotate
+    + token: `Socialist Party`
+    + ner: `ORGANIZATION`
+
++ Response 200 (application/json)
+
+    {"code":0,"message":"ok","data":{
+        "candidates": {
+            "OfficialSPGB": {},
+            "RuthCoppingerTD": {},
+            "FabianPicardo": {},
+            "spiInfo":{},
+            "SocialistParty":{}
+        },
+        "token": "Socialist Party",
+        "nerClass": "ORGANIZATION",
+        "results": [
+            {"type": "cos_sim+bow", "scores":[
+                {"username": "SocialistParty", "score": 9.035624387155766E-5,"debug": {}},
+                {"username": "Socialist_party", "score": 3.110529742573281E-11,"debug": {}}
+            ]},
+            {"type": "cos_sim+lsa", "scores": [
+                {"username": "SocialistParty", "score": 0.8682903342377631,"debug": {}},
+                {"username": "Socialist_party", "score": 0.8381777239621209,"debug": {}}
+            ]},
+            {"type": "cos_sim+bow_claudio", "scores": [
+                {"username": "SocialistParty", "score": 0.17174917150634847, "debug": {}},
+                {"username": "Socialist_party", "score": 0.0, "debug": {}}
+            ]},
+            {"type": "alignments", "scores": [
+                {"username": "SocialistParty", "score": 0.9864358305931091},
+                {"username": "Socialist_party", "score": 0.6342363357543945}
+            ]}
+        ]
+    }}

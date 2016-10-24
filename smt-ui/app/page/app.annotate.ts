@@ -11,13 +11,27 @@ import {CandidatesService, NerAnnotation, TwitterAnnotation, Score, ScoreBundle}
 })
 export class CandidateRow implements OnInit {
     @Input() candidate : Object;
-    @Input() scores : Score;
+    @Input() scores : Score[];
+    private chosenScore : Score;
 
     scoreClick(score : Score) {
+        if (typeof score.debug == 'undefined') {
+            return;
+        }
+        this.chosenScore = score;
         console.log(score);
     }
 
+    resetScore() {
+        console.log("Reset!");
+        this.chosenScore = null;
+    }
+
     ngOnInit() { }
+
+    constructor(private candidatesService : CandidatesService) {
+        this.chosenScore = null;
+    };
 }
 
 @Component({
@@ -56,13 +70,12 @@ export class Annotate {
     private annotations : NerAnnotation[];
     private selectedAnnotation : NerAnnotation;
     private twitterAnnotation : TwitterAnnotation;
-    private selectedScoreBundle : ScoreBundle;
     private annotationRepository : Candidate[];
     private scoreTypeDict = {
         "cos_sim+bow": "BOW",
-        "cos_sim+bow_claudio": "BOW Claudio",
+        "cos_sim+bow_claudio": "BOW C",
         "cos_sim+lsa": "LSA",
-        "alignments": "Alignments"
+        "alignments": "Align"
     };
 
     getTypeName(type : string) {
@@ -75,6 +88,7 @@ export class Annotate {
     annotate(searchString : string) {
         let self = this;
         this.selectedAnnotation = null;
+        this.twitterAnnotation = null;
         this.annotations = [];
         this.candidatesService.getNerAnnotation(searchString).subscribe(
             function (annotations) {
@@ -87,16 +101,20 @@ export class Annotate {
         );
     }
 
+    loadingNer() {
+
+    }
+
+    loadingTwitter() {
+
+    }
+
     selectAnnotation(text : string, annotation : NerAnnotation) {
         let self = this;
         this.selectedAnnotation = annotation;
-        self.selectedScoreBundle = null;
         this.candidatesService.getTwitterAnnotation(text, this.selectedAnnotation.token, this.selectedAnnotation.nerClass).subscribe(
             function (annotation) {
                 self.twitterAnnotation = annotation;
-                if (annotation.results.length > 0) {
-                    self.selectedScoreBundle = annotation.results[0];
-                }
                 let candidates = {};
                 for (let scoreBundle of annotation.results) {
                     for (let score of scoreBundle.scores) {
@@ -121,6 +139,33 @@ export class Annotate {
                 self.errorMessage = <any>error;
             }
         )
+    }
+
+    sortScores(bundle : ScoreBundle) {
+        if (typeof bundle["sorted"] == undefined) {
+            bundle["sorted"] = false;
+        }
+        this.annotationRepository.sort(function (cand1 : Candidate, cand2 : Candidate) {
+            let score1 = 0.0;
+            let score2 = 0.0;
+            for (let score of cand1.scores) {
+                if (score["type"] == bundle.type) {
+                    score1 = score["score"];
+                }
+            }
+            for (let score of cand2.scores) {
+                if (score["type"] == bundle.type) {
+                    score2 = score["score"];
+                }
+            }
+
+            let diff = score2 - score1;
+            if (bundle["sorted"]) {
+                diff = -diff;
+            }
+            return diff;
+        });
+        bundle["sorted"] = !bundle["sorted"];
     }
 
     constructor(private candidatesService : CandidatesService) {
