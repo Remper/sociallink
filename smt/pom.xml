@@ -125,6 +125,11 @@
             <artifactId>twitter4j-core</artifactId>
             <version>4.0.3</version>
         </dependency>
+        <dependency>
+            <groupId>com.restfb</groupId>
+            <artifactId>restfb</artifactId>
+            <version>1.32.0</version>
+        </dependency>
 
         <!-- Persistence and database-related stuff -->
         <dependency>

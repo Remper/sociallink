@@ -1,5 +1,6 @@
 package eu.fbk.ict.fm.smt.api;
 
+import com.restfb.FacebookClient;
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
 import eu.fbk.fm.alignments.DBpediaResource;
@@ -37,6 +38,9 @@ public class AnnotationController {
     @Inject
     OnlineAlignmentsService onlineAlignmentsService;
 
+    //@Inject
+    //FacebookClient facebookClient;
+
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("ner")
@@ -59,10 +63,7 @@ public class AnnotationController {
         return Response.success(response).respond();
     }
 
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("twitter")
-    public String annotateWithTwitter(@QueryParam("token") String token, @QueryParam("ner") String ner, @QueryParam("text") String text) {
+    private List<String> errorsForFinalStage(String token, String ner, String text) {
         List<String> errors = new LinkedList<>();
         if (text.length() < 5 || (token != null && text.length() < token.length())) {
             errors.add("text");
@@ -78,6 +79,14 @@ public class AnnotationController {
                 errors.add("ner");
             }
         }
+        return errors;
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("twitter")
+    public String annotateWithTwitter(@QueryParam("token") String token, @QueryParam("ner") String ner, @QueryParam("text") String text) {
+        List<String> errors = errorsForFinalStage(token, ner, text);
         if (errors.size() > 0) {
             return new InvalidAttributeResponse(errors).respond();
         }
@@ -95,6 +104,44 @@ public class AnnotationController {
         response.results = onlineAlignmentsService.compare(resource, candidates);
 
         return Response.success(response).respond();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("twitter/simple")
+    public String annotateWithTwitterSimple(@QueryParam("token") String token, @QueryParam("ner") String ner, @QueryParam("text") String text) {
+        List<String> errors = errorsForFinalStage(token, ner, text);
+        if (errors.size() > 0) {
+            return new InvalidAttributeResponse(errors).respond();
+        }
+
+        DBpediaResource resource = toResource(new Annotation(token, ner), text);
+        List<User> candidates = onlineAlignmentsService.populateCandidates(resource);
+        Iterator<User> candidatesIterator = candidates.iterator();
+        Iterator<Score> scores = onlineAlignmentsService.compareWithDefault(resource, candidates).iterator();
+        List<SimpleAnnotation> annotations = new LinkedList<>();
+
+        while (candidatesIterator.hasNext()) {
+            Score score = null;
+            if (scores.hasNext()) {
+                score = scores.next();
+            }
+            
+            annotations.add(new SimpleAnnotation(candidatesIterator.next(), score));
+        }
+
+        return Response.success(annotations).respond();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("facebook")
+    public String annotateWithFacebook(@QueryParam("token") String token, @QueryParam("ner") String ner, @QueryParam("text") String text) {
+        List<String> errors = errorsForFinalStage(token, ner, text);
+        if (errors.size() > 0) {
+            return new InvalidAttributeResponse(errors).respond();
+        }
+        return "";
     }
 
     @GET
@@ -175,6 +222,16 @@ public class AnnotationController {
             this.token = token;
             this.nerClass = nerClass;
             this.alignment = null;
+        }
+    }
+
+    private static class SimpleAnnotation {
+        public User user;
+        public Score score;
+
+        public SimpleAnnotation(User user, Score score) {
+            this.user = user;
+            this.score = score;
         }
     }
 

@@ -90,6 +90,11 @@ public class MLService {
         };
     }
 
+    public SimilarityScorer getDefaultScorer() throws IOException {
+        initLSA();
+        return new CosineScorer(lsaProvider);
+    }
+
     public MLService turnOffStemmer() {
         turnOffStemmer = true;
         return this;

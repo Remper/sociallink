@@ -97,6 +97,15 @@ public class OnlineAlignmentsService {
         return bundles;
     }
 
+    public List<Score> compareWithDefault(DBpediaResource resource, List<User> candidates) {
+        try {
+            return match(resource, candidates, mlService.getDefaultScorer(), false);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new LinkedList<>();
+        }
+    }
+
     private List<Score> match(DBpediaResource resource, List<User> candidates, SimilarityScorer scorer, boolean debug) {
         List<Score> scores = new LinkedList<>();
         if (candidates.size() == 0) {

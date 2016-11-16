@@ -29,7 +29,12 @@ public class CosineScorer implements SimilarityScorer {
             debug("v2text2vec", ((Debuggable) this.provider).dump());
         }
 
-        return v1.dotProduct(v2) / Math.sqrt(v1.dotProduct(v1) * v2.dotProduct(v2));
+        double norm = Math.sqrt(v1.dotProduct(v1) * v2.dotProduct(v2));
+        if (norm == 0.0d) {
+            return 0.0d;
+        }
+
+        return v1.dotProduct(v2) / norm;
     }
 
     protected void debug(String key, Object value) { }

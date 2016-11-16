@@ -82,6 +82,7 @@
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.6.3" level="project" />
     <orderEntry type="library" name="Maven: org.yaml:snakeyaml:1.15" level="project" />
     <orderEntry type="library" name="Maven: org.twitter4j:twitter4j-core:4.0.3" level="project" />
+    <orderEntry type="library" name="Maven: com.restfb:restfb:1.32.0" level="project" />
     <orderEntry type="library" name="Maven: org.jooq:jooq:3.8.4" level="project" />
     <orderEntry type="library" name="Maven: org.jooq:jooq-meta:3.8.4" level="project" />
     <orderEntry type="library" name="Maven: org.jooq:jooq-codegen:3.8.4" level="project" />
