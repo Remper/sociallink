@@ -3,6 +3,7 @@ import { Injectable }        from '@angular/core';
 
 import 'rxjs/Rx';
 import { Observable }        from 'rxjs/Observable';
+import {andObservables} from "@angular/router/src/utils/collection";
 
 @Injectable()
 export class CandidatesService {
@@ -49,6 +50,20 @@ export class CandidatesService {
                 let annotation = new TwitterAnnotation();
                 annotation.candidates = rawObject.candidates;
                 annotation.results = rawObject.results;
+                /*if (annotation.results.length != 0) {
+                    let rankBundle = new ScoreBundle();
+                    rankBundle.type = "rank";
+                    rankBundle.scores = [];
+                    annotation.results[0].scores.forEach(function(value : Score, index : number) {
+                        let score = new Score();
+                        score.username = value.username;
+                        score.score = index+1;
+                        score.debug = null;
+                        rankBundle.scores.push(score);
+                    });
+                    annotation.results.push(rankBundle);
+                }*/
+
                 annotation.token = new NerAnnotation();
                 annotation.token.token = rawObject.token;
                 annotation.token.nerClass = rawObject.nerClass;

@@ -35,7 +35,7 @@
         </div>
     </div>
     <div class="row" *ngIf="annotations.length > 0">
-        <h4>NER annotation (Stanford NLP)</h4>
+        <h4>NER annotation</h4>
     </div>
     <div class="row" style="margin-top: 15px;" *ngIf="annotations.length > 0">
         <div class="col-md-12 results">
@@ -67,7 +67,7 @@
                 <tr>
                     <th>Name</th>
                     <th>Username</th>
-                    <th *ngFor="let scoreBundle of twitterAnnotation.results" (click)="sortScores(scoreBundle)" style="cursor: pointer">{{getTypeName(scoreBundle.type)}}</th>
+                    <th *ngFor="let scoreBundle of twitterAnnotation.results" (click)="sortScores(scoreBundle)" style="cursor: pointer; width: 55px">{{getTypeName(scoreBundle.type)}}</th>
                 </tr>
                 </thead>
                 <tbody>

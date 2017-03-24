@@ -72,10 +72,12 @@ export class Annotate {
     private twitterAnnotation : TwitterAnnotation;
     private annotationRepository : Candidate[];
     private scoreTypeDict = {
-        "cos_sim+bow": "BOW",
-        "cos_sim+bow_claudio": "BOW C",
-        "cos_sim+lsa": "LSA",
-        "alignments": "Align"
+        "cos_sim+bow": "Def",
+        "cos_sim+bow_claudio": "Def C",
+        "cos_sim+lsa": "Def 100",
+        "cos_sim+lsa+cos_sim+bow_claudio": "Text",
+        "alignments": "Align",
+        "rank": "Rank"
     };
 
     getTypeName(type : string) {

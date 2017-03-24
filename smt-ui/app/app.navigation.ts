@@ -23,7 +23,7 @@ export class TabBarElement {
 export class Navigation {
     public currentTab : string;
     private tabsDict = {
-        'profiles': "Profiles",
+        //'profiles': "Profiles",
         'annotate': "Annotate"
     };
 
