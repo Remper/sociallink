@@ -54,6 +54,12 @@
         </dependency>
 
         <dependency>
+            <artifactId>utils-math</artifactId>
+            <groupId>eu.fbk.utils</groupId>
+            <version>${fbk-utils-version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.glassfish.jersey.containers</groupId>
             <artifactId>jersey-container-grizzly2-http</artifactId>
         </dependency>
@@ -230,6 +236,7 @@
         <log4j2-version>2.6.1</log4j2-version>
         <jooq-version>3.8.4</jooq-version>
         <grizzly-version>2.3.25</grizzly-version>
+        <fbk-utils-version>3.0</fbk-utils-version>
     </properties>
 
     <build>

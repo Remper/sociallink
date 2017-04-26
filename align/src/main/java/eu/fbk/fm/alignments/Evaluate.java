@@ -28,7 +28,7 @@ import java.io.*;
 import java.util.*;
 
 /**
- * Script that evaluates a particular eu.fbk.fm.alignments pipeline
+ * Script that evaluates a particular alignments pipeline
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
@@ -648,7 +648,7 @@ public class Evaluate {
                     }
                 } while (rnd.nextDouble() > 0.1);
 
-                logger.info("Entity: " + entry.entry.resourceId + ". True eu.fbk.fm.alignments: @" + entry.entry.twitterId);
+                logger.info("Entity: " + entry.entry.resourceId + ". True alignments: @" + entry.entry.twitterId);
                 logger.info("  Names: " + String.join(", ", entry.resource.getNames()));
                 for (QueryAssemblyStrategy strategy : strategies) {
                     logger.info("  Strategy: " + strategy.getClass().getSimpleName() + ". Query: " + strategy.getQuery(entry.resource));
