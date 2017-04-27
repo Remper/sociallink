@@ -1,5 +1,7 @@
 package eu.fbk.fm.alignments.query;
 
+import javax.annotation.Nullable;
+
 /**
  * A factory for the query assembly strategies
  *
@@ -14,8 +16,12 @@ public class QueryAssemblyStrategyFactory {
         return get(Strategy.DEFAULT);
     }
 
-    public static QueryAssemblyStrategy get(String strategy) {
-        return get(Strategy.valueOf(strategy.toUpperCase()));
+    public static QueryAssemblyStrategy get(@Nullable String strategyString) {
+        Strategy strategy = Strategy.DEFAULT;
+        if (strategyString != null) {
+            strategy = Strategy.valueOf(strategyString.toUpperCase());
+        }
+        return get(strategy);
     }
 
     public static QueryAssemblyStrategy get(Strategy strategy) {

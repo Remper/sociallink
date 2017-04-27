@@ -14,5 +14,6 @@
         <Logger name="twitter4j" level="info" />
         <Logger name="com.lambdaworks.redis" level="info" />
         <Logger name="io.netty" level="info" />
+        <Logger name="org.jooq" level="info" />
     </Loggers>
 </Configuration>

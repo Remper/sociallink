@@ -1,6 +1,7 @@
 package eu.fbk.fm.alignments;
 
 import com.google.gson.Gson;
+import eu.fbk.fm.alignments.index.FillFromIndex;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.query.*;
@@ -20,7 +21,8 @@ import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import twitter4j.TwitterException;
 import twitter4j.User;
 
@@ -33,24 +35,65 @@ import java.util.*;
  * @author Yaroslav Nechaev (remper@me.com)
  */
 public class Evaluate {
-    private static final Logger logger = Logger.getLogger(Evaluate.class.getName());
+
+    private static final Logger logger = LoggerFactory.getLogger(Evaluate.class);
 
     private Endpoint endpoint;
     private TwitterCredentials[] credentials = null;
     private QueryAssemblyStrategy qaStrategy = QueryAssemblyStrategyFactory.def();
     private ScoringStrategy scoreStrategy = new DefaultScoringStrategy();
     private Gson gson;
-    private Writer log = null;
+
+    private FillFromIndex index = null;
 
     public Evaluate(Endpoint endpoint) throws Exception {
         Objects.requireNonNull(endpoint);
         this.endpoint = endpoint;
+        init();
+    }
+
+    public Evaluate(FillFromIndex index) throws Exception {
+        Objects.requireNonNull(index);
+        this.index = index;
+        init();
+    }
+
+    public void init() {
         this.gson = TwitterDeserializer.getDefault().getBuilder().create();
     }
 
     public Collection<FullyResolvedEntry> resolveDataset(Dataset dataset) {
+        if (index == null) {
+            logger.info("Resolving dataset against Twitter");
+            return resolveDatasetViaTwitter(dataset);
+        }
+
+        logger.info("Resolving dataset against db index");
+        return resolveDatasetViaIndex(dataset);
+    }
+
+    public Collection<FullyResolvedEntry> resolveDatasetViaIndex(Dataset dataset) {
         Objects.requireNonNull(dataset);
-        Objects.requireNonNull(qaStrategy);
+        Objects.requireNonNull(index);
+        int processed = 0;
+
+        logger.info("Requesting entry info from knowledge base and index");
+        List<FullyResolvedEntry> entries = new LinkedList<>();
+        for (DatasetEntry datasetEntry : dataset) {
+            FullyResolvedEntry entry = new FullyResolvedEntry(datasetEntry);
+            index.fill(entry);
+            entries.add(entry);
+
+            if (++processed % 100 == 0) {
+                logger.info("Processed " + processed + " entries");
+            }
+        }
+
+        return entries;
+    }
+
+    public Collection<FullyResolvedEntry> resolveDatasetViaTwitter(Dataset dataset) {
+        Objects.requireNonNull(dataset);
         Objects.requireNonNull(credentials);
         int processed = 0;
 
@@ -58,11 +101,11 @@ public class Evaluate {
         logger.info("Requesting entry info from knowledge base");
         Map<DBpediaResource, FullyResolvedEntry> entries = new HashMap<>();
         for (DatasetEntry datasetEntry : dataset) {
-            processed++;
             FullyResolvedEntry entry = new FullyResolvedEntry(datasetEntry);
             entry.resource = endpoint.getResourceById(datasetEntry.resourceId);
             entries.put(entry.resource, entry);
-            if (processed % 100 == 0) {
+
+            if (++processed % 100 == 0) {
                 logger.info("Processed " + processed + " entries");
             }
         }
@@ -575,11 +618,18 @@ public class Evaluate {
             return;
         }
 
+        QueryAssemblyStrategy qaStrategy = QueryAssemblyStrategyFactory.get(configuration.strategy);
+
         Endpoint endpoint = new Endpoint(configuration.endpoint);
-        Evaluate evaluate = new Evaluate(endpoint);
-        String qaStrategy = configuration.strategy;
-        if (qaStrategy != null) {
-            evaluate.setQAStrategy(QueryAssemblyStrategyFactory.get(qaStrategy));
+        Evaluate evaluate;
+        if (configuration.dbConnection != null && configuration.dbUser != null && configuration.dbPassword != null) {
+            evaluate = new Evaluate(new FillFromIndex(
+                    endpoint,
+                    qaStrategy,
+                    configuration.dbConnection, configuration.dbUser, configuration.dbPassword));
+        } else {
+            evaluate = new Evaluate(endpoint);
+            evaluate.setQAStrategy(qaStrategy);
         }
 
         FileProvider files = new FileProvider(configuration.workdir);
@@ -759,13 +809,15 @@ public class Evaluate {
             logger.info(String.format("Complete in %.2f seconds", (double) watch.click() / 1000));
             evaluationPipeline(evaluate, files, resolvedTestSet);
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Error while processing pipeline", e);
             e.printStackTrace();
         }
     }
 
     public static class Configuration {
         String endpoint;
+        String dbConnection;
+        String dbUser;
         String dbPassword;
         String workdir;
         String credentials;
@@ -779,8 +831,16 @@ public class Evaluate {
                         .required().hasArg().argName("file").longOpt("endpoint").build()
         );
         options.addOption(
+                Option.builder().desc("Database connection string")
+                        .required().hasArg().argName("string").longOpt("db-connection").build()
+        );
+        options.addOption(
+                Option.builder().desc("Database user")
+                        .required().hasArg().argName("user").longOpt("db-user").build()
+        );
+        options.addOption(
                 Option.builder("p").desc("Database password")
-                        .required().hasArg().argName("pass").longOpt("password").build()
+                        .required().hasArg().argName("pass").longOpt("db-password").build()
         );
         options.addOption(
                 Option.builder("w").desc("Working directory")
@@ -808,7 +868,9 @@ public class Evaluate {
 
             Configuration configuration = new Configuration();
             configuration.endpoint = line.getOptionValue("endpoint");
-            configuration.dbPassword = line.getOptionValue("password");
+            configuration.dbConnection = line.getOptionValue("db-connection");
+            configuration.dbPassword = line.getOptionValue("db-password");
+            configuration.dbUser = line.getOptionValue("db-user");
             configuration.workdir = line.getOptionValue("workdir");
             configuration.credentials = line.getOptionValue("credentials");
             configuration.strategy = line.getOptionValue("strategy");
@@ -840,6 +902,9 @@ public class Evaluate {
     }
 
     public void setQAStrategy(QueryAssemblyStrategy qaStrategy) {
+        if (qaStrategy == null) {
+            return;
+        }
         this.qaStrategy = qaStrategy;
     }
 
