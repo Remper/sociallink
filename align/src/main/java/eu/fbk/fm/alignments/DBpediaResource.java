@@ -19,6 +19,8 @@ public class DBpediaResource {
 
     public static final String ATTRIBUTE_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
     public static final String ATTRIBUTE_NAME = "http://xmlns.com/foaf/0.1/name";
+    public static final String ATTRIBUTE_GIVEN_NAME = "http://xmlns.com/foaf/0.1/givenName";
+    public static final String ATTRIBUTE_SURNAME = "http://xmlns.com/foaf/0.1/surname";
 
     public static final String TYPE_PERSON = DBPEDIA_ONTOLOGY + "Person";
     public static final String TYPE_ORGANISATION = DBPEDIA_ONTOLOGY + "Organisation";
@@ -136,6 +138,14 @@ public class DBpediaResource {
 
     public List<String> getNames() {
         return getProperty(ATTRIBUTE_NAME);
+    }
+
+    public List<String> getGivenNames() {
+        return getProperty(ATTRIBUTE_GIVEN_NAME);
+    }
+
+    public List<String> getSurnames() {
+        return getProperty(ATTRIBUTE_SURNAME);
     }
 
     @Override

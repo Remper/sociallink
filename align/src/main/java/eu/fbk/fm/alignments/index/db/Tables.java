@@ -6,6 +6,7 @@ package eu.fbk.fm.alignments.index.db;
 
 import eu.fbk.fm.alignments.index.db.tables.UserIndex;
 import eu.fbk.fm.alignments.index.db.tables.UserObjects;
+import eu.fbk.fm.alignments.index.db.tables.UserText;
 
 import javax.annotation.Generated;
 
@@ -32,4 +33,9 @@ public class Tables {
      * The table <code>public.user_objects</code>.
      */
     public static final UserObjects USER_OBJECTS = eu.fbk.fm.alignments.index.db.tables.UserObjects.USER_OBJECTS;
+
+    /**
+     * The table <code>public.user_text</code>.
+     */
+    public static final UserText USER_TEXT = eu.fbk.fm.alignments.index.db.tables.UserText.USER_TEXT;
 }

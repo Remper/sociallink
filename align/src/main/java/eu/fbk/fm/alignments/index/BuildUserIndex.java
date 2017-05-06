@@ -7,6 +7,7 @@ import eu.fbk.fm.alignments.index.db.tables.records.UserIndexRecord;
 import eu.fbk.fm.alignments.index.db.tables.records.UserObjectsRecord;
 import eu.fbk.fm.alignments.index.sink.AbstractPostgresSink;
 import eu.fbk.fm.alignments.index.sink.PostgresFileSink;
+import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
 import eu.fbk.fm.alignments.utils.flink.TextInputFormat;
 import eu.fbk.utils.core.CommandLine;
 import org.apache.flink.api.common.functions.*;
@@ -31,7 +32,7 @@ import java.util.function.IntConsumer;
 /**
  * Creates user index from the large stream of Twitter data and store it into PostgreSQL
  */
-public class BuildUserIndex {
+public class BuildUserIndex implements JsonObjectProcessor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BuildUserIndex.class);
 
@@ -88,11 +89,11 @@ public class BuildUserIndex {
                 .map(new Serializer())
                 .output(objectsOutputFormat).withParameters(parameters);
 
-        tweets
+        /*tweets
                 .flatMap(new IndexExtractor())
                 .groupBy(0, 1)
                 .sum(2)
-                .output(indexOutputFormat).withParameters(parameters);
+                .output(indexOutputFormat).withParameters(parameters);*/
 
         env.execute();
     }
@@ -156,7 +157,7 @@ public class BuildUserIndex {
         }
     }
 
-    public static final class UserObjectExtractor implements FlatMapFunction<JsonObject, Tuple3<Long, JsonObject, Integer>> {
+    public static final class UserObjectExtractor implements FlatMapFunction<JsonObject, Tuple3<Long, JsonObject, Integer>>, JsonObjectProcessor {
 
         private static final long serialVersionUID = 1L;
 
@@ -189,7 +190,7 @@ public class BuildUserIndex {
         }
     }
 
-    public static final class IndexExtractor implements FlatMapFunction<JsonObject, Tuple3<String, Long, Integer>> {
+    public static final class IndexExtractor implements FlatMapFunction<JsonObject, Tuple3<String, Long, Integer>>, JsonObjectProcessor {
 
         private static final long serialVersionUID = 1L;
 
@@ -268,7 +269,7 @@ public class BuildUserIndex {
         }
     }
 
-    public static final class Deserializer implements FlatMapFunction<String, JsonObject> {
+    public static final class Deserializer implements FlatMapFunction<String, JsonObject>, JsonObjectProcessor {
 
         private static final long serialVersionUID = 1L;
 
@@ -304,27 +305,6 @@ public class BuildUserIndex {
         @Override
         public Tuple2<Long, String> map(Tuple2<Long, JsonObject> value) throws Exception {
             return new Tuple2<>(value.f0, GSON.toJson(value.f1));
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> T get(final JsonElement json, final Class<T> clazz, final String... path) {
-        JsonElement result = json;
-        for (final String element : path) {
-            result = result instanceof JsonObject ? ((JsonObject) result).get(element) : null;
-        }
-        if (result == null || result instanceof JsonNull) {
-            return null;
-        } else if (clazz.isInstance(result)) {
-            return clazz.cast(result);
-        } else if (clazz == Long.class) {
-            return (T) (Long) result.getAsLong();
-        } else if (clazz == String.class) {
-            return (T) result.getAsString();
-        } else if (clazz == Integer.class) {
-            return (T) (Integer) result.getAsInt();
-        } else {
-            throw new UnsupportedOperationException(clazz.getName());
         }
     }
 

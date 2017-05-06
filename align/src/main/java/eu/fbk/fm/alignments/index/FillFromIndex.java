@@ -1,5 +1,6 @@
 package eu.fbk.fm.alignments.index;
 
+import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import eu.fbk.fm.alignments.Evaluate;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
@@ -9,7 +10,6 @@ import eu.fbk.fm.alignments.scorer.FullyResolvedEntry;
 import eu.fbk.utils.core.CommandLine;
 import org.apache.flink.util.IOUtils;
 import org.jooq.DSLContext;
-import org.jooq.Record;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import org.slf4j.Logger;
@@ -22,7 +22,9 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.LinkedList;
+import java.util.concurrent.TimeUnit;
 
+import static eu.fbk.fm.alignments.Evaluate.CANDIDATES_THRESHOLD;
 import static eu.fbk.fm.alignments.index.db.tables.UserIndex.USER_INDEX;
 import static eu.fbk.fm.alignments.index.db.tables.UserObjects.USER_OBJECTS;
 
@@ -33,6 +35,8 @@ public class FillFromIndex implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FillFromIndex.class);
     private static final Gson GSON = new Gson();
+    private static boolean exceptionPrinted = false;
+    private static int noCandidates = 0;
 
     private final Connection connection;
     private final DSLContext context;
@@ -53,6 +57,15 @@ public class FillFromIndex implements AutoCloseable {
         }
     }
 
+    private static String logAppendix(FullyResolvedEntry entry, String query) {
+        String correct = "unknown";
+        if (entry.entry.twitterId != null) {
+            correct = entry.entry.twitterId;
+        }
+
+        return String.format("[Query: %s Entity: %s Correct: %s]", query, entry.entry.resourceId, correct);
+    }
+
     /**
      * @param entry
      */
@@ -61,30 +74,49 @@ public class FillFromIndex implements AutoCloseable {
         entry.resource = endpoint.getResourceById(entry.entry.resourceId);
 
         String query = qaStrategy.getQuery(entry.resource);
-        if (query.length() < 3) {
-            LOGGER.error("Query is less than 3 symbols. Ignoring — "+query);
+        if (query.length() < 4) {
+            LOGGER.error("Query is less than 3 symbols. Ignoring. "+logAppendix(entry, query));
             return;
         }
 
-        context
-            .select(USER_OBJECTS.fields())
-            .from(USER_INDEX)
-            .join(USER_OBJECTS)
-            .on(USER_INDEX.UID.eq(USER_OBJECTS.UID))
-            .where(
-                    "plainto_tsquery({0}) @@ to_tsvector('english', USER_INDEX.FULLNAME)",
-                    qaStrategy.getQuery(entry.resource)
-            )
-            .orderBy(USER_INDEX.FREQ.desc())
-            .limit(10)
-            .fetchStream()
-            .forEach(record -> {
-                try {
-                    entry.candidates.add(TwitterObjectFactory.createUser(record.get(USER_OBJECTS.OBJECT).toString()));
-                } catch (TwitterException e) {
-                    LOGGER.error("Error while deserializing user object", e);
-                }
-            });
+        Stopwatch watch = Stopwatch.createStarted();
+        try {
+            context
+                    .select(USER_OBJECTS.fields())
+                    .from(USER_INDEX)
+                    .join(USER_OBJECTS)
+                    .on(USER_INDEX.UID.eq(USER_OBJECTS.UID))
+                    .where(
+                            "to_tsquery({0}) @@ to_tsvector('english_fullname', USER_INDEX.FULLNAME)",
+                            qaStrategy.getQuery(entry.resource)
+                    )
+                    .orderBy(USER_INDEX.FREQ.desc())
+                    .limit(CANDIDATES_THRESHOLD)
+                    .queryTimeout(30)
+                    .fetchStream()
+                    .forEach(record -> {
+                        try {
+                            entry.candidates.add(TwitterObjectFactory.createUser(record.get(USER_OBJECTS.OBJECT).toString()));
+                        } catch (TwitterException e) {
+                            LOGGER.error("Error while deserializing user object", e);
+                        }
+                    });
+            watch.stop();
+        } catch (Exception e) {
+            LOGGER.error("Error while requesting candidates. "+logAppendix(entry, query));
+            if (!exceptionPrinted) {
+                exceptionPrinted = true;
+                e.printStackTrace();
+            }
+        }
+        long elapsed = watch.elapsed(TimeUnit.SECONDS);
+        if (elapsed > 10) {
+            LOGGER.info("Slow ("+elapsed+"s) query. "+logAppendix(entry, query));
+        }
+        if (entry.candidates.size() == 0 && noCandidates < 100) {
+            noCandidates++;
+            LOGGER.warn("No candidates. "+logAppendix(entry, query));
+        }
     }
 
     @Override

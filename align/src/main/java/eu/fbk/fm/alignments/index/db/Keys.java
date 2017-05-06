@@ -6,8 +6,10 @@ package eu.fbk.fm.alignments.index.db;
 
 import eu.fbk.fm.alignments.index.db.tables.UserIndex;
 import eu.fbk.fm.alignments.index.db.tables.UserObjects;
+import eu.fbk.fm.alignments.index.db.tables.UserText;
 import eu.fbk.fm.alignments.index.db.tables.records.UserIndexRecord;
 import eu.fbk.fm.alignments.index.db.tables.records.UserObjectsRecord;
+import eu.fbk.fm.alignments.index.db.tables.records.UserTextRecord;
 
 import javax.annotation.Generated;
 
@@ -40,6 +42,7 @@ public class Keys {
 
     public static final UniqueKey<UserIndexRecord> USER_INDEX_PKEY = UniqueKeys0.USER_INDEX_PKEY;
     public static final UniqueKey<UserObjectsRecord> USER_OBJECTS_PKEY = UniqueKeys0.USER_OBJECTS_PKEY;
+    public static final UniqueKey<UserTextRecord> USER_TEXT_PKEY = UniqueKeys0.USER_TEXT_PKEY;
 
     // -------------------------------------------------------------------------
     // FOREIGN KEY definitions
@@ -53,5 +56,6 @@ public class Keys {
     private static class UniqueKeys0 extends AbstractKeys {
         public static final UniqueKey<UserIndexRecord> USER_INDEX_PKEY = createUniqueKey(UserIndex.USER_INDEX, "user_index_pkey", UserIndex.USER_INDEX.FULLNAME, UserIndex.USER_INDEX.UID);
         public static final UniqueKey<UserObjectsRecord> USER_OBJECTS_PKEY = createUniqueKey(UserObjects.USER_OBJECTS, "user_objects_pkey", UserObjects.USER_OBJECTS.UID);
+        public static final UniqueKey<UserTextRecord> USER_TEXT_PKEY = createUniqueKey(UserText.USER_TEXT, "user_text_pkey", UserText.USER_TEXT.UID);
     }
 }

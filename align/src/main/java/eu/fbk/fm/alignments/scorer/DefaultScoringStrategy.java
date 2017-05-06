@@ -12,7 +12,8 @@ import eu.fbk.utils.data.DatasetRepository;
 import eu.fbk.utils.data.dataset.CSVDataset;
 import eu.fbk.utils.data.dataset.bow.FeatureMappingInterface;
 import org.apache.commons.csv.CSVRecord;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import twitter4j.User;
 
 import java.util.*;
@@ -23,7 +24,8 @@ import java.util.*;
  * @author Yaroslav Nechaev (remper@me.com)
  */
 public class DefaultScoringStrategy implements ScoringStrategy {
-    private static final Logger logger = Logger.getLogger(DefaultScoringStrategy.class);
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultScoringStrategy.class);
 
     private FeatureExtraction extraction = null;
     private FeatureMappingInterface mapping = null;
@@ -56,7 +58,7 @@ public class DefaultScoringStrategy implements ScoringStrategy {
         if (providers != null) {
             return;
         }
-        logger.info("Initialising scoring strategy");
+        LOGGER.info("Initialising scoring strategy");
         try {
             ResourcesService provider = new ResourcesService();
             DatasetRepository repository = new DatasetRepository(new Configuration());
@@ -80,7 +82,7 @@ public class DefaultScoringStrategy implements ScoringStrategy {
                 statistics.put(record.get(0), stats);
             }
             statisticsDataset.close();
-            logger.info("Done DBpedia statistics");
+            LOGGER.info("Done DBpedia statistics");
 
             CSVDataset extractedAlignments = provider.provideExtractedHomepageAlignments(repository);
             while ((record = extractedAlignments.readNext()) != null) {
@@ -92,19 +94,19 @@ public class DefaultScoringStrategy implements ScoringStrategy {
                 alignment.ids.add(record.get(2).toLowerCase());
             }
             extractedAlignments.close();
-            logger.info("Done extracted alignments (" + homepageAlignments.size() + ")");
+            LOGGER.info("Done extracted alignments (" + homepageAlignments.size() + ")");
 
             CSVDataset filteredAlignments = provider.provideFilteredHomepageAlignments(repository);
             while ((record = filteredAlignments.readNext()) != null) {
                 HomepageAlignment alignment = homepageAlignments.get(record.get(0));
                 if (alignment == null) {
-                    logger.warn("Impossible thing happened with entity: " + record.get(0));
+                    LOGGER.warn("Impossible thing happened with entity: " + record.get(0));
                     continue;
                 }
                 alignment.filteredId = record.get(2).toLowerCase();
             }
             filteredAlignments.close();
-            logger.info("Done filtered alignments (" + homepageAlignments.size() + ")");
+            LOGGER.info("Done filtered alignments (" + homepageAlignments.size() + ")");
 
             extraction = new MLService()
                     .turnOffStemmer()
@@ -135,7 +137,7 @@ public class DefaultScoringStrategy implements ScoringStrategy {
             throw new RuntimeException("Can't initialise scoring toolset");
         }
         numUniqueFeatures = providers.length + typeTaxonomy.size() + 5 + 3 - 1;
-        logger.info("Done. Num unique features: " + numUniqueFeatures);
+        LOGGER.info("Done. Num unique features: " + numUniqueFeatures);
     }
 
     @Override
@@ -145,7 +147,7 @@ public class DefaultScoringStrategy implements ScoringStrategy {
         entry.features = new LinkedList<>();
         for (User user : entry.candidates) {
             if (user == null) {
-                logger.error("Candidate is null for entity: " + entry.entry.resourceId);
+                LOGGER.error("Candidate is null for entity: " + entry.entry.resourceId);
                 continue;
             }
             double[] features = new double[numUniqueFeatures + (numUniqueFeatures * (numUniqueFeatures - 1)) / 2];
@@ -154,8 +156,8 @@ public class DefaultScoringStrategy implements ScoringStrategy {
             for (FeatureProvider provider : providers) {
                 features[index] = provider.getFeature(user, entry.resource);
                 if (Double.isNaN(features[index])) {
-                    features[index] = 0.0;
-                    logger.warn("NaN detected for provider: " + provider.getClass().getSimpleName() + ", entity: " + entry.entry.resourceId + ", candidate: " + user.getScreenName());
+                    features[index] = 0.0d;
+                    LOGGER.warn("NaN detected for provider: " + provider.getClass().getSimpleName() + ", entity: " + entry.entry.resourceId + ", candidate: " + user.getScreenName());
                 }
                 index++;
             }

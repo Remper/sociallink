@@ -5,6 +5,7 @@ import eu.fbk.fm.alignments.index.FillFromIndex;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.query.*;
+import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
 import eu.fbk.fm.alignments.scorer.DefaultScoringStrategy;
 import eu.fbk.fm.alignments.scorer.FullyResolvedEntry;
 import eu.fbk.fm.alignments.scorer.ScoringStrategy;
@@ -37,6 +38,7 @@ import java.util.*;
 public class Evaluate {
 
     private static final Logger logger = LoggerFactory.getLogger(Evaluate.class);
+    public static final int CANDIDATES_THRESHOLD = 40;
 
     private Endpoint endpoint;
     private TwitterCredentials[] credentials = null;
@@ -168,7 +170,7 @@ public class Evaluate {
         for (FullyResolvedEntry entry : entries) {
             scoreStrategy.fillScore(entry);
             processed++;
-            if (processed % 10000 == 0) {
+            if (processed % 1000 == 0) {
                 logger.info(String.format("Processed %d entities (%.2f seconds)", processed, (double) watch.click() / 1000));
             }
         }
@@ -618,7 +620,7 @@ public class Evaluate {
             return;
         }
 
-        QueryAssemblyStrategy qaStrategy = QueryAssemblyStrategyFactory.get(configuration.strategy);
+        QueryAssemblyStrategy qaStrategy = new AllNamesStrategy();//QueryAssemblyStrategyFactory.get(configuration.strategy);
 
         Endpoint endpoint = new Endpoint(configuration.endpoint);
         Evaluate evaluate;
@@ -681,6 +683,7 @@ public class Evaluate {
             //Here we check all the strategies doing a random pick from the resolved dataset
             logger.info("Strategies check");
             QueryAssemblyStrategy[] strategies = {
+                    new AllNamesStrategy(),
                     new NoQuotesDupesStrategy(),
                     new StrictQuotesStrategy(),
                     new StrictStrategy(),
@@ -720,7 +723,7 @@ public class Evaluate {
             int numCandidates = 0;
             int numNoCandidates = 0;
             int trueCandidates = 0;
-            int[] trueCandidatesOrder = new int[10];
+            int[] trueCandidatesOrder = new int[CANDIDATES_THRESHOLD];
             for (FullyResolvedEntry entry : resolveDataset) {
                 numCandidates += entry.candidates.size();
                 if (entry.candidates.size() == 0) {
@@ -730,7 +733,7 @@ public class Evaluate {
                 for (User candidate : entry.candidates) {
                     if (candidate.getScreenName().toLowerCase().equals(entry.entry.twitterId.toLowerCase())) {
                         trueCandidates++;
-                        if (order < 10) {
+                        if (order < CANDIDATES_THRESHOLD) {
                             trueCandidatesOrder[order]++;
                         }
                         break;
@@ -770,6 +773,7 @@ public class Evaluate {
 
             //Generating features
             logger.info("Generating features");
+
             Stopwatch watch = Stopwatch.start();
             evaluate.generateFeatures(resolvedTrainingSet);
             evaluate.generateFeatures(resolvedTestSet);
@@ -822,6 +826,7 @@ public class Evaluate {
         String workdir;
         String credentials;
         String strategy;
+        String lsa = null;
     }
 
     public static Configuration loadConfiguration(String[] args) {
@@ -854,6 +859,10 @@ public class Evaluate {
                 Option.builder("s").desc("Query assembly strategy")
                         .hasArg().argName("strategy").longOpt("strategy").build()
         );
+        options.addOption(
+                Option.builder().desc("Use LSA")
+                        .hasArg().argName("DIRECTORY").longOpt("lsa").build()
+        );
 
         options.addOption(Option.builder().desc("trace mode").longOpt("trace").build());
         options.addOption(Option.builder().desc("debug mode").longOpt("debug").build());
@@ -874,6 +883,7 @@ public class Evaluate {
             configuration.workdir = line.getOptionValue("workdir");
             configuration.credentials = line.getOptionValue("credentials");
             configuration.strategy = line.getOptionValue("strategy");
+            configuration.lsa = line.getOptionValue("lsa");
 
             return configuration;
         } catch (ParseException exp) {
@@ -910,5 +920,16 @@ public class Evaluate {
 
     public QueryAssemblyStrategy getQaStrategy() {
         return qaStrategy;
+    }
+
+    public ScoringStrategy getScoreStrategy() {
+        return scoreStrategy;
+    }
+
+    public void setScoreStrategy(ScoringStrategy scoreStrategy) {
+        if (scoreStrategy == null) {
+            return;
+        }
+        this.scoreStrategy = scoreStrategy;
     }
 }

@@ -34,7 +34,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class UserIndex extends TableImpl<UserIndexRecord> {
 
-    private static final long serialVersionUID = 2087236711;
+    private static final long serialVersionUID = -450306696;
 
     /**
      * The reference instance of <code>public.user_index</code>
@@ -52,7 +52,7 @@ public class UserIndex extends TableImpl<UserIndexRecord> {
     /**
      * The column <code>public.user_index.fullname</code>.
      */
-    public final TableField<UserIndexRecord, String> FULLNAME = createField("fullname", org.jooq.impl.SQLDataType.CLOB.nullable(false), this, "");
+    public final TableField<UserIndexRecord, String> FULLNAME = createField("fullname", org.jooq.impl.SQLDataType.VARCHAR.nullable(false), this, "");
 
     /**
      * The column <code>public.user_index.uid</code>.

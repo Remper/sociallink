@@ -4,6 +4,46 @@
 package eu.fbk.fm.alignments.index.db;
 
 
+import eu.fbk.fm.alignments.index.db.routines.Cube1;
+import eu.fbk.fm.alignments.index.db.routines.Cube2;
+import eu.fbk.fm.alignments.index.db.routines.Cube3;
+import eu.fbk.fm.alignments.index.db.routines.Cube4;
+import eu.fbk.fm.alignments.index.db.routines.Cube5;
+import eu.fbk.fm.alignments.index.db.routines.Cube6;
+import eu.fbk.fm.alignments.index.db.routines.CubeCmp;
+import eu.fbk.fm.alignments.index.db.routines.CubeContained;
+import eu.fbk.fm.alignments.index.db.routines.CubeContains;
+import eu.fbk.fm.alignments.index.db.routines.CubeCoord;
+import eu.fbk.fm.alignments.index.db.routines.CubeCoordLlur;
+import eu.fbk.fm.alignments.index.db.routines.CubeDim;
+import eu.fbk.fm.alignments.index.db.routines.CubeDistance;
+import eu.fbk.fm.alignments.index.db.routines.CubeEnlarge;
+import eu.fbk.fm.alignments.index.db.routines.CubeEq;
+import eu.fbk.fm.alignments.index.db.routines.CubeGe;
+import eu.fbk.fm.alignments.index.db.routines.CubeGt;
+import eu.fbk.fm.alignments.index.db.routines.CubeIn;
+import eu.fbk.fm.alignments.index.db.routines.CubeInter;
+import eu.fbk.fm.alignments.index.db.routines.CubeIsPoint;
+import eu.fbk.fm.alignments.index.db.routines.CubeLe;
+import eu.fbk.fm.alignments.index.db.routines.CubeLlCoord;
+import eu.fbk.fm.alignments.index.db.routines.CubeLt;
+import eu.fbk.fm.alignments.index.db.routines.CubeNe;
+import eu.fbk.fm.alignments.index.db.routines.CubeOut;
+import eu.fbk.fm.alignments.index.db.routines.CubeOverlap;
+import eu.fbk.fm.alignments.index.db.routines.CubeSize;
+import eu.fbk.fm.alignments.index.db.routines.CubeSubset;
+import eu.fbk.fm.alignments.index.db.routines.CubeUnion;
+import eu.fbk.fm.alignments.index.db.routines.CubeUrCoord;
+import eu.fbk.fm.alignments.index.db.routines.DistanceChebyshev;
+import eu.fbk.fm.alignments.index.db.routines.DistanceTaxicab;
+import eu.fbk.fm.alignments.index.db.routines.GCubeCompress;
+import eu.fbk.fm.alignments.index.db.routines.GCubeConsistent;
+import eu.fbk.fm.alignments.index.db.routines.GCubeDecompress;
+import eu.fbk.fm.alignments.index.db.routines.GCubeDistance;
+import eu.fbk.fm.alignments.index.db.routines.GCubePenalty;
+import eu.fbk.fm.alignments.index.db.routines.GCubePicksplit;
+import eu.fbk.fm.alignments.index.db.routines.GCubeSame;
+import eu.fbk.fm.alignments.index.db.routines.GCubeUnion;
 import eu.fbk.fm.alignments.index.db.routines.JsonIntext;
 
 import javax.annotation.Generated;
@@ -24,6 +64,1369 @@ import org.jooq.Field;
 )
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Routines {
+
+    /**
+     * Call <code>public.cube</code>
+     */
+    public static Object cube1(Configuration configuration, Double[] __1, Double[] __2) {
+        Cube1 f = new Cube1();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube</code> as a field.
+     */
+    public static Field<Object> cube1(Double[] __1, Double[] __2) {
+        Cube1 f = new Cube1();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube</code> as a field.
+     */
+    public static Field<Object> cube1(Field<Double[]> __1, Field<Double[]> __2) {
+        Cube1 f = new Cube1();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube</code>
+     */
+    public static Object cube2(Configuration configuration, Double[] __1) {
+        Cube2 f = new Cube2();
+        f.set__1(__1);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube</code> as a field.
+     */
+    public static Field<Object> cube2(Double[] __1) {
+        Cube2 f = new Cube2();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube</code> as a field.
+     */
+    public static Field<Object> cube2(Field<Double[]> __1) {
+        Cube2 f = new Cube2();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube</code>
+     */
+    public static Object cube3(Configuration configuration, Double __1) {
+        Cube3 f = new Cube3();
+        f.set__1(__1);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube</code> as a field.
+     */
+    public static Field<Object> cube3(Double __1) {
+        Cube3 f = new Cube3();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube</code> as a field.
+     */
+    public static Field<Object> cube3(Field<Double> __1) {
+        Cube3 f = new Cube3();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube</code>
+     */
+    public static Object cube4(Configuration configuration, Double __1, Double __2) {
+        Cube4 f = new Cube4();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube</code> as a field.
+     */
+    public static Field<Object> cube4(Double __1, Double __2) {
+        Cube4 f = new Cube4();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube</code> as a field.
+     */
+    public static Field<Object> cube4(Field<Double> __1, Field<Double> __2) {
+        Cube4 f = new Cube4();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube</code>
+     */
+    public static Object cube5(Configuration configuration, Object __1, Double __2) {
+        Cube5 f = new Cube5();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube</code> as a field.
+     */
+    public static Field<Object> cube5(Object __1, Double __2) {
+        Cube5 f = new Cube5();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube</code> as a field.
+     */
+    public static Field<Object> cube5(Field<Object> __1, Field<Double> __2) {
+        Cube5 f = new Cube5();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube</code>
+     */
+    public static Object cube6(Configuration configuration, Object __1, Double __2, Double __3) {
+        Cube6 f = new Cube6();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube</code> as a field.
+     */
+    public static Field<Object> cube6(Object __1, Double __2, Double __3) {
+        Cube6 f = new Cube6();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube</code> as a field.
+     */
+    public static Field<Object> cube6(Field<Object> __1, Field<Double> __2, Field<Double> __3) {
+        Cube6 f = new Cube6();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_cmp</code>
+     */
+    public static Integer cubeCmp(Configuration configuration, Object __1, Object __2) {
+        CubeCmp f = new CubeCmp();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_cmp</code> as a field.
+     */
+    public static Field<Integer> cubeCmp(Object __1, Object __2) {
+        CubeCmp f = new CubeCmp();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_cmp</code> as a field.
+     */
+    public static Field<Integer> cubeCmp(Field<Object> __1, Field<Object> __2) {
+        CubeCmp f = new CubeCmp();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_contained</code>
+     */
+    public static Boolean cubeContained(Configuration configuration, Object __1, Object __2) {
+        CubeContained f = new CubeContained();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_contained</code> as a field.
+     */
+    public static Field<Boolean> cubeContained(Object __1, Object __2) {
+        CubeContained f = new CubeContained();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_contained</code> as a field.
+     */
+    public static Field<Boolean> cubeContained(Field<Object> __1, Field<Object> __2) {
+        CubeContained f = new CubeContained();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_contains</code>
+     */
+    public static Boolean cubeContains(Configuration configuration, Object __1, Object __2) {
+        CubeContains f = new CubeContains();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_contains</code> as a field.
+     */
+    public static Field<Boolean> cubeContains(Object __1, Object __2) {
+        CubeContains f = new CubeContains();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_contains</code> as a field.
+     */
+    public static Field<Boolean> cubeContains(Field<Object> __1, Field<Object> __2) {
+        CubeContains f = new CubeContains();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_coord</code>
+     */
+    public static Double cubeCoord(Configuration configuration, Object __1, Integer __2) {
+        CubeCoord f = new CubeCoord();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_coord</code> as a field.
+     */
+    public static Field<Double> cubeCoord(Object __1, Integer __2) {
+        CubeCoord f = new CubeCoord();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_coord</code> as a field.
+     */
+    public static Field<Double> cubeCoord(Field<Object> __1, Field<Integer> __2) {
+        CubeCoord f = new CubeCoord();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_coord_llur</code>
+     */
+    public static Double cubeCoordLlur(Configuration configuration, Object __1, Integer __2) {
+        CubeCoordLlur f = new CubeCoordLlur();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_coord_llur</code> as a field.
+     */
+    public static Field<Double> cubeCoordLlur(Object __1, Integer __2) {
+        CubeCoordLlur f = new CubeCoordLlur();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_coord_llur</code> as a field.
+     */
+    public static Field<Double> cubeCoordLlur(Field<Object> __1, Field<Integer> __2) {
+        CubeCoordLlur f = new CubeCoordLlur();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_dim</code>
+     */
+    public static Integer cubeDim(Configuration configuration, Object __1) {
+        CubeDim f = new CubeDim();
+        f.set__1(__1);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_dim</code> as a field.
+     */
+    public static Field<Integer> cubeDim(Object __1) {
+        CubeDim f = new CubeDim();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_dim</code> as a field.
+     */
+    public static Field<Integer> cubeDim(Field<Object> __1) {
+        CubeDim f = new CubeDim();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_distance</code>
+     */
+    public static Double cubeDistance(Configuration configuration, Object __1, Object __2) {
+        CubeDistance f = new CubeDistance();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_distance</code> as a field.
+     */
+    public static Field<Double> cubeDistance(Object __1, Object __2) {
+        CubeDistance f = new CubeDistance();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_distance</code> as a field.
+     */
+    public static Field<Double> cubeDistance(Field<Object> __1, Field<Object> __2) {
+        CubeDistance f = new CubeDistance();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_enlarge</code>
+     */
+    public static Object cubeEnlarge(Configuration configuration, Object __1, Double __2, Integer __3) {
+        CubeEnlarge f = new CubeEnlarge();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_enlarge</code> as a field.
+     */
+    public static Field<Object> cubeEnlarge(Object __1, Double __2, Integer __3) {
+        CubeEnlarge f = new CubeEnlarge();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_enlarge</code> as a field.
+     */
+    public static Field<Object> cubeEnlarge(Field<Object> __1, Field<Double> __2, Field<Integer> __3) {
+        CubeEnlarge f = new CubeEnlarge();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_eq</code>
+     */
+    public static Boolean cubeEq(Configuration configuration, Object __1, Object __2) {
+        CubeEq f = new CubeEq();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_eq</code> as a field.
+     */
+    public static Field<Boolean> cubeEq(Object __1, Object __2) {
+        CubeEq f = new CubeEq();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_eq</code> as a field.
+     */
+    public static Field<Boolean> cubeEq(Field<Object> __1, Field<Object> __2) {
+        CubeEq f = new CubeEq();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_ge</code>
+     */
+    public static Boolean cubeGe(Configuration configuration, Object __1, Object __2) {
+        CubeGe f = new CubeGe();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_ge</code> as a field.
+     */
+    public static Field<Boolean> cubeGe(Object __1, Object __2) {
+        CubeGe f = new CubeGe();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_ge</code> as a field.
+     */
+    public static Field<Boolean> cubeGe(Field<Object> __1, Field<Object> __2) {
+        CubeGe f = new CubeGe();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_gt</code>
+     */
+    public static Boolean cubeGt(Configuration configuration, Object __1, Object __2) {
+        CubeGt f = new CubeGt();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_gt</code> as a field.
+     */
+    public static Field<Boolean> cubeGt(Object __1, Object __2) {
+        CubeGt f = new CubeGt();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_gt</code> as a field.
+     */
+    public static Field<Boolean> cubeGt(Field<Object> __1, Field<Object> __2) {
+        CubeGt f = new CubeGt();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_in</code>
+     */
+    public static Object cubeIn(Configuration configuration, Object __1) {
+        CubeIn f = new CubeIn();
+        f.set__1(__1);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_in</code> as a field.
+     */
+    public static Field<Object> cubeIn(Object __1) {
+        CubeIn f = new CubeIn();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_in</code> as a field.
+     */
+    public static Field<Object> cubeIn(Field<Object> __1) {
+        CubeIn f = new CubeIn();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_inter</code>
+     */
+    public static Object cubeInter(Configuration configuration, Object __1, Object __2) {
+        CubeInter f = new CubeInter();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_inter</code> as a field.
+     */
+    public static Field<Object> cubeInter(Object __1, Object __2) {
+        CubeInter f = new CubeInter();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_inter</code> as a field.
+     */
+    public static Field<Object> cubeInter(Field<Object> __1, Field<Object> __2) {
+        CubeInter f = new CubeInter();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_is_point</code>
+     */
+    public static Boolean cubeIsPoint(Configuration configuration, Object __1) {
+        CubeIsPoint f = new CubeIsPoint();
+        f.set__1(__1);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_is_point</code> as a field.
+     */
+    public static Field<Boolean> cubeIsPoint(Object __1) {
+        CubeIsPoint f = new CubeIsPoint();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_is_point</code> as a field.
+     */
+    public static Field<Boolean> cubeIsPoint(Field<Object> __1) {
+        CubeIsPoint f = new CubeIsPoint();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_le</code>
+     */
+    public static Boolean cubeLe(Configuration configuration, Object __1, Object __2) {
+        CubeLe f = new CubeLe();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_le</code> as a field.
+     */
+    public static Field<Boolean> cubeLe(Object __1, Object __2) {
+        CubeLe f = new CubeLe();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_le</code> as a field.
+     */
+    public static Field<Boolean> cubeLe(Field<Object> __1, Field<Object> __2) {
+        CubeLe f = new CubeLe();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_ll_coord</code>
+     */
+    public static Double cubeLlCoord(Configuration configuration, Object __1, Integer __2) {
+        CubeLlCoord f = new CubeLlCoord();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_ll_coord</code> as a field.
+     */
+    public static Field<Double> cubeLlCoord(Object __1, Integer __2) {
+        CubeLlCoord f = new CubeLlCoord();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_ll_coord</code> as a field.
+     */
+    public static Field<Double> cubeLlCoord(Field<Object> __1, Field<Integer> __2) {
+        CubeLlCoord f = new CubeLlCoord();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_lt</code>
+     */
+    public static Boolean cubeLt(Configuration configuration, Object __1, Object __2) {
+        CubeLt f = new CubeLt();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_lt</code> as a field.
+     */
+    public static Field<Boolean> cubeLt(Object __1, Object __2) {
+        CubeLt f = new CubeLt();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_lt</code> as a field.
+     */
+    public static Field<Boolean> cubeLt(Field<Object> __1, Field<Object> __2) {
+        CubeLt f = new CubeLt();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_ne</code>
+     */
+    public static Boolean cubeNe(Configuration configuration, Object __1, Object __2) {
+        CubeNe f = new CubeNe();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_ne</code> as a field.
+     */
+    public static Field<Boolean> cubeNe(Object __1, Object __2) {
+        CubeNe f = new CubeNe();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_ne</code> as a field.
+     */
+    public static Field<Boolean> cubeNe(Field<Object> __1, Field<Object> __2) {
+        CubeNe f = new CubeNe();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_out</code>
+     */
+    public static Object cubeOut(Configuration configuration, Object __1) {
+        CubeOut f = new CubeOut();
+        f.set__1(__1);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_out</code> as a field.
+     */
+    public static Field<Object> cubeOut(Object __1) {
+        CubeOut f = new CubeOut();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_out</code> as a field.
+     */
+    public static Field<Object> cubeOut(Field<Object> __1) {
+        CubeOut f = new CubeOut();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_overlap</code>
+     */
+    public static Boolean cubeOverlap(Configuration configuration, Object __1, Object __2) {
+        CubeOverlap f = new CubeOverlap();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_overlap</code> as a field.
+     */
+    public static Field<Boolean> cubeOverlap(Object __1, Object __2) {
+        CubeOverlap f = new CubeOverlap();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_overlap</code> as a field.
+     */
+    public static Field<Boolean> cubeOverlap(Field<Object> __1, Field<Object> __2) {
+        CubeOverlap f = new CubeOverlap();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_size</code>
+     */
+    public static Double cubeSize(Configuration configuration, Object __1) {
+        CubeSize f = new CubeSize();
+        f.set__1(__1);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_size</code> as a field.
+     */
+    public static Field<Double> cubeSize(Object __1) {
+        CubeSize f = new CubeSize();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_size</code> as a field.
+     */
+    public static Field<Double> cubeSize(Field<Object> __1) {
+        CubeSize f = new CubeSize();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_subset</code>
+     */
+    public static Object cubeSubset(Configuration configuration, Object __1, Integer[] __2) {
+        CubeSubset f = new CubeSubset();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_subset</code> as a field.
+     */
+    public static Field<Object> cubeSubset(Object __1, Integer[] __2) {
+        CubeSubset f = new CubeSubset();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_subset</code> as a field.
+     */
+    public static Field<Object> cubeSubset(Field<Object> __1, Field<Integer[]> __2) {
+        CubeSubset f = new CubeSubset();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_union</code>
+     */
+    public static Object cubeUnion(Configuration configuration, Object __1, Object __2) {
+        CubeUnion f = new CubeUnion();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_union</code> as a field.
+     */
+    public static Field<Object> cubeUnion(Object __1, Object __2) {
+        CubeUnion f = new CubeUnion();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_union</code> as a field.
+     */
+    public static Field<Object> cubeUnion(Field<Object> __1, Field<Object> __2) {
+        CubeUnion f = new CubeUnion();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_ur_coord</code>
+     */
+    public static Double cubeUrCoord(Configuration configuration, Object __1, Integer __2) {
+        CubeUrCoord f = new CubeUrCoord();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_ur_coord</code> as a field.
+     */
+    public static Field<Double> cubeUrCoord(Object __1, Integer __2) {
+        CubeUrCoord f = new CubeUrCoord();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_ur_coord</code> as a field.
+     */
+    public static Field<Double> cubeUrCoord(Field<Object> __1, Field<Integer> __2) {
+        CubeUrCoord f = new CubeUrCoord();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.distance_chebyshev</code>
+     */
+    public static Double distanceChebyshev(Configuration configuration, Object __1, Object __2) {
+        DistanceChebyshev f = new DistanceChebyshev();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.distance_chebyshev</code> as a field.
+     */
+    public static Field<Double> distanceChebyshev(Object __1, Object __2) {
+        DistanceChebyshev f = new DistanceChebyshev();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.distance_chebyshev</code> as a field.
+     */
+    public static Field<Double> distanceChebyshev(Field<Object> __1, Field<Object> __2) {
+        DistanceChebyshev f = new DistanceChebyshev();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.distance_taxicab</code>
+     */
+    public static Double distanceTaxicab(Configuration configuration, Object __1, Object __2) {
+        DistanceTaxicab f = new DistanceTaxicab();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.distance_taxicab</code> as a field.
+     */
+    public static Field<Double> distanceTaxicab(Object __1, Object __2) {
+        DistanceTaxicab f = new DistanceTaxicab();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.distance_taxicab</code> as a field.
+     */
+    public static Field<Double> distanceTaxicab(Field<Object> __1, Field<Object> __2) {
+        DistanceTaxicab f = new DistanceTaxicab();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.g_cube_compress</code>
+     */
+    public static Object gCubeCompress(Configuration configuration, Object __1) {
+        GCubeCompress f = new GCubeCompress();
+        f.set__1(__1);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.g_cube_compress</code> as a field.
+     */
+    public static Field<Object> gCubeCompress(Object __1) {
+        GCubeCompress f = new GCubeCompress();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.g_cube_compress</code> as a field.
+     */
+    public static Field<Object> gCubeCompress(Field<Object> __1) {
+        GCubeCompress f = new GCubeCompress();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.g_cube_consistent</code>
+     */
+    public static Boolean gCubeConsistent(Configuration configuration, Object __1, Object __2, Short __3, Long __4, Object __5) {
+        GCubeConsistent f = new GCubeConsistent();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+        f.set__4(__4);
+        f.set__5(__5);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.g_cube_consistent</code> as a field.
+     */
+    public static Field<Boolean> gCubeConsistent(Object __1, Object __2, Short __3, Long __4, Object __5) {
+        GCubeConsistent f = new GCubeConsistent();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+        f.set__4(__4);
+        f.set__5(__5);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.g_cube_consistent</code> as a field.
+     */
+    public static Field<Boolean> gCubeConsistent(Field<Object> __1, Field<Object> __2, Field<Short> __3, Field<Long> __4, Field<Object> __5) {
+        GCubeConsistent f = new GCubeConsistent();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+        f.set__4(__4);
+        f.set__5(__5);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.g_cube_decompress</code>
+     */
+    public static Object gCubeDecompress(Configuration configuration, Object __1) {
+        GCubeDecompress f = new GCubeDecompress();
+        f.set__1(__1);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.g_cube_decompress</code> as a field.
+     */
+    public static Field<Object> gCubeDecompress(Object __1) {
+        GCubeDecompress f = new GCubeDecompress();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.g_cube_decompress</code> as a field.
+     */
+    public static Field<Object> gCubeDecompress(Field<Object> __1) {
+        GCubeDecompress f = new GCubeDecompress();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.g_cube_distance</code>
+     */
+    public static Double gCubeDistance(Configuration configuration, Object __1, Object __2, Short __3, Long __4, Object __5) {
+        GCubeDistance f = new GCubeDistance();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+        f.set__4(__4);
+        f.set__5(__5);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.g_cube_distance</code> as a field.
+     */
+    public static Field<Double> gCubeDistance(Object __1, Object __2, Short __3, Long __4, Object __5) {
+        GCubeDistance f = new GCubeDistance();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+        f.set__4(__4);
+        f.set__5(__5);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.g_cube_distance</code> as a field.
+     */
+    public static Field<Double> gCubeDistance(Field<Object> __1, Field<Object> __2, Field<Short> __3, Field<Long> __4, Field<Object> __5) {
+        GCubeDistance f = new GCubeDistance();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+        f.set__4(__4);
+        f.set__5(__5);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.g_cube_penalty</code>
+     */
+    public static Object gCubePenalty(Configuration configuration, Object __1, Object __2, Object __3) {
+        GCubePenalty f = new GCubePenalty();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.g_cube_penalty</code> as a field.
+     */
+    public static Field<Object> gCubePenalty(Object __1, Object __2, Object __3) {
+        GCubePenalty f = new GCubePenalty();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.g_cube_penalty</code> as a field.
+     */
+    public static Field<Object> gCubePenalty(Field<Object> __1, Field<Object> __2, Field<Object> __3) {
+        GCubePenalty f = new GCubePenalty();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.g_cube_picksplit</code>
+     */
+    public static Object gCubePicksplit(Configuration configuration, Object __1, Object __2) {
+        GCubePicksplit f = new GCubePicksplit();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.g_cube_picksplit</code> as a field.
+     */
+    public static Field<Object> gCubePicksplit(Object __1, Object __2) {
+        GCubePicksplit f = new GCubePicksplit();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.g_cube_picksplit</code> as a field.
+     */
+    public static Field<Object> gCubePicksplit(Field<Object> __1, Field<Object> __2) {
+        GCubePicksplit f = new GCubePicksplit();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.g_cube_same</code>
+     */
+    public static Object gCubeSame(Configuration configuration, Object __1, Object __2, Object __3) {
+        GCubeSame f = new GCubeSame();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.g_cube_same</code> as a field.
+     */
+    public static Field<Object> gCubeSame(Object __1, Object __2, Object __3) {
+        GCubeSame f = new GCubeSame();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.g_cube_same</code> as a field.
+     */
+    public static Field<Object> gCubeSame(Field<Object> __1, Field<Object> __2, Field<Object> __3) {
+        GCubeSame f = new GCubeSame();
+        f.set__1(__1);
+        f.set__2(__2);
+        f.set__3(__3);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.g_cube_union</code>
+     */
+    public static Object gCubeUnion(Configuration configuration, Object __1, Object __2) {
+        GCubeUnion f = new GCubeUnion();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.g_cube_union</code> as a field.
+     */
+    public static Field<Object> gCubeUnion(Object __1, Object __2) {
+        GCubeUnion f = new GCubeUnion();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.g_cube_union</code> as a field.
+     */
+    public static Field<Object> gCubeUnion(Field<Object> __1, Field<Object> __2) {
+        GCubeUnion f = new GCubeUnion();
+        f.set__1(__1);
+        f.set__2(__2);
+
+        return f.asField();
+    }
 
     /**
      * Call <code>public.json_intext</code>

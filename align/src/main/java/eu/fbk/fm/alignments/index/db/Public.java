@@ -6,6 +6,7 @@ package eu.fbk.fm.alignments.index.db;
 
 import eu.fbk.fm.alignments.index.db.tables.UserIndex;
 import eu.fbk.fm.alignments.index.db.tables.UserObjects;
+import eu.fbk.fm.alignments.index.db.tables.UserText;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,7 +32,7 @@ import org.jooq.impl.SchemaImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Public extends SchemaImpl {
 
-    private static final long serialVersionUID = -341749963;
+    private static final long serialVersionUID = -2115476871;
 
     /**
      * The reference instance of <code>public</code>
@@ -47,6 +48,11 @@ public class Public extends SchemaImpl {
      * The table <code>public.user_objects</code>.
      */
     public final UserObjects USER_OBJECTS = eu.fbk.fm.alignments.index.db.tables.UserObjects.USER_OBJECTS;
+
+    /**
+     * The table <code>public.user_text</code>.
+     */
+    public final UserText USER_TEXT = eu.fbk.fm.alignments.index.db.tables.UserText.USER_TEXT;
 
     /**
      * No further instances allowed
@@ -74,6 +80,7 @@ public class Public extends SchemaImpl {
     private final List<Table<?>> getTables0() {
         return Arrays.<Table<?>>asList(
             UserIndex.USER_INDEX,
-            UserObjects.USER_OBJECTS);
+            UserObjects.USER_OBJECTS,
+            UserText.USER_TEXT);
     }
 }
