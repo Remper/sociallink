@@ -18,6 +18,7 @@ public class DBpediaResource {
     public static final String ABSTRACT_PROPERTY = DBPEDIA_ONTOLOGY + "abstract";
 
     public static final String ATTRIBUTE_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
+    public static final String ATTRIBUTE_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
     public static final String ATTRIBUTE_NAME = "http://xmlns.com/foaf/0.1/name";
     public static final String ATTRIBUTE_GIVEN_NAME = "http://xmlns.com/foaf/0.1/givenName";
     public static final String ATTRIBUTE_SURNAME = "http://xmlns.com/foaf/0.1/surname";

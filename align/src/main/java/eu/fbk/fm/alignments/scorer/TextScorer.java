@@ -63,7 +63,7 @@ public class TextScorer implements FeatureProvider {
         return userText.toString().trim();
     }
 
-    public List<String> getResourceTexts(DBpediaResource resource) {
+    public static List<String> getResourceTexts(DBpediaResource resource) {
         List<String> texts = resource.getProperty(DBpediaResource.ABSTRACT_PROPERTY);
         texts.addAll(resource.getProperty(DBpediaResource.COMMENT_PROPERTY));
 

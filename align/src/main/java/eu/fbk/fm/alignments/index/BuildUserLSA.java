@@ -56,14 +56,14 @@ public class BuildUserLSA {
                 .reduce(new UserTextCombine())
                 .map(new UserTextLSA())
                 .withParameters(parameters)
-                .setParallelism(4);
+                .setParallelism(8);
 
         reducedUserObjects
                 .output(
                         new PostgresFileSink<Tuple2<Long, String>>("text-lsa").testFile(parameters)
                 )
                 .withParameters(parameters)
-                .setParallelism(2);
+                .setParallelism(4);
 
         env.execute();
     }
@@ -83,12 +83,14 @@ public class BuildUserLSA {
         public Tuple2<Long, String> map(Tuple2<Long, String> value) throws Exception {
             float[] vector = ((DenseVector) provider.toVector(value.f1)).toArray();
             StringBuilder vectorString = new StringBuilder();
+            vectorString.append('{');
             for (float element : vector) {
                 if (vectorString.length() > 0) {
                     vectorString.append(',');
                 }
                 vectorString.append(Float.toString(element));
             }
+            vectorString.append('}');
             return new Tuple2<>(value.f0, vectorString.toString());
         }
     }
@@ -143,7 +145,7 @@ public class BuildUserLSA {
                         "specifies the directory to which the results will be saved (in this case the db params are not required)", "DIRECTORY",
                         CommandLine.Type.STRING, true, false, true)
                 .withOption(null, LSA_PATH,
-                        "specifies the directory from which to get a stream of tweets", "DIRECTORY",
+                        "path to LSA model", "DIRECTORY",
                         CommandLine.Type.STRING, true, false, true);
     }
 

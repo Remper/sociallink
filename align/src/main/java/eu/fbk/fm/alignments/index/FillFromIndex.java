@@ -6,18 +6,23 @@ import eu.fbk.fm.alignments.Evaluate;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.query.QueryAssemblyStrategy;
 import eu.fbk.fm.alignments.query.StrictStrategy;
+import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
 import eu.fbk.fm.alignments.scorer.FullyResolvedEntry;
+import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.utils.core.CommandLine;
 import org.apache.flink.util.IOUtils;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
+import org.postgresql.ds.PGSimpleDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import twitter4j.TwitterException;
 import twitter4j.TwitterObjectFactory;
 import twitter4j.User;
 
+import javax.sql.ConnectionPoolDataSource;
+import javax.sql.DataSource;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -38,23 +43,18 @@ public class FillFromIndex implements AutoCloseable {
     private static boolean exceptionPrinted = false;
     private static int noCandidates = 0;
 
-    private final Connection connection;
-    private final DSLContext context;
+    private final DataSource source;
     private final QueryAssemblyStrategy qaStrategy;
     private final Endpoint endpoint;
 
-
-    public FillFromIndex(Endpoint endpoint, QueryAssemblyStrategy qaStrategy, String connString, String connUser, String connPassword) throws IOException {
+    public FillFromIndex(Endpoint endpoint, QueryAssemblyStrategy qaStrategy, DataSource source) {
         this.qaStrategy = qaStrategy;
         this.endpoint = endpoint;
+        this.source = source;
+    }
 
-        try  {
-            Class.forName("org.postgresql.Driver");
-            connection = DriverManager.getConnection(connString, connUser, connPassword);
-            context = DSL.using(connection, SQLDialect.POSTGRES);
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
+    public FillFromIndex(Endpoint endpoint, QueryAssemblyStrategy qaStrategy, String connString, String connUser, String connPassword) throws IOException {
+        this(endpoint, qaStrategy, DBUtils.createPGDataSource(connString, connUser, connPassword));
     }
 
     private static String logAppendix(FullyResolvedEntry entry, String query) {
@@ -81,7 +81,7 @@ public class FillFromIndex implements AutoCloseable {
 
         Stopwatch watch = Stopwatch.createStarted();
         try {
-            context
+            DSL.using(source, SQLDialect.POSTGRES)
                     .select(USER_OBJECTS.fields())
                     .from(USER_INDEX)
                     .join(USER_OBJECTS)
@@ -93,7 +93,7 @@ public class FillFromIndex implements AutoCloseable {
                     .orderBy(USER_INDEX.FREQ.desc())
                     .limit(CANDIDATES_THRESHOLD)
                     .queryTimeout(30)
-                    .fetchStream()
+                    .stream()
                     .forEach(record -> {
                         try {
                             entry.candidates.add(TwitterObjectFactory.createUser(record.get(USER_OBJECTS.OBJECT).toString()));
@@ -121,14 +121,14 @@ public class FillFromIndex implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        IOUtils.closeQuietly(context);
-        IOUtils.closeQuietly(connection);
+
     }
 
     private static final String DB_CONNECTION = "db-connection";
     private static final String DB_USER = "db-user";
     private static final String DB_PASSWORD = "db-password";
     private static final String ENDPOINT = "endpoint";
+    private static final String QUERY = "query";
 
     private static CommandLine.Parser provideParameterList() {
         return CommandLine.parser()
@@ -143,12 +143,13 @@ public class FillFromIndex implements AutoCloseable {
                         CommandLine.Type.STRING, true, false, true)
                 .withOption(null, ENDPOINT,
                         "URL to SPARQL endpoint", "ENDPOINT",
-                        CommandLine.Type.STRING, true, false, true);
+                        CommandLine.Type.STRING, true, false, true)
+                .withOption(null, QUERY,
+                        "Query", "QUERY",
+                        CommandLine.Type.STRING, true, false, false);
     }
 
     public static void main(String[] args) throws Exception {
-        FullyResolvedEntry entry = new FullyResolvedEntry(new Evaluate.DatasetEntry("http://dbpedia.org/resource/Donald_Trump", null));
-
         try {
             // Parse command line
             final CommandLine cmd = provideParameterList().parse(args);
@@ -157,8 +158,13 @@ public class FillFromIndex implements AutoCloseable {
             final String dbUser = cmd.getOptionValue(DB_USER, String.class);
             final String dbPassword = cmd.getOptionValue(DB_PASSWORD, String.class);
             final String endpointUri = cmd.getOptionValue(ENDPOINT, String.class);
+            String query = cmd.getOptionValue(QUERY, String.class);
+            if (query == null) {
+                query = "http://wikidata.dbpedia.org/resource/Q359442";
+            }
 
-            new FillFromIndex(new Endpoint(endpointUri), new StrictStrategy(), dbConnection, dbUser, dbPassword).fill(entry);
+            FullyResolvedEntry entry = new FullyResolvedEntry(new Evaluate.DatasetEntry(query, null));
+            new FillFromIndex(new Endpoint(endpointUri), new AllNamesStrategy(), dbConnection, dbUser, dbPassword).fill(entry);
 
             LOGGER.info("List of candidates for entity: "+entry.entry.resourceId);
             for (User candidate : entry.candidates) {

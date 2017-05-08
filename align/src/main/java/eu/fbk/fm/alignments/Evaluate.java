@@ -29,6 +29,7 @@ import twitter4j.User;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Script that evaluates a particular alignments pipeline
@@ -77,19 +78,20 @@ public class Evaluate {
     public Collection<FullyResolvedEntry> resolveDatasetViaIndex(Dataset dataset) {
         Objects.requireNonNull(dataset);
         Objects.requireNonNull(index);
-        int processed = 0;
+        final AtomicInteger processed = new AtomicInteger(0);
 
         logger.info("Requesting entry info from knowledge base and index");
         List<FullyResolvedEntry> entries = new LinkedList<>();
-        for (DatasetEntry datasetEntry : dataset) {
+        dataset.getEntries().parallelStream().forEach(datasetEntry -> {
             FullyResolvedEntry entry = new FullyResolvedEntry(datasetEntry);
             index.fill(entry);
             entries.add(entry);
 
-            if (++processed % 100 == 0) {
-                logger.info("Processed " + processed + " entries");
+            int procValue = processed.incrementAndGet();
+            if (procValue % 100 == 0) {
+                logger.info("Processed " + procValue + " entries");
             }
-        }
+        });
 
         return entries;
     }
