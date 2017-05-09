@@ -1,5 +1,6 @@
 package eu.fbk.fm.alignments;
 
+import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import eu.fbk.fm.alignments.index.FillFromIndex;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
@@ -8,11 +9,12 @@ import eu.fbk.fm.alignments.query.*;
 import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
 import eu.fbk.fm.alignments.scorer.DefaultScoringStrategy;
 import eu.fbk.fm.alignments.scorer.FullyResolvedEntry;
+import eu.fbk.fm.alignments.scorer.ISWC17Strategy;
 import eu.fbk.fm.alignments.scorer.ScoringStrategy;
 import eu.fbk.fm.alignments.twitter.SearchRunner;
 import eu.fbk.fm.alignments.twitter.TwitterCredentials;
 import eu.fbk.fm.alignments.twitter.TwitterDeserializer;
-import eu.fbk.utils.core.Stopwatch;
+import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.utils.eval.PrecisionRecall;
 import eu.fbk.utils.math.Scaler;
 import org.apache.commons.cli.*;
@@ -27,8 +29,10 @@ import org.slf4j.LoggerFactory;
 import twitter4j.TwitterException;
 import twitter4j.User;
 
+import javax.sql.DataSource;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -167,15 +171,18 @@ public class Evaluate {
     }
 
     public void generateFeatures(List<FullyResolvedEntry> entries) {
-        int processed = 0;
-        Stopwatch watch = Stopwatch.start();
-        for (FullyResolvedEntry entry : entries) {
+        AtomicInteger processed = new AtomicInteger(0);
+        Stopwatch watch = Stopwatch.createStarted();
+        entries.parallelStream().forEach(entry -> {
             scoreStrategy.fillScore(entry);
-            processed++;
-            if (processed % 1000 == 0) {
-                logger.info(String.format("Processed %d entities (%.2f seconds)", processed, (double) watch.click() / 1000));
+            int curProc = processed.incrementAndGet();
+            if (curProc % 10 == 0 && (watch.elapsed(TimeUnit.SECONDS) > 60 || curProc % 1000 == 0)) {
+                synchronized (this) {
+                    logger.info(String.format("Processed %d entities (%.2f seconds)", curProc, (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
+                    watch.reset().start();
+                }
             }
-        }
+        });
     }
 
     public void dumpContrastiveFeatures(List<FullyResolvedEntry> entries, FileProvider.FeatureSet output) throws IOException {
@@ -627,10 +634,17 @@ public class Evaluate {
         Endpoint endpoint = new Endpoint(configuration.endpoint);
         Evaluate evaluate;
         if (configuration.dbConnection != null && configuration.dbUser != null && configuration.dbPassword != null) {
+            DataSource source = DBUtils.createPGDataSource(configuration.dbConnection, configuration.dbUser, configuration.dbPassword);
             evaluate = new Evaluate(new FillFromIndex(
                     endpoint,
                     qaStrategy,
-                    configuration.dbConnection, configuration.dbUser, configuration.dbPassword));
+                    source));
+            if (configuration.lsa != null) {
+                logger.info("LSA specified. Enabling ISWC17 strategy");
+                evaluate.setScoreStrategy(new ISWC17Strategy(source, configuration.lsa));
+            } else {
+                logger.info("LSA is not specified. Falling back to the default strategy");
+            }
         } else {
             evaluate = new Evaluate(endpoint);
             evaluate.setQAStrategy(qaStrategy);
@@ -676,10 +690,10 @@ public class Evaluate {
                 IOUtils.closeQuietly(resolvedWriter);
             } else {
                 logger.info("Deserialising user data");
-                Stopwatch watch = Stopwatch.start();
+                Stopwatch watch = Stopwatch.createStarted();
                 resolveDataset = new LinkedList<>();
                 Collections.addAll(resolveDataset, gson.fromJson(new FileReader(files.resolved), FullyResolvedEntry[].class));
-                logger.info(String.format("Complete in %.2f seconds", (double) watch.click() / 1000));
+                logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
             }
 
             //Here we check all the strategies doing a random pick from the resolved dataset
@@ -776,10 +790,10 @@ public class Evaluate {
             //Generating features
             logger.info("Generating features");
 
-            Stopwatch watch = Stopwatch.start();
+            Stopwatch watch = Stopwatch.createStarted();
             evaluate.generateFeatures(resolvedTrainingSet);
             evaluate.generateFeatures(resolvedTestSet);
-            logger.info(String.format("Complete in %.2f seconds", (double) watch.click() / 1000));
+            logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
 
             //Saving unscaled SVM and CSV features to disk
             evaluate.dumpFeatures(resolvedTrainingSet, files.train.unscaled);
@@ -797,10 +811,10 @@ public class Evaluate {
 
             //Rescaling features
             logger.info("Rescaling features");
-            watch.click();
+            watch.reset().start();
             transformDataset(scaler, resolvedTrainingSet);
             transformDataset(scaler, resolvedTestSet);
-            logger.info(String.format("Complete in %.2f seconds", (double) watch.click() / 1000));
+            logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
 
             //Saving SVM and CSV features to disk
             evaluate.dumpFeatures(resolvedTrainingSet, files.train.scaled);
@@ -808,11 +822,11 @@ public class Evaluate {
             //evaluate.dumpContrastiveFeatures(resolvedTrainingSet, files.train.scaled);
 
             logger.info("Dumping full experimental setting to JSON");
-            watch.click();
+            watch.reset().start();
             FileWriter resolvedWriter = new FileWriter(files.evaluation);
             gson.toJson(resolvedTestSet.toArray(new FullyResolvedEntry[0]), resolvedWriter);
             IOUtils.closeQuietly(resolvedWriter);
-            logger.info(String.format("Complete in %.2f seconds", (double) watch.click() / 1000));
+            logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
             evaluationPipeline(evaluate, files, resolvedTestSet);
         } catch (Exception e) {
             logger.error("Error while processing pipeline", e);
@@ -863,7 +877,7 @@ public class Evaluate {
         );
         options.addOption(
                 Option.builder().desc("Use LSA")
-                        .hasArg().argName("DIRECTORY").longOpt("lsa").build()
+                        .hasArg().argName("DIRECTORY").longOpt("lsa-path").build()
         );
 
         options.addOption(Option.builder().desc("trace mode").longOpt("trace").build());
@@ -885,7 +899,7 @@ public class Evaluate {
             configuration.workdir = line.getOptionValue("workdir");
             configuration.credentials = line.getOptionValue("credentials");
             configuration.strategy = line.getOptionValue("strategy");
-            configuration.lsa = line.getOptionValue("lsa");
+            configuration.lsa = line.getOptionValue("lsa-path");
 
             return configuration;
         } catch (ParseException exp) {

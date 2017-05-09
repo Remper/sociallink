@@ -56,7 +56,7 @@ public class BuildUserLSA {
                 .reduce(new UserTextCombine())
                 .map(new UserTextLSA())
                 .withParameters(parameters)
-                .setParallelism(8);
+                .setParallelism(4);
 
         reducedUserObjects
                 .output(
@@ -83,10 +83,11 @@ public class BuildUserLSA {
         public Tuple2<Long, String> map(Tuple2<Long, String> value) throws Exception {
             float[] vector = ((DenseVector) provider.toVector(value.f1)).toArray();
             StringBuilder vectorString = new StringBuilder();
-            vectorString.append('{');
             for (float element : vector) {
                 if (vectorString.length() > 0) {
                     vectorString.append(',');
+                } else {
+                    vectorString.append('{');
                 }
                 vectorString.append(Float.toString(element));
             }

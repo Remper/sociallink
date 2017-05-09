@@ -15,7 +15,6 @@ import twitter4j.User;
 
 import javax.sql.DataSource;
 
-import java.util.Arrays;
 import java.util.List;
 
 import static eu.fbk.fm.alignments.index.db.tables.UserText.USER_TEXT;
@@ -45,8 +44,8 @@ public class DBTextScorer implements FeatureProvider {
 
 
         if (userVectorRaw == null) {
-            LOGGER.debug("Can't find LSA for user: @"+user.getScreenName()+" ("+user.getId()+")");
-            return 0;
+            //LOGGER.debug("Can't find LSA for user: @"+user.getScreenName()+" ("+user.getId()+")");
+            return 0.0d;
         }
 
         DenseVector userVector = new DenseVector(cubeToFloat(userVectorRaw));

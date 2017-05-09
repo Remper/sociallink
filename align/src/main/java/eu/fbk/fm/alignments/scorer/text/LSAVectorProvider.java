@@ -12,6 +12,7 @@ import java.util.HashMap;
  * @author Yaroslav Nechaev (remper@me.com)
  */
 public class LSAVectorProvider implements VectorProvider {
+
     protected LSM lsa;
 
     public LSAVectorProvider(LSM lsa) {
