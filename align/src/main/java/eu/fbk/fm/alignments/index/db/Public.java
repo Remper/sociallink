@@ -4,9 +4,11 @@
 package eu.fbk.fm.alignments.index.db;
 
 
+import eu.fbk.fm.alignments.index.db.tables.Alignments;
 import eu.fbk.fm.alignments.index.db.tables.UserIndex;
 import eu.fbk.fm.alignments.index.db.tables.UserObjects;
 import eu.fbk.fm.alignments.index.db.tables.UserText;
+import eu.fbk.fm.alignments.index.db.tables.UserTextArr;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,12 +34,17 @@ import org.jooq.impl.SchemaImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Public extends SchemaImpl {
 
-    private static final long serialVersionUID = -2115476871;
+    private static final long serialVersionUID = -1194855559;
 
     /**
      * The reference instance of <code>public</code>
      */
     public static final Public PUBLIC = new Public();
+
+    /**
+     * The table <code>public.alignments</code>.
+     */
+    public final Alignments ALIGNMENTS = eu.fbk.fm.alignments.index.db.tables.Alignments.ALIGNMENTS;
 
     /**
      * The table <code>public.user_index</code>.
@@ -53,6 +60,11 @@ public class Public extends SchemaImpl {
      * The table <code>public.user_text</code>.
      */
     public final UserText USER_TEXT = eu.fbk.fm.alignments.index.db.tables.UserText.USER_TEXT;
+
+    /**
+     * The table <code>public.user_text_arr</code>.
+     */
+    public final UserTextArr USER_TEXT_ARR = eu.fbk.fm.alignments.index.db.tables.UserTextArr.USER_TEXT_ARR;
 
     /**
      * No further instances allowed
@@ -79,8 +91,10 @@ public class Public extends SchemaImpl {
 
     private final List<Table<?>> getTables0() {
         return Arrays.<Table<?>>asList(
+            Alignments.ALIGNMENTS,
             UserIndex.USER_INDEX,
             UserObjects.USER_OBJECTS,
-            UserText.USER_TEXT);
+            UserText.USER_TEXT,
+            UserTextArr.USER_TEXT_ARR);
     }
 }

@@ -13,6 +13,15 @@ import java.util.stream.Collectors;
 public class AllNamesStrategy implements QueryAssemblyStrategy {
 
     private static final int NAMES_THRESHOLD = 3;
+    private final int excludeNames;
+
+    public AllNamesStrategy() {
+        this(0);
+    }
+
+    public AllNamesStrategy(int excludeNames) {
+        this.excludeNames = excludeNames;
+    }
 
     @Override
     public String getQuery(DBpediaResource resource) {
@@ -77,6 +86,20 @@ public class AllNamesStrategy implements QueryAssemblyStrategy {
             }
 
             counts.put(name, counts.getOrDefault(name, 0) + 1);
+        }
+
+        if (excludeNames > 0) {
+            if (counts.size() <= excludeNames) {
+                counts.clear();
+                return counts;
+            }
+
+            LinkedList<String> sortedNames = new LinkedList<>(counts.keySet());
+            Comparator<String> comparator = Comparator.comparing(String::length);
+            sortedNames.sort(comparator);
+            for (int i = 0; i < excludeNames; i++) {
+                counts.remove(sortedNames.get(i));
+            }
         }
 
         return counts;

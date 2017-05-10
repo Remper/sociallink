@@ -44,7 +44,6 @@ import eu.fbk.fm.alignments.index.db.routines.GCubePenalty;
 import eu.fbk.fm.alignments.index.db.routines.GCubePicksplit;
 import eu.fbk.fm.alignments.index.db.routines.GCubeSame;
 import eu.fbk.fm.alignments.index.db.routines.GCubeUnion;
-import eu.fbk.fm.alignments.index.db.routines.JsonIntext;
 
 import javax.annotation.Generated;
 
@@ -1424,37 +1423,6 @@ public class Routines {
         GCubeUnion f = new GCubeUnion();
         f.set__1(__1);
         f.set__2(__2);
-
-        return f.asField();
-    }
-
-    /**
-     * Call <code>public.json_intext</code>
-     */
-    public static Object jsonIntext(Configuration configuration, String __1) {
-        JsonIntext f = new JsonIntext();
-        f.set__1(__1);
-
-        f.execute(configuration);
-        return f.getReturnValue();
-    }
-
-    /**
-     * Get <code>public.json_intext</code> as a field.
-     */
-    public static Field<Object> jsonIntext(String __1) {
-        JsonIntext f = new JsonIntext();
-        f.set__1(__1);
-
-        return f.asField();
-    }
-
-    /**
-     * Get <code>public.json_intext</code> as a field.
-     */
-    public static Field<Object> jsonIntext(Field<String> __1) {
-        JsonIntext f = new JsonIntext();
-        f.set__1(__1);
 
         return f.asField();
     }

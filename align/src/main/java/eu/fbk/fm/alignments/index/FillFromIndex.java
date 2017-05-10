@@ -2,6 +2,7 @@ package eu.fbk.fm.alignments.index;
 
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
+import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.Evaluate;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.query.QueryAssemblyStrategy;
@@ -27,7 +28,9 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static eu.fbk.fm.alignments.Evaluate.CANDIDATES_THRESHOLD;
 import static eu.fbk.fm.alignments.index.db.tables.UserIndex.USER_INDEX;
@@ -47,6 +50,14 @@ public class FillFromIndex implements AutoCloseable {
     private final QueryAssemblyStrategy qaStrategy;
     private final Endpoint endpoint;
 
+    private int timeout = 30;
+    private boolean verbose = true;
+
+    private Stopwatch watch = Stopwatch.createUnstarted();
+    private AtomicInteger processed = new AtomicInteger(0);
+    private AtomicInteger slow = new AtomicInteger(0);
+    private AtomicInteger errors = new AtomicInteger(0);
+
     public FillFromIndex(Endpoint endpoint, QueryAssemblyStrategy qaStrategy, DataSource source) {
         this.qaStrategy = qaStrategy;
         this.endpoint = endpoint;
@@ -64,6 +75,10 @@ public class FillFromIndex implements AutoCloseable {
         }
 
         return String.format("[Query: %s Entity: %s Correct: %s]", query, entry.entry.resourceId, correct);
+    }
+
+    private static String logAppendix(String resourceId, String query) {
+        return String.format("[Query: %s Entity: %s]", query, resourceId);
     }
 
     /**
@@ -92,7 +107,7 @@ public class FillFromIndex implements AutoCloseable {
                     )
                     .orderBy(USER_INDEX.FREQ.desc())
                     .limit(CANDIDATES_THRESHOLD)
-                    .queryTimeout(30)
+                    .queryTimeout(timeout)
                     .stream()
                     .forEach(record -> {
                         try {
@@ -110,13 +125,99 @@ public class FillFromIndex implements AutoCloseable {
             }
         }
         long elapsed = watch.elapsed(TimeUnit.SECONDS);
-        if (elapsed > 10) {
+        if (verbose && elapsed > 10) {
             LOGGER.info("Slow ("+elapsed+"s) query. "+logAppendix(entry, query));
         }
-        if (entry.candidates.size() == 0 && noCandidates < 100) {
+        if (verbose && entry.candidates.size() == 0 && noCandidates < 100) {
             noCandidates++;
             LOGGER.warn("No candidates. "+logAppendix(entry, query));
         }
+    }
+
+    private synchronized void initWatch() {
+        if (!watch.isRunning()) {
+            synchronized (this) {
+                if (!watch.isRunning()) {
+                    watch.start();
+                }
+            }
+        }
+    }
+
+    private void checkWatch() {
+        if (watch.elapsed(TimeUnit.SECONDS) > 120) {
+            synchronized (this) {
+                if (watch.elapsed(TimeUnit.SECONDS) > 120) {
+                    LOGGER.info(String.format(
+                            "Processed %d entities (%.2f ent/s). Errors: %d. Slow queries: %d",
+                            processed.get(),
+                            (float) processed.get()/120,
+                            errors.get(),
+                            slow.get()
+                    ));
+                    watch.reset().start();
+                }
+            }
+        }
+    }
+
+    public List<Long> getUids(String resourceId) {
+        initWatch();
+        List<Long> candidates = new LinkedList<>();
+        DBpediaResource resource = endpoint.getResourceById(resourceId);
+
+        String query = qaStrategy.getQuery(resource);
+        if (query.length() < 4) {
+            LOGGER.error("Query is less than 4 symbols. Ignoring. "+logAppendix(resourceId, query));
+            return candidates;
+        }
+
+        Stopwatch watch = Stopwatch.createStarted();
+        try {
+            DSL.using(source, SQLDialect.POSTGRES)
+                    .select(USER_INDEX.UID)
+                    .from(USER_INDEX)
+                    .where(
+                            "to_tsquery({0}) @@ to_tsvector('english_fullname', USER_INDEX.FULLNAME)",
+                            qaStrategy.getQuery(resource)
+                    )
+                    .orderBy(USER_INDEX.FREQ.desc())
+                    .limit(CANDIDATES_THRESHOLD)
+                    .queryTimeout(timeout)
+                    .stream()
+                    .forEach(record -> {
+                        long candidate = record.get(USER_INDEX.UID);
+                        if (!candidates.contains(candidate)) {
+                            candidates.add(candidate);
+                        }
+                    });
+            watch.stop();
+        } catch (Exception e) {
+            if (verbose) {
+                LOGGER.error("Error while requesting candidates. "+logAppendix(resourceId, query));
+                if (!exceptionPrinted) {
+                    exceptionPrinted = true;
+                    e.printStackTrace();
+                }
+            }
+            errors.incrementAndGet();
+        }
+        long elapsed = watch.elapsed(TimeUnit.SECONDS);
+        if (elapsed > 10) {
+            slow.incrementAndGet();
+            if (verbose) {
+                LOGGER.info("Slow ("+elapsed+"s) query. "+logAppendix(resourceId, query));
+            }
+        }
+        if (verbose && candidates.size() == 0 && noCandidates < 100) {
+            noCandidates++;
+            LOGGER.warn("No candidates. "+logAppendix(resourceId, query));
+        }
+        if (!verbose) {
+            checkWatch();
+        }
+        processed.incrementAndGet();
+        return candidates;
     }
 
     @Override
@@ -174,5 +275,17 @@ public class FillFromIndex implements AutoCloseable {
             // Handle exception
             CommandLine.fail(ex);
         }
+    }
+
+    public int getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
+    }
+
+    public void turnOffVerbose() {
+        this.verbose = false;
     }
 }
