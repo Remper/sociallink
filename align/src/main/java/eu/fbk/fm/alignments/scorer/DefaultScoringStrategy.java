@@ -1,5 +1,6 @@
 package eu.fbk.fm.alignments.scorer;
 
+import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.scorer.text.BOWVectorProvider;
 import eu.fbk.fm.alignments.scorer.text.CosineScorer;
 import eu.fbk.fm.alignments.scorer.text.SimilarityScorer;
@@ -14,6 +15,7 @@ import eu.fbk.utils.data.dataset.bow.FeatureMappingInterface;
 import org.apache.commons.csv.CSVRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import twitter4j.User;
 
 import java.util.*;
@@ -202,6 +204,11 @@ public class DefaultScoringStrategy implements ScoringStrategy {
             }
             entry.features.add(features);
         }
+    }
+
+    @Override
+    public double[] getScore(User user, DBpediaResource resource, int order) {
+        throw new NotImplementedException();
     }
 
     @Override

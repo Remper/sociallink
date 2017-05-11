@@ -17,6 +17,7 @@ import javax.sql.DataSource;
 
 import java.util.List;
 
+import static eu.fbk.fm.alignments.index.db.Tables.USER_TEXT_ARR;
 import static eu.fbk.fm.alignments.index.db.tables.UserText.USER_TEXT;
 
 /**
@@ -28,6 +29,8 @@ public class DBTextScorer implements FeatureProvider {
 
     protected DataSource source;
     protected VectorProvider lsaVectorProvider;
+
+    protected boolean verbose = false;
 
     public DBTextScorer(DataSource source, LSAVectorProvider lsaVectorProvider) {
         this.source = source;
@@ -44,11 +47,17 @@ public class DBTextScorer implements FeatureProvider {
 
 
         if (userVectorRaw == null) {
-            //LOGGER.debug("Can't find LSA for user: @"+user.getScreenName()+" ("+user.getId()+")");
+            if (verbose) {
+                LOGGER.debug("Can't find LSA for user: @"+user.getScreenName()+" ("+user.getId()+")");
+            }
             return 0.0d;
         }
 
-        DenseVector userVector = new DenseVector(cubeToFloat(userVectorRaw));
+        return process(cubeToFloat(userVectorRaw), resource);
+    }
+
+    protected double process(float[] user, DBpediaResource resource) {
+        DenseVector userVector = new DenseVector(user);
         List<String> resourceTexts = TextScorer.getResourceTexts(resource);
 
         double topScore = 0.0d;
@@ -73,7 +82,7 @@ public class DBTextScorer implements FeatureProvider {
         return target;
     }
 
-    private static float[] doubleToFloat(Double[] source) {
+    private static float[] numberToFloat(Number[] source) {
         float[] target = new float[source.length];
         for (int i = 0; i < target.length; i++) {
             target[i] = source[i].floatValue();
@@ -89,5 +98,36 @@ public class DBTextScorer implements FeatureProvider {
         }
 
         return v1.dotProduct(v2) / norm;
+    }
+
+    public static class DBTextScorerArr extends DBTextScorer {
+
+        public DBTextScorerArr(DataSource source, LSAVectorProvider lsaVectorProvider) {
+            super(source, lsaVectorProvider);
+        }
+
+        @Override
+        public double getFeature(User user, DBpediaResource resource) {
+            Float[] userVectorRaw = DSL.using(source, SQLDialect.POSTGRES)
+                    .select(USER_TEXT_ARR.LSA)
+                    .from(USER_TEXT_ARR)
+                    .where(USER_TEXT_ARR.UID.eq(user.getId()))
+                    .fetchOne(USER_TEXT_ARR.LSA, Float[].class);
+
+
+            if (userVectorRaw == null) {
+                if (verbose) {
+                    LOGGER.debug("Can't find LSA for user: @"+user.getScreenName()+" ("+user.getId()+")");
+                }
+                return 0.0d;
+            }
+
+            return process(DBTextScorer.numberToFloat(userVectorRaw), resource);
+        }
+
+    }
+
+    public void setVerbose(boolean verbose) {
+        this.verbose = verbose;
     }
 }

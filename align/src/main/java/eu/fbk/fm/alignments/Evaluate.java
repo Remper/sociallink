@@ -722,7 +722,7 @@ public class Evaluate {
                 for (QueryAssemblyStrategy strategy : strategies) {
                     logger.info("  Strategy: " + strategy.getClass().getSimpleName() + ". Query: " + strategy.getQuery(entry.resource));
                 }
-                if (entry.candidates.size() == 0) {
+                if (entry.candidates == null || entry.candidates.size() == 0) {
                     logger.info("  No candidates");
                 } else {
                     logger.info("  Candidates:");
@@ -741,6 +741,10 @@ public class Evaluate {
             int trueCandidates = 0;
             int[] trueCandidatesOrder = new int[CANDIDATES_THRESHOLD];
             for (FullyResolvedEntry entry : resolveDataset) {
+                if (entry == null) {
+                    logger.error("Entry is null for some reason!");
+                    continue;
+                }
                 numCandidates += entry.candidates.size();
                 if (entry.candidates.size() == 0) {
                     numNoCandidates++;

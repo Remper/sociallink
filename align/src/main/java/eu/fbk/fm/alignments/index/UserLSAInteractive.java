@@ -37,6 +37,7 @@ public class UserLSAInteractive {
     public UserLSAInteractive(Endpoint endpoint, DataSource source, LSM lsm) {
         this.lsm = lsm;
         this.index = new FillFromIndex(endpoint, new AllNamesStrategy(), source);
+        this.index.setTimeout(100);
         this.source = source;
     }
 
@@ -47,9 +48,13 @@ public class UserLSAInteractive {
 
         LOGGER.info("List of candidates for entity: "+entry.entry.resourceId);
         DBTextScorer scorer = new DBTextScorer(source, new LSAVectorProvider(lsm));
+        DBTextScorer scorer2 = new DBTextScorer.DBTextScorerArr(source, new LSAVectorProvider(lsm));
+        scorer.setVerbose(true);
+        scorer2.setVerbose(true);
         for (User candidate : entry.candidates) {
             LOGGER.info("  "+candidate.getName()+" (@"+candidate.getScreenName()+")");
-            LOGGER.info("     Similarity: "+scorer.getFeature(candidate, entry.resource));
+            LOGGER.info("     Similarity (cube): " + scorer.getFeature(candidate, entry.resource));
+            LOGGER.info("     Similarity (arr):  " + scorer2.getFeature(candidate, entry.resource));
         }
     }
 
