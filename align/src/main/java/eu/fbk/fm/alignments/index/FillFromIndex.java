@@ -4,6 +4,7 @@ import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.Evaluate;
+import eu.fbk.fm.alignments.index.db.tables.UserIndex;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.query.QueryAssemblyStrategy;
 import eu.fbk.fm.alignments.query.StrictStrategy;
@@ -35,6 +36,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static eu.fbk.fm.alignments.Evaluate.CANDIDATES_THRESHOLD;
 import static eu.fbk.fm.alignments.index.db.tables.UserIndex.USER_INDEX;
 import static eu.fbk.fm.alignments.index.db.tables.UserObjects.USER_OBJECTS;
+import static org.jooq.impl.DSL.max;
+import static org.jooq.impl.DSL.select;
+import static org.jooq.impl.DSL.sum;
 
 /**
  * Use database to fill the list of candidates for FullyResolvedEntry
@@ -96,26 +100,35 @@ public class FillFromIndex implements AutoCloseable {
 
         Stopwatch watch = Stopwatch.createStarted();
         try {
+            UserIndex indexAlias = USER_INDEX.as("a");
             DSL.using(source, SQLDialect.POSTGRES)
-                    .select(USER_OBJECTS.fields())
+                .select(USER_OBJECTS.OBJECT)
+                .from(
+                    select(USER_INDEX.UID, sum(USER_INDEX.FREQ))
                     .from(USER_INDEX)
-                    .join(USER_OBJECTS)
-                    .on(USER_INDEX.UID.eq(USER_OBJECTS.UID))
                     .where(
                             "to_tsquery({0}) @@ to_tsvector('english_fullname', USER_INDEX.FULLNAME)",
                             qaStrategy.getQuery(entry.resource)
                     )
-                    .orderBy(USER_INDEX.FREQ.desc())
-                    .limit(CANDIDATES_THRESHOLD)
-                    .queryTimeout(timeout)
-                    .stream()
-                    .forEach(record -> {
-                        try {
-                            entry.candidates.add(TwitterObjectFactory.createUser(record.get(USER_OBJECTS.OBJECT).toString()));
-                        } catch (TwitterException e) {
-                            LOGGER.error("Error while deserializing user object", e);
-                        }
-                    });
+                    .groupBy(USER_INDEX.UID)
+                    .orderBy(sum(USER_INDEX.FREQ).desc())
+                    .limit(CANDIDATES_THRESHOLD).asTable("a")
+                )
+                .leftJoin(USER_OBJECTS)
+                .on(indexAlias.UID.eq(USER_OBJECTS.UID))
+                .queryTimeout(timeout)
+                .stream()
+                .forEach(record -> {
+                    Object rawObject = record.get(USER_OBJECTS.OBJECT);
+                    if (rawObject == null) {
+                        return;
+                    }
+                    try {
+                        entry.candidates.add(TwitterObjectFactory.createUser(rawObject.toString()));
+                    } catch (TwitterException e) {
+                        LOGGER.error("Error while deserializing user object", e);
+                    }
+                });
             watch.stop();
         } catch (Exception e) {
             LOGGER.error("Error while requesting candidates. "+logAppendix(entry, query));

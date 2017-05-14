@@ -501,7 +501,7 @@ public class Evaluate {
             }
             if (sampleNum <= 200) {
                 logger.debug("Entry: " + entry.entry.resourceId);
-                logger.debug("Query: " + new NoQuotesDupesStrategy().getQuery(entry.resource));
+                logger.debug("Query: " + new AllNamesStrategy().getQuery(entry.resource));
             }
             if (entry.candidates.size() == 0) {
                 if (joint) {
@@ -577,13 +577,21 @@ public class Evaluate {
 
     public static void evaluationPipeline(Evaluate evaluate, FileProvider files, List<FullyResolvedEntry> testSet) throws Exception {
         logger.info("Starting evaluation");
-        if (testSet.size() == 0 || testSet.get(0).features.size() == 0) {
+        if (testSet.size() == 0) {
             logger.info("Test set is empty, skipping evaluation");
             return;
         }
 
         ModelEndpoint modelEndpoint = new ModelEndpoint();
-        double[] prediction = modelEndpoint.predict(testSet.get(0).features.get(0));
+        int i = 0;
+        while (testSet.get(i).features.size() == 0) {
+            i++;
+        }
+        if (i == testSet.size()) {
+            logger.warn("Set was nonempty but all the elements lack candidates");
+            return;
+        }
+        double[] prediction = modelEndpoint.predict(testSet.get(i).features.get(0));
         if (prediction.length == 0) {
             logger.info("The neural model hasn't been trained. Skipping evaluation");
             return;
