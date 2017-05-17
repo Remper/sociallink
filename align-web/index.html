@@ -8,13 +8,13 @@
     <meta name="twitter:site" content="@futuremediafbk">
     <meta property="twitter:account_id" content="388750814">
     <meta property="og:type" content="article">
-    <meta property="og:url" content="http://alignments.futuro.media/">
-    <meta property="og:site_name" content="Future Media's Alignments">
-    <meta property="og:title" content="Precomputed mappings between Knowledge Bases and Social Media">
+    <meta property="og:url" content="http://sociallink.futuro.media/">
+    <meta property="og:site_name" content="Future Media's SocialLink">
+    <meta property="og:title" content="Precomputed alignments between Knowledge Bases and Social Media">
     <meta property="og:description" content="Resource containing the alignments between DBpedia entities and Twitter profiles">
-    <meta property="og:image" content="http://alignments.futuro.media/images/portraits/futuremedia.png" />
+    <meta property="og:image" content="http://sociallink.futuro.media/images/portraits/futuremedia.png" />
     <meta name="description" content="Resource containing the alignments between DBpedia entities and Twitter profiles">
-    <title>Future Media's Alignments</title>
+    <title>Future Media's SocialLink</title>
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.3/css/bootstrap.min.css" integrity="sha384-MIwDKRSSImVFAZCVLtU0LMDdON6KVCrZHyVQQj6e8wIEJkW4tvwqXrbMIya1vriY" crossorigin="anonymous">
     <link rel="stylesheet" href="css/font-awesome.min.css">
@@ -82,8 +82,8 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-12" style="width: 665px">
-                    <h2 class="display-3" style="background-color:#fff; padding-left: 10px; padding-bottom: 5px;">Alignments</h2>
-                    <p class="lead" style="background-color:#fff; padding-left: 10px">Precomputed mappings between DBpedia entities and Twitter profiles</p>
+                    <h2 class="display-3" style="background-color:#fff; padding-left: 10px; padding-bottom: 5px;">SocialLink</h2>
+                    <p class="lead" style="background-color:#fff; padding-left: 10px">Precomputed alignments between Knowledge Bases and Social Media</p>
                 </div>
             </div>
         </div>
@@ -153,34 +153,40 @@
                 The general idea behind our resource is to create a kind of "bridge" between social media and Linked
                 Open Data (LOD) cloud.
                 <br/><br/>
-                On this page you can find 920,625 entities from the 2015-10 edition of English DBpedia with their
-                corresponding alignments to Twitter profiles. In order to produce such amount of alignments we have
-                designed a scalable approach that consists of a query strategy for the Twitter search API to populate
-                the list of candidates and a machine learning-based model to select the best possible candidate.
-                Intermediate results such as the list of candidates and the scores are included in the resource as well.
+                We present SocialLink — a Linked Open Data dataset that matches social media accounts on Twitter to
+                their corresponding entities in DBpedia. This resource creates a bridge between the highly structured
+                Linked Open Data cloud and the vibrant and up-to-date social media world. By aligning around 276K
+                (out of 2.5M) DBpedia persons and organisations to their Twitter profiles, SocialLink serves two purposes.
+                On the one hand, it facilitates social media processing by leveraging DBpedia data, e.g., as a source
+                of ground truth properties for training supervised systems for user profiling, or as contextual data
+                in natural language understanding tasks (e.g., Named Entity Linking) operating on social media contents.
+                On the other hand, SociaLink gives Semantic Web practitioners the ability to populate knowledge bases
+                with up-to-date data from social media accounts of DBpedia entities, such as structured attributes,
+                images, connections, user locations and descriptions.
                 <br/><br/>
-                This is still work in progress and we will update the released resource as well as release more
-                alignments for different versions of DBpedia and different social media websites. The code will also be
-                released.
+                SocialLink will be updated with periodic releases. The code and relevant technical documentation
+                can be found <a href="https://github.com/Remper/sociallink">here</a>.
                 <br/><br/>
                 All data and code on this website is licenced under a <a href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International license</a>
             </div>
         </div>
         <div class="row content hidden" id="cite" role="tabpanel">
             <div class="col-md-12" style="margin-bottom: 10px">
-                The paper is to appear on <a href="http://www.sigapp.org/sac/sac2017/">ACM SAC 2017</a>. You can read the preprint version <a href="http://alignments.futuro.media/paper.pdf">here</a>.
+                The paper is to appear in proceedings of <a href="http://www.sigapp.org/sac/sac2017/">ACM SAC 2017</a>. You can read the preprint version <a href="http://sociallink.futuro.media/paper.pdf">here</a>.
                 <br/><br/>
                 To cite please use the following bibtex entry:
             </div>
             <div class="col-md-12">
                 <pre style="padding-left: 10px">
                     <code>
-@misc{alignments,
-   author = {Yaroslav Nechaev and Francesco Corcoglioniti and Claudio Giuliano},
-   title = {Linking knowledge bases to social media profiles},
-   year = {2017},
-   abstract = {Social media have become an invaluable source of data for a wide variety of tasks. Unfortunately, this data is hard to gather and process due to low amount of machine readable attributes, API limitations and noisiness. In this paper we propose a system that aligns knowledge base entries of people and organisations to the corresponding social media profiles. The motivation is twofold: (i) on the one hand, we facilitate processing of social media data by allowing the import of rich entity descriptions from knowledge bases; (ii) on the other hand, we are enabling an automatic enrichment of a knowledge base with additional data from the social media. We used this system to create a resource of 893,446 alignments between DBpedia entities and Twitter profiles. This resource allows, effectively, to connect Twitter to the Linked Open Data cloud.},
-   url = {http://alignments.futuro.media}
+@inproceedings{alignments2017sac,
+    author = {Yaroslav Nechaev and Francesco Corcoglioniti and Claudio Giuliano},
+    title = {Linking Knowledge Bases to Social Media Profiles},
+    booktitle = {Proc. of ACM Symposium on Applied Computing (SAC)},
+    year = {2017},
+    publisher = {{ACM}},
+    abstract = {Social media have become an invaluable source of data for a wide variety of tasks. Unfortunately, this data is hard to gather and process due to low amount of machine readable attributes, API limitations and noisiness. In this paper we propose a system that aligns knowledge base entries of people and organisations to the corresponding social media profiles. The motivation is twofold: (i) on the one hand, we facilitate processing of social media data by allowing the import of rich entity descriptions from knowledge bases; (ii) on the other hand, we are enabling an automatic enrichment of a knowledge base with additional data from the social media. We used this system to create a resource of 893,446 alignments between DBpedia entities and Twitter profiles. This resource allows, effectively, to connect Twitter to the Linked Open Data cloud.},
+    url = {http://sociallink.futuro.media}
 }</code>
                 </pre>
             </div>
@@ -212,11 +218,11 @@
                         </div>
                         <div class="row">
                             <div class="col-md-12 minilinks">
-                                <a class="nav-link" href="http://alignments.futuro.media/v0.6/resource.ttl.gz">[RDF]</a>
-                                <a class="nav-link" href="http://alignments.futuro.media/v0.6/resource.json.gz">[JSON]</a>
-                                <a class="nav-link" href="http://alignments.futuro.media/v0.6/resource.pretty.json.gz">[JSON (pretty)]</a>
-                                <a class="nav-link" href="http://alignments.futuro.media/v0.6/resource.csv.gz">[CSV]</a>
-                                <a class="nav-link" href="http://alignments.futuro.media/v0.6/changelog.txt">[changelog]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v0.6/resource.ttl.gz">[RDF]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v0.6/resource.json.gz">[JSON]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v0.6/resource.pretty.json.gz">[JSON (pretty)]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v0.6/resource.csv.gz">[CSV]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v0.6/changelog.txt">[changelog]</a>
                             </div>
                         </div>
                     </div>
@@ -237,7 +243,7 @@
                         <div class="row">
                             <div class="col-md-12 minilinks">
                                 <!-- <a class="nav-link" href="#">[RDF]</a> -->
-                                <a class="nav-link" href="http://alignments.futuro.media/v1.0/gold-final.csv.gz">[CSV]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v1.0/gold-final.csv.gz">[CSV]</a>
                             </div>
                         </div>
                     </div>
@@ -260,10 +266,10 @@
                         </div>
                         <div class="row">
                             <div class="col-md-12 minilinks">
-                                <a class="nav-link" href="http://alignments.futuro.media/v0.5/resource.ttl.gz">[RDF]</a>
-                                <a class="nav-link" href="http://alignments.futuro.media/v0.5/resource.json.gz">[JSON]</a>
-                                <a class="nav-link" href="http://alignments.futuro.media/v0.5/resource.pretty.json.gz">[JSON (pretty)]</a>
-                                <a class="nav-link" href="http://alignments.futuro.media/v0.5/resource.csv.gz">[CSV]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v0.5/resource.ttl.gz">[RDF]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v0.5/resource.json.gz">[JSON]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v0.5/resource.pretty.json.gz">[JSON (pretty)]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v0.5/resource.csv.gz">[CSV]</a>
                             </div>
                         </div>
                     </div>
@@ -284,8 +290,8 @@
                         <div class="row">
                             <div class="col-md-12 minilinks">
                                 <!-- <a class="nav-link" href="#">[RDF]</a> -->
-                                <a class="nav-link" href="http://alignments.futuro.media/v0.1/resource.json.gz">[JSON]</a>
-                                <a class="nav-link" href="http://alignments.futuro.media/v0.1/resource.csv.gz">[CSV]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v0.1/resource.json.gz">[JSON]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v0.1/resource.csv.gz">[CSV]</a>
                             </div>
                         </div>
                     </div>
@@ -306,7 +312,7 @@
                         <div class="row">
                             <div class="col-md-12 minilinks">
                                 <!-- <a class="nav-link" href="#">[RDF]</a> -->
-                                <a class="nav-link" href="http://alignments.futuro.media/v1.0/gold.csv.gz">[CSV]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v1.0/gold.csv.gz">[CSV]</a>
                             </div>
                         </div>
                     </div>
@@ -364,7 +370,7 @@
                         <pre><code>@prefix dct: &lt;http://purl.org/dc/terms/&gt; .
     @prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt; .
     @prefix prov: &lt;http://www.w3.org/ns/prov#&gt; .
-    @prefix : &lt;http://alignments.futuro.media/ontology#&gt; .
+    @prefix : &lt;http://sociallink.futuro.media/ontology#&gt; .
 
     &lt;http://dbpedia.org/resource/AC/DC&gt;
             foaf:account &lt;http://twitter.com/acdc&gt;;
