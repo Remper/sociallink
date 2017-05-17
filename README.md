@@ -1,87 +1,27 @@
-# Social Media Toolkit
-Home to our alignments website, SMT API and UI
+# SocialLink [![DOI][sl-doi-img]][sl-doi] [![W3ID][w3id-img]][w3id]
 
-## SMT API
+Alignments between knowledge bases and social media. Please refer to our 
+[website](http://sociallink.futuro.media) for more information about the project.
 
-### Alignments
+## Code organisation
 
-| Method                         | GET params                                 | Example |
-| ------------------------------ | ------------------------------------------ | ------- |
-| alignments/by_twitter_username | `username` – Twitter username, `whitelist` | [example](https://api.futuro.media/smt/alignments/by_twitter_username?username=spacex)  |
-| alignments/by_twiiter_id       | `id` – Twitter ID, `whitelist`             | [example](https://api.futuro.media/smt/alignments/by_twitter_id?id=34743251) |
-| alignments/by_resource_uri     | `uri` – KB URI                             | [example](https://api.futuro.media/smt/alignments/by_resource_uri?uri=http://dbpedia.org/resource/SpaceX) |
-| alignments/datasets            | —                                          | [example](https://api.futuro.media/smt/alignments/datasets) |
+This repository consists of four components:
+- [**align-web**](https://github.com/Remper/sociallink/wiki/align-web) — the SocialLink website
+- [**align**](https://github.com/Remper/sociallink/wiki/align) — the SocialLink java library containing all the code needed to recreate the resource
+- [**smt**](https://github.com/Remper/sociallink/wiki/SMT-API) — Social Media Toolkit toolset that provides some additional functionality on top 
+of the SocialLink
+- [**smt-ui**](https://github.com/Remper/sociallink/wiki/SMT-UI) — web-based UI for some of the SMT API
 
-`whitelist` — a single or many datasets from which to pull the alignments. The list of datasets can be acquired via the alignments/datasets method
+## License
 
-#### Result example
+All the code is licensed under the [Apache License 2.0](https://github.com/Remper/sociallink/blob/master/LICENSE)
 
-https://api.futuro.media/smt/alignments/by_twitter_username?username=spacex
-```
-{
-  code: 0,
-  message: "ok",
-  data: {
-    request: 34743251,
-    alignment: "http://dbpedia.org/resource/SpaceX",
-    type: "http://dbpedia.org/ontology/Organisation",
-    candidates: [{
-      resourceId: "http://dbpedia.org/resource/Future_(rapper)",
-      type: "http://dbpedia.org/ontology/Person",
-      score: 1.6833161768847007
-    },
-    {
-      resourceId: "http://dbpedia.org/resource/Rocket_(band)",
-      type: "http://dbpedia.org/ontology/Organisation",
-      score: 2.650455665454094
-    },
-    {
-      resourceId: "http://dbpedia.org/resource/SpaceX",
-      type: "http://dbpedia.org/ontology/Organisation",
-      score: 3.236673068590393
-    },
-    {
-      resourceId: "http://dbpedia.org/resource/Space_(English_band)",
-      type: "http://dbpedia.org/ontology/Organisation",
-      score: 0.1442977292954537
-    },
-    {
-      resourceId: "http://dbpedia.org/resource/Space_(French_band)",
-      type: "http://dbpedia.org/ontology/Organisation",
-      score: 3.163512333075912
-    },
-    {
-      resourceId: "http://dbpedia.org/resource/Space_(TV_channel)",
-      type: "http://dbpedia.org/ontology/Organisation",
-      score: 3.1678481553542235
-    },
-    {
-      resourceId: "http://dbpedia.org/resource/The_Launch",
-      score: 2.2920326658142876
-    },
-    {
-      resourceId: "http://dbpedia.org/resource/The_Rockets_(band)",
-      type: "http://dbpedia.org/ontology/Organisation",
-      score: 2.294920430809601
-    },
-    {
-      resourceId: "http://dbpedia.org/resource/X_(American_band)",
-      type: "http://dbpedia.org/ontology/Organisation",
-      score: 1.4759126893085854
-    },
-    {
-      resourceId: "http://dbpedia.org/resource/X_(Australian_band)",
-      type: "http://dbpedia.org/ontology/Organisation",
-      score: 1.4759126892645242
-    }]
-  }
-}
-```
+## Authors
 
-### Profiles
+Yaroslav Nechaev, Francesco Corcoglioniti, Claudio Giuliano
+{nechaev,corcoglio,giuliano}@fbk.eu
 
-TODO
-
-### Limits
-
-TODO
+[sl-doi-img]: https://zenodo.org/badge/DOI/10.5281/zenodo.580034.svg
+[sl-doi]:     https://doi.org/10.5281/zenodo.580034
+[w3id-img]:   https://img.shields.io/badge/w3id-sociallink-blue.svg
+[w3id]:   https://w3id.org/sociallink
