@@ -164,10 +164,10 @@
                 with up-to-date data from social media accounts of DBpedia entities, such as structured attributes,
                 images, connections, user locations and descriptions.
                 <br/><br/>
-                SocialLink will be updated with periodic releases. The code and relevant technical documentation
+                SocialLink is updated with periodic releases. The code and relevant technical documentation
                 can be found <a href="https://github.com/Remper/sociallink">here</a>.
                 <br/><br/>
-                All data and code on this website is licenced under a <a href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International license</a>
+                All data on this website is licenced under a <a href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International license</a>
             </div>
         </div>
         <div class="row content hidden" id="cite" role="tabpanel">
@@ -207,7 +207,7 @@
                     <div class="col-xs-12" style="min-width: 655px">
                         <div class="row">
                             <div class="col-md-1 description">
-                                Alignments DBpedia -> Twitter
+                                <a href="https://doi.org/10.5281/zenodo.580034">Alignments DBpedia -> Twitter</a>
                             </div>
                             <div class="col-md-1 version">
                                 Version: v2.0
@@ -361,43 +361,6 @@
                     <h5>Format descriptions</h5>
                 </div>
                 <div class="row format-descriptions">
-                    <h6><a href="#desc-json" class="toggle">JSON</a></h6>
-                </div>
-                <div class="row" id="desc-json">
-                    <div class="col-xs-12" style="text-align: justify;">
-                        <p>
-                            JSON file is a single array containing an object for each DBpedia entity with similar structure:
-                        </p>
-                        <pre><code>{
-  "entity_uri": "http://dbpedia.org/resource/Alex_Gough_(luger)",
-  "candidates": [
-    344383738,
-    615071998,
-    14265520,
-    23833648,
-    ...
-  ],
-  "scores": [
-    1.5554074239158626,
-    0.0,
-    0.0,
-    0.0,
-    ...
-  ],
-  "twitter_id": 344383738
-}</code></pre>
-                        <p>
-                            <br/>Where <code>candidates</code> property contain the list of candidate IDs for each entity,
-                            while <code>scores</code> property contains a confidence score for each candidate
-                            reported by our candidate selection algorithm.
-                        </p>
-                        <p>
-                            <code>twitter_id</code> might be present in case a certain threshold is met (thresholds are
-                            selected according to the high F1 setup from our paper)
-                        </p>
-                    </div>
-                </div>
-                <div class="row format-descriptions">
                     <h6><a href="#desc-rdf" class="toggle">RDF</a></h6>
                 </div>
                 <div class="row" id="desc-rdf">
@@ -449,6 +412,43 @@
                             Here, the Twitter account is typed as a <code>foaf:OnlineAccount</code>, property <code>foaf:accountName</code>
                             specifies the Twitter screen name for the profile (actually redundant but mandated by FOAF), while property
                             <code>dct:identifier</code> provides the Twitter unique, immutable, numeric identifier associated to the profile.
+                        </p>
+                    </div>
+                </div>
+                <div class="row format-descriptions">
+                    <h6><a href="#desc-json" class="toggle">JSON</a></h6>
+                </div>
+                <div class="row" id="desc-json">
+                    <div class="col-xs-12" style="text-align: justify;">
+                        <p>
+                            JSON file is a single array containing an object for each DBpedia entity with similar structure:
+                        </p>
+                        <pre><code>{
+  "entity_uri": "http://dbpedia.org/resource/Alex_Gough_(luger)",
+  "candidates": [
+    344383738,
+    615071998,
+    14265520,
+    23833648,
+    ...
+  ],
+  "scores": [
+    1.5554074239158626,
+    0.0,
+    0.0,
+    0.0,
+    ...
+  ],
+  "twitter_id": 344383738
+}</code></pre>
+                        <p>
+                            <br/>Where <code>candidates</code> property contain the list of candidate IDs for each entity,
+                            while <code>scores</code> property contains a confidence score for each candidate
+                            reported by our candidate selection algorithm.
+                        </p>
+                        <p>
+                            <code>twitter_id</code> might be present in case a certain threshold is met (thresholds are
+                            selected according to the high F1 setup from our paper)
                         </p>
                     </div>
                 </div>
