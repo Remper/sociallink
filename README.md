@@ -6,11 +6,11 @@ Alignments between knowledge bases and social media. Please refer to our
 ## Code organisation
 
 This repository consists of four components:
-- [**align-web**](https://github.com/Remper/sociallink/wiki/align-web) — the SocialLink website
-- [**align**](https://github.com/Remper/sociallink/wiki/align) — the SocialLink java library containing all the code needed to recreate the resource
-- [**smt**](https://github.com/Remper/sociallink/wiki/SMT-API) — Social Media Toolkit toolset that provides some additional functionality on top 
+ - [**align-web**](https://github.com/Remper/sociallink/wiki/align-web) — the SocialLink website
+ - [**align**](https://github.com/Remper/sociallink/wiki/align) — the SocialLink java library containing all the code needed to recreate the resource
+ - [**smt**](https://github.com/Remper/sociallink/wiki/SMT-API) — Social Media Toolkit toolset that provides some additional functionality on top 
 of the SocialLink
-- [**smt-ui**](https://github.com/Remper/sociallink/wiki/SMT-UI) — web-based UI for some of the SMT API
+ - [**smt-ui**](https://github.com/Remper/sociallink/wiki/SMT-UI) — web-based UI for some of the SMT API
 
 ## License
 

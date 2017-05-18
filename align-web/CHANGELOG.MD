@@ -1,7 +1,7 @@
 Version 2.0
 ---------------------
 
- — completely rebuilt alignments from scratch taking entities from 128 chapters of DBpedia
+ - completely rebuilt alignments from scratch taking entities from 128 chapters of DBpedia
  - added the ability to work with a custom user index
  - performance and reliability improvements
 
