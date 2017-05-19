@@ -15,8 +15,10 @@
     <meta property="og:image" content="http://sociallink.futuro.media/images/portraits/futuremedia.png" />
     <meta name="description" content="Resource containing the alignments between DBpedia entities and Twitter profiles">
     <title>Future Media's SocialLink</title>
-
+    
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.3/css/bootstrap.min.css" integrity="sha384-MIwDKRSSImVFAZCVLtU0LMDdON6KVCrZHyVQQj6e8wIEJkW4tvwqXrbMIya1vriY" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/yasr/2.10.8/yasr.min.css" type="text/css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/yasqe/2.11.10/yasqe.min.css" type="text/css"/>
     <link rel="stylesheet" href="css/font-awesome.min.css">
     <style>
         .minilinks {
@@ -29,7 +31,7 @@
         .nav-link.active {
             color: #55595c;
         }
-        .hidden {
+        .hiddentab {
             display: none !important;
         }
         .author.img-circle {
@@ -94,13 +96,25 @@
                 <nav class="nav nav-inline">
                     <a class="nav-link active tab" data-toggle="tab" href="#description" role="tab">Description</a>
                     <a class="nav-link tab" data-toggle="tab" href="#download" role="tab">Download</a>
+                    <a class="nav-link tab" data-toggle="tab" href="#sparql" role="tab">SPARQL Endpoint</a>
                     <a class="nav-link tab" data-toggle="tab" href="#cite" role="tab">Cite & Read</a>
                     <!-- <a class="nav-link tab" data-toggle="tab" href="#evaluation" role="tab">Evaluation</a> -->
                     <a class="nav-link tab" data-toggle="tab" href="#authors" role="tab">Authors</a>
                 </nav>
             </div>
         </div>
-        <div class="row content hidden" id="authors" role="tabpanel">
+        <div class="row content hiddentab" id="sparql" role="tabpanel">
+            <div class="col-md-12" style="text-align: justify;">
+                The latest version of the SocialLink RDF dataset can be programmatically queried via our publicly
+                available SPARQL endpoint at
+                <a href="http://sociallink.futuro.media/sparql">http://sociallink.futuro.media/sparql</a>.
+                You can use the query interface below (powered by <a href="http://yasqe.yasgui.org/">YASQE</a> and 
+                <a href="http://yasr.yasgui.org/">YASR</a>) to query the endpoint using your browser.
+                <div id="yasqe"></div> 
+                <div id="yasr"></div> 
+            </div>
+        </div>
+        <div class="row content hiddentab" id="authors" role="tabpanel">
             <div class="col-md-12" style="min-width: 655px">
                 <div class="row portrait">
                     <h6>
@@ -145,7 +159,7 @@
                 </div>
             </div>
         </div>
-        <div class="row content hidden" id="evaluation" role="tabpanel">
+        <div class="row content hiddentab" id="evaluation" role="tabpanel">
             evaluation
         </div>
         <div class="row content" id="description" role="tabpanel">
@@ -170,7 +184,7 @@
                 All data on this website is licenced under a <a href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International license</a>
             </div>
         </div>
-        <div class="row content hidden" id="cite" role="tabpanel">
+        <div class="row content hiddentab" id="cite" role="tabpanel">
             <div class="col-md-12" style="margin-bottom: 10px">
                 The paper is to appear in proceedings of <a href="http://www.sigapp.org/sac/sac2017/">ACM SAC 2017</a>. You can read the preprint version <a href="http://sociallink.futuro.media/paper.pdf">here</a>.
                 <br/><br/>
@@ -195,7 +209,7 @@
                 <iframe src="https://www.icloud.com/keynote/01rqAOkrJG-S9CH2bKpW3iZfw?embed=true" width="640" height="500" frameborder="0" allowfullscreen="1" referrer="no-referrer"></iframe>
             </div>
         </div>
-        <div class="row content hidden" id="download" role="tabpanel">
+        <div class="row content hiddentab" id="download" role="tabpanel">
             <div class="col-md-12">
                 <div class="row">
                     <h5>Releases</h5>
@@ -488,7 +502,7 @@
     <script>
         $('.format-descriptions a.toggle').click(function(e) {
             e.preventDefault();
-            $($(this).attr('href')).toggleClass("hidden");
+            $($(this).attr('href')).toggleClass("hiddentab");
         });
         $('a.nav-link.tab').click(function(e) {
             var curTabLink = $('a.nav-link.tab.active');
@@ -502,8 +516,8 @@
 
             curTabLink.removeClass('active');
             $(this).addClass('active');
-            curTab.addClass('hidden');
-            newTab.removeClass('hidden');
+            curTab.addClass('hiddentab');
+            newTab.removeClass('hiddentab');
             location.hash = newHref;
         });
         $('#download').find('.nav-link').click(function() {
@@ -558,5 +572,38 @@
     </script>
     <noscript><div><img src="https://mc.yandex.ru/watch/39267940?ut=noindex" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
     <!-- /Yandex.Metrika counter -->
+
+    <script src="https://cdn.jsdelivr.net/yasqe/2.11.10/yasqe.bundled.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/yasr/2.10.8/yasr.bundled.min.js"></script>
+    <script>
+        var yasqe = YASQE(document.getElementById("yasqe"), {
+            sparql: {
+                endpoint: "https://sociallink.futuro.media/sparql",
+                showQueryButton: true
+            },
+            value: "SELECT (COUNT(*) AS ?n) WHERE { ?s ?p ?o }",
+            showQueryButton: true
+        });
+        var yasr = YASR(document.getElementById("yasr"), {
+            getUsedPrefixes: function() {
+                var map = yasqe.getPrefixesFromQuery();
+                map = Object.create(map);
+                map.rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
+                map.rdfs = "http://www.w3.org/2000/01/rdf-schema#";
+                map.owl = "http://www.w3.org/2002/07/owl#";
+                map.xsd = "http://www.w3.org/2001/XMLSchema#";
+                map.dcterms = "http://purl.org/dc/terms/";
+                map.foaf = "http://xmlns.com/foaf/0.1/";
+                map.sl = "http://sociallink.futuro.media/ontology#";
+                return map;
+            }
+        });
+        yasqe.addPrefixes({
+                sl: "http://sociallink.futuro.media/ontology#"
+        });
+        yasqe.collapsePrefixes = true;
+        yasqe.options.sparql.callbacks.complete = yasr.setResponse;
+    </script>
+    
 </body>
 </html>
