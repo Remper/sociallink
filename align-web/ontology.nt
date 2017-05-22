@@ -1,0 +1,61 @@
+<http://sociallink.futuro.media/ontology> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Ontology> .
+<http://sociallink.futuro.media/ontology> <http://www.w3.org/2002/07/owl#versionInfo> "2.0"^^<http://www.w3.org/2001/XMLSchema#decimal> .
+<http://sociallink.futuro.media/ontology> <http://purl.org/dc/terms/issued> "2016-08-25T00:00:00Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+<http://sociallink.futuro.media/ontology> <http://purl.org/dc/terms/modified> "2017-05-15T00:00:00Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+<http://sociallink.futuro.media/ontology> <http://purl.org/dc/terms/creator> "Yaroslav Nechaev <nechaev AT fbk.eu>" .
+<http://sociallink.futuro.media/ontology> <http://purl.org/dc/terms/publisher> "Future Media, Fondazione Bruno Kessler <http://fm.fbk.eu/>" .
+<http://sociallink.futuro.media/ontology> <http://purl.org/dc/terms/creator> "Francesco Corcoglioniti <corcoglio AT fbk.eu>" .
+<http://sociallink.futuro.media/ontology> <http://purl.org/vocab/vann/preferredNamespacePrefix> "sl" .
+<http://sociallink.futuro.media/ontology> <http://purl.org/vocab/vann/preferredNamespaceUri> "http://sociallink.futuro.media/ontology#" .
+<http://sociallink.futuro.media/ontology> <http://purl.org/dc/terms/creator> "Claudio Giuliano <giuliano AT fbk.eu>" .
+<http://sociallink.futuro.media/ontology> <http://purl.org/dc/terms/title> "SocialLink Vocabulary"@en .
+<http://sociallink.futuro.media/ontology> <http://purl.org/dc/terms/description> "The [SocialLink](http://sociallink.futuro.media/) vocabulary is intended to be used together with [FOAF](http://xmlns.com/foaf/0.1/) and [DCTERMS](http://purl.org/dc/terms/) to represent alignment data between knowledge base entities and social media accounts, as exemplified in the figure (SocialLink vocabulary concepts shown in red).\n\nIn the example, entity wikidata:Q76 -- standing for \"Barack Obama\" and here represented with all its DBpedia owl:sameAs aliases (e.g., dbr:BarackObama) -- is aligned to account twitter:BarackObama (a foaf:OnlineAccount) via property foaf:account. As shown, FOAF already provides concepts and properties for modeling the alignment, including foaf:accountName representing the account username that we complement (in the [SocialLink dataset](http://sociallink.futuro.media/index.html#download)) with dcterms:identifier to encode other account identifiers like the numerical user identifier used in Twitter APIs. \n\nTo represent the candidate alignment data between entities and accounts produced during the generation of the alignments (which enables third parties to analyze/improve the alignment process), the SocialLink vocabulary introduces an additional sl:Candidate class representing the reified \"candidate\" alignment relation between an entity and an account. This means that each sl:Candidate instance represent a pair <entity, account> identified, respectively, with properties sl:candidate and sl:account. An additional property sl:confidence provides the confidence score associated to the candidate alignment (the one with the best score might be selected for the foaf:account alignment by the alignment algorithm). Property sl:rank represents the position of the candidate in the ranked list of candidates for an entity, and as such can be used to speed up queries for the top candidate of an entity (independently of the existence of an alignment)."@en .
+<http://sociallink.futuro.media/ontology> <http://purl.org/dc/terms/rights> "This ontology is licensed under CC-BY 4.0 <https://creativecommons.org/licenses/by/4.0/>"@en .
+<http://sociallink.futuro.media/ontology> <http://www.w3.org/2000/01/rdf-schema#comment> "Together with [FOAF](http://xmlns.com/foaf/0.1/) and [Dublin Core Terms (DCTERMS)](http://purl.org/dc/terms/), the present [SocialLink](http://sociallink.futuro.media/) vocabulary provides terms to represent the alignments between entities of knowledge bases such as [DBpedia](http://dbpedia.org/) and accounts of social media such as [Twitter](http://twitter.com/), covering both the alignment links and all intermediate candidate alignment data. This vocabulary is used in the [SocialLink dataset](http://sociallink.futuro.media/index.html#download)."@en .
+<http://sociallink.futuro.media/ontology> <http://purl.org/dc/terms/description> <http://sociallink.futuro.media/ontology.svg> .
+<http://sociallink.futuro.media/ontology> <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <http://sociallink.futuro.media/ontology.ttl> .
+<http://sociallink.futuro.media/ontology> <http://purl.org/dc/terms/license> <https://creativecommons.org/licenses/by/4.0/> .
+<http://purl.org/dc/terms/creator> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://purl.org/dc/terms/description> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://purl.org/dc/terms/issued> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://purl.org/dc/terms/license> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://purl.org/dc/terms/modified> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://purl.org/dc/terms/publisher> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://purl.org/dc/terms/rights> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://purl.org/dc/terms/title> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://purl.org/vocab/vann/preferredNamespacePrefix> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://purl.org/vocab/vann/preferredNamespaceUri> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://sociallink.futuro.media/ontology#account> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#ObjectProperty> .
+<http://sociallink.futuro.media/ontology#account> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#FunctionalProperty> .
+<http://sociallink.futuro.media/ontology#account> <http://www.w3.org/2000/01/rdf-schema#label> "account"@en .
+<http://sociallink.futuro.media/ontology#account> <http://www.w3.org/2000/01/rdf-schema#comment> "Links a candidate instance to the corresponding social link account. This is a N:1 property."@en .
+<http://sociallink.futuro.media/ontology#account> <http://www.w3.org/2000/01/rdf-schema#domain> <http://sociallink.futuro.media/ontology#Candidate> .
+<http://sociallink.futuro.media/ontology#account> <http://www.w3.org/2000/01/rdf-schema#range> <http://xmlns.com/foaf/0.1/OnlineAccount> .
+<http://sociallink.futuro.media/ontology#candidate> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#ObjectProperty> .
+<http://sociallink.futuro.media/ontology#candidate> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#InverseFunctionalProperty> .
+<http://sociallink.futuro.media/ontology#candidate> <http://www.w3.org/2000/01/rdf-schema#label> "candidate"@en .
+<http://sociallink.futuro.media/ontology#candidate> <http://www.w3.org/2000/01/rdf-schema#comment> "Links a knowledge base entity to a sl:Candidate instance reifying the entity relation with a social media account that has been identified as a candidate for alignment to the entity in SocialLink. This is a 1:N relation."@en .
+<http://sociallink.futuro.media/ontology#candidate> <http://www.w3.org/2000/01/rdf-schema#range> <http://sociallink.futuro.media/ontology#Candidate> .
+<http://sociallink.futuro.media/ontology#candidate> <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.w3.org/2002/07/owl#Thing> .
+<http://sociallink.futuro.media/ontology#confidence> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#DatatypeProperty> .
+<http://sociallink.futuro.media/ontology#confidence> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#FunctionalProperty> .
+<http://sociallink.futuro.media/ontology#confidence> <http://www.w3.org/2000/01/rdf-schema#domain> <http://sociallink.futuro.media/ontology#Candidate> .
+<http://sociallink.futuro.media/ontology#confidence> <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#decimal> .
+<http://sociallink.futuro.media/ontology#rank> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#DatatypeProperty> .
+<http://sociallink.futuro.media/ontology#rank> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#FunctionalProperty> .
+<http://sociallink.futuro.media/ontology#rank> <http://www.w3.org/2000/01/rdf-schema#domain> <http://sociallink.futuro.media/ontology#Candidate> .
+<http://sociallink.futuro.media/ontology#rank> <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2001/XMLSchema#positiveInteger> .
+<http://sociallink.futuro.media/ontology#Candidate> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://sociallink.futuro.media/ontology#Candidate> <http://www.w3.org/2000/01/rdf-schema#label> "Candidate"@en .
+<http://sociallink.futuro.media/ontology#Candidate> <http://www.w3.org/2000/01/rdf-schema#subClassOf> _:node1bgnvt5jgx1 .
+_:node1bgnvt5jgx1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Restriction> .
+_:node1bgnvt5jgx1 <http://www.w3.org/2002/07/owl#onProperty> _:node1bgnvt5jgx2 .
+_:node1bgnvt5jgx2 <http://www.w3.org/2002/07/owl#inverseOf> <http://sociallink.futuro.media/ontology#candidate> .
+_:node1bgnvt5jgx1 <http://www.w3.org/2002/07/owl#cardinality> "1"^^<http://www.w3.org/2001/XMLSchema#nonNegativeInteger> .
+<http://sociallink.futuro.media/ontology#Candidate> <http://www.w3.org/2000/01/rdf-schema#subClassOf> _:node1bgnvt5jgx3 .
+_:node1bgnvt5jgx3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Restriction> .
+_:node1bgnvt5jgx3 <http://www.w3.org/2002/07/owl#onProperty> <http://sociallink.futuro.media/ontology#account> .
+_:node1bgnvt5jgx3 <http://www.w3.org/2002/07/owl#cardinality> "1"^^<http://www.w3.org/2001/XMLSchema#nonNegativeInteger> .
+<http://sociallink.futuro.media/ontology#Candidate> <http://www.w3.org/2000/01/rdf-schema#comment> "The reified 'candidate' relation between a knowledge base entity (identified by property sl:candidate) and a social media account (identified by property sl:account).\n\nAnnotated with the confidence score of the candidate (property sl:confidence) and its rank in the list of candidates for the entity (property sl:rank)."@en .
+<http://xmlns.com/foaf/0.1/OnlineAccount> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://xmlns.com/foaf/0.1/OnlineAccount> <http://www.w3.org/2000/01/rdf-schema#label> "Online Account"@en .

@@ -1,0 +1,97 @@
+@prefix : <http://sociallink.futuro.media/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix twitter: <http://twitter.com/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix dbr: <http://dbpedia.org/resource/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+@prefix wikidata: <http://wikidata.dbpedia.org/resource/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+<http://sociallink.futuro.media/ontology> a owl:Ontology ;
+	owl:versionInfo "2.0"^^xsd:decimal ;
+	dcterms:issued "2016-08-25T00:00:00Z"^^xsd:dateTime ;
+	dcterms:modified "2017-05-15T00:00:00Z"^^xsd:dateTime ;
+	dcterms:creator "Yaroslav Nechaev <nechaev AT fbk.eu>" ;
+	dcterms:publisher "Future Media, Fondazione Bruno Kessler <http://fm.fbk.eu/>" ;
+	dcterms:creator "Francesco Corcoglioniti <corcoglio AT fbk.eu>" ;
+	vann:preferredNamespacePrefix "sl" ;
+	vann:preferredNamespaceUri "http://sociallink.futuro.media/ontology#" ;
+	dcterms:creator "Claudio Giuliano <giuliano AT fbk.eu>" ;
+	dcterms:title "SocialLink Vocabulary"@en ;
+	dcterms:description """The [SocialLink](http://sociallink.futuro.media/) vocabulary is intended to be used together with [FOAF](http://xmlns.com/foaf/0.1/) and [DCTERMS](http://purl.org/dc/terms/) to represent alignment data between knowledge base entities and social media accounts, as exemplified in the figure (SocialLink vocabulary concepts shown in red).
+
+In the example, entity wikidata:Q76 -- standing for \"Barack Obama\" and here represented with all its DBpedia owl:sameAs aliases (e.g., dbr:BarackObama) -- is aligned to account twitter:BarackObama (a foaf:OnlineAccount) via property foaf:account. As shown, FOAF already provides concepts and properties for modeling the alignment, including foaf:accountName representing the account username that we complement (in the [SocialLink dataset](http://sociallink.futuro.media/index.html#download)) with dcterms:identifier to encode other account identifiers like the numerical user identifier used in Twitter APIs. 
+
+To represent the candidate alignment data between entities and accounts produced during the generation of the alignments (which enables third parties to analyze/improve the alignment process), the SocialLink vocabulary introduces an additional sl:Candidate class representing the reified \"candidate\" alignment relation between an entity and an account. This means that each sl:Candidate instance represent a pair <entity, account> identified, respectively, with properties sl:candidate and sl:account. An additional property sl:confidence provides the confidence score associated to the candidate alignment (the one with the best score might be selected for the foaf:account alignment by the alignment algorithm). Property sl:rank represents the position of the candidate in the ranked list of candidates for an entity, and as such can be used to speed up queries for the top candidate of an entity (independently of the existence of an alignment)."""@en ;
+	dcterms:rights "This ontology is licensed under CC-BY 4.0 <https://creativecommons.org/licenses/by/4.0/>"@en ;
+	rdfs:comment "Together with [FOAF](http://xmlns.com/foaf/0.1/) and [Dublin Core Terms (DCTERMS)](http://purl.org/dc/terms/), the present [SocialLink](http://sociallink.futuro.media/) vocabulary provides terms to represent the alignments between entities of knowledge bases such as [DBpedia](http://dbpedia.org/) and accounts of social media such as [Twitter](http://twitter.com/), covering both the alignment links and all intermediate candidate alignment data. This vocabulary is used in the [SocialLink dataset](http://sociallink.futuro.media/index.html#download)."@en ;
+	dcterms:description <http://sociallink.futuro.media/ontology.svg> ;
+	rdfs:isDefinedBy <http://sociallink.futuro.media/ontology.ttl> ;
+	dcterms:license <https://creativecommons.org/licenses/by/4.0/> .
+
+dcterms:creator a owl:AnnotationProperty .
+
+dcterms:description a owl:AnnotationProperty .
+
+dcterms:issued a owl:AnnotationProperty .
+
+dcterms:license a owl:AnnotationProperty .
+
+dcterms:modified a owl:AnnotationProperty .
+
+dcterms:publisher a owl:AnnotationProperty .
+
+dcterms:rights a owl:AnnotationProperty .
+
+dcterms:title a owl:AnnotationProperty .
+
+vann:preferredNamespacePrefix a owl:AnnotationProperty .
+
+vann:preferredNamespaceUri a owl:AnnotationProperty .
+
+:account a owl:ObjectProperty , owl:FunctionalProperty ;
+	rdfs:label "account"@en ;
+	rdfs:comment "Links a candidate instance to the corresponding social link account. This is a N:1 property."@en ;
+	rdfs:domain :Candidate ;
+	rdfs:range foaf:OnlineAccount .
+
+:candidate a owl:ObjectProperty , owl:InverseFunctionalProperty ;
+	rdfs:label "candidate"@en ;
+	rdfs:comment "Links a knowledge base entity to a sl:Candidate instance reifying the entity relation with a social media account that has been identified as a candidate for alignment to the entity in SocialLink. This is a 1:N relation."@en ;
+	rdfs:range :Candidate ;
+	rdfs:domain owl:Thing .
+
+:confidence a owl:DatatypeProperty , owl:FunctionalProperty ;
+	rdfs:domain :Candidate ;
+	rdfs:range xsd:decimal .
+
+:rank a owl:DatatypeProperty , owl:FunctionalProperty ;
+	rdfs:domain :Candidate ;
+	rdfs:range xsd:positiveInteger .
+
+:Candidate a owl:Class ;
+	rdfs:label "Candidate"@en ;
+	rdfs:subClassOf _:node1bgnvsopfx1 .
+
+_:node1bgnvsopfx1 a owl:Restriction ;
+	owl:onProperty _:node1bgnvsopfx2 .
+
+_:node1bgnvsopfx2 owl:inverseOf :candidate .
+
+_:node1bgnvsopfx1 owl:cardinality "1"^^xsd:nonNegativeInteger .
+
+:Candidate rdfs:subClassOf _:node1bgnvsopfx3 .
+
+_:node1bgnvsopfx3 a owl:Restriction ;
+	owl:onProperty :account ;
+	owl:cardinality "1"^^xsd:nonNegativeInteger .
+
+:Candidate rdfs:comment """The reified 'candidate' relation between a knowledge base entity (identified by property sl:candidate) and a social media account (identified by property sl:account).
+
+Annotated with the confidence score of the candidate (property sl:confidence) and its rank in the list of candidates for the entity (property sl:rank)."""@en .
+
+foaf:OnlineAccount a owl:Class ;
+	rdfs:label "Online Account"@en .
