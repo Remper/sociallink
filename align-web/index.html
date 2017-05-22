@@ -380,40 +380,45 @@
                 <div class="row" id="desc-rdf">
                     <div class="col-xs-12" style="text-align: justify;">
                         <p>
-                            Each DBpedia entity is associated to an RDF fragment similar to the one reported below,
-                            reusing terms from <a href="http://xmlns.com/foaf/spec/">FOAF</a>, <a href="http://dublincore.org/documents/dcmi-terms/">Dublin Core Terms</a>
-                            , and <a href="https://www.w3.org/TR/prov-o/">PROV-O</a>:
+                            The RDF format is based on the
+                            <a href="http://sociallink.futuro.media/ontology">SocialLink vocabulary</a>
+                            (see description there for more info),
+                            integrated with terms from <a href="http://xmlns.com/foaf/spec/">FOAF</a> and
+                            <a href="http://dublincore.org/documents/dcmi-terms/">Dublin Core Terms</a>.
+                            Briefly, each DBpedia entity is associated to an RDF fragment similar to the one reported below:
                         </p>
-                        <pre><code>@prefix dct: &lt;http://purl.org/dc/terms/&gt; .
+                        <pre><code>    @prefix dct: &lt;http://purl.org/dc/terms/&gt; .
     @prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt; .
-    @prefix prov: &lt;http://www.w3.org/ns/prov#&gt; .
-    @prefix : &lt;http://sociallink.futuro.media/ontology#&gt; .
+    @prefix dct: &lt;http://purl.org/dc/terms/&gt; .
+    @prefix sl: &lt;http://sociallink.futuro.media/ontology#&gt; .
 
     &lt;http://dbpedia.org/resource/AC/DC&gt;
             foaf:account &lt;http://twitter.com/acdc&gt;;
-            :twitterSource :StrictStrategy;
-            :twitterCandidate [ :account &lt;http://twitter.com/acdc&gt;; :rank "0"^^xsd:int; :confidence "2.877776745385853"^^xsd:double ];
-            :twitterCandidate [ :account &lt;http://twitter.com/AC_DC_Twivia&gt;; :rank "1"^^xsd:int; :confidence "0.6037499606664944"^^xsd:double ];
-            :twitterCandidate [ :account &lt;http://twitter.com/ACDC_BRASIL&gt;; :rank "2"^^xsd:int; :confidence "0.02792038279804432"^^xsd:double ];
-            :twitterCandidate [ :account &lt;http://twitter.com/AC_DC&gt;; :rank "3"^^xsd:int; :confidence "0.4462205906993879"^^xsd:double ];
+            sl:candidate [ sl:account &lt;http://twitter.com/acdc&gt;;
+                           sl:rank "0"^^xsd:int;
+                           sl:confidence "2.877776745385853"^^xsd:double ];
+            sl:candidate [ sl:account &lt;http://twitter.com/AC_DC_Twivia&gt;;
+                           sl:rank "1"^^xsd:int;
+                           sl:confidence "0.6037499606664944"^^xsd:double ];
+            sl:candidate [ sl:account &lt;http://twitter.com/ACDC_BRASIL&gt;;
+                           sl:rank "2"^^xsd:int;
+                           sl:confidence "0.02792038279804432"^^xsd:double ];
+            sl:candidate [ sl:account &lt;http://twitter.com/AC_DC&gt;;
+                           sl:rank "3"^^xsd:int;
+                           sl:confidence "0.4462205906993879"^^xsd:double ];
             ...
     </code></pre>
                         <p>
-                            <br/>Property <code>foaf:account</code> links the DBpedia entity (<code>dbpedia:AC/DC</code>) to
-                            the corresponding Twitter profile as selected by our automatic approach (if any). The profile
+                            <br/>Property <code>foaf:account</code> links the DBpedia entity (<code>dbr:AC/DC</code>) to
+                            the corresponding Twitter profile (if any) as selected by the SocialLink pipeline. The profile
                             (<code>@acdc</code>) is identified through the URI of the user homepage on Twitter, coherently with FOAF.
                         </p>
                         <p>
-                            Property <code>twitterSource</code> specifies if and how the twitter profile linked to
-                            an entity was selected (in the example, using the <code> :StrictStrategy</code>, one of
-                            the strategies used in our approach).
-                        </p>
-                        <p>
-                            Property <code>twitterCandidate</code>links an entity to all the candidate profiles found
+                            Property <code>sl:candidate</code>links an entity to all the candidate profiles found
                             by our approach, among which the aligned one was selected. For each candidate, property
-                            <code>account</code>specifies the corresponding Twitter profile, while properties
-                            <code>:rank</code> and <code>:confidence</code> provide, respectively, the rank of that
-                            candidate profile in the results provided by the Twitter Search API, and the alignment
+                            <code>sl:account</code>specifies the corresponding Twitter profile, while properties
+                            <code>sl:rank</code> and <code>sl:confidence</code> provide, respectively, the rank of that
+                            candidate profile in the candidate list identified by TwitterLink, and the alignment
                             confidence computed by our approach, based on which the aligned profile is chosen
                             (if certain thresholds are met).
                         </p>
@@ -421,7 +426,10 @@
                             For each Twitter profile (note that profiles can appear as candidates for multiple DBpedia
                             entities) we provide additional information as follows:
                         </p>
-                        <pre><code>&lt;http://twitter.com/acdc&gt; a foaf:OnlineAccount; foaf:accountName "acdc"^^xsd:string; dct:identifier "2836755090"^^xsd:long.</code></pre>
+                        <pre><code>    &lt;http://twitter.com/acdc&gt; a foaf:OnlineAccount;
+        foaf:accountName "acdc"^^xsd:string;
+        dct:identifier "2836755090"^^xsd:long.
+    </code></pre>
                         <p>
                             Here, the Twitter account is typed as a <code>foaf:OnlineAccount</code>, property <code>foaf:accountName</code>
                             specifies the Twitter screen name for the profile (actually redundant but mandated by FOAF), while property
