@@ -1,0 +1,16 @@
+language: java
+jdk: oraclejdk8
+script: 
+  - cd align && mvn install -q
+  - cd ..
+  - cd smt && mvn package -q
+  - cd ..
+deploy:
+  - provider: releases
+    api_key:
+      secure: "Ift/sG6JlTGvKHyZ1sJ2v+LPHeXAIdR4SFOmGvZrk4+1wqgso6kpEtD1E/ilUhbXE2MC/f4Bg8ictENEQauNFuujb05BObHAZ/6d3MEe8RNZ60QFNUAc+HGnOfXzWrwEUoV9vMz2/uTzx9KkEwV1g+maPYAfEzzzTo8zFiuKBNeurGpDVe9NsCDzuD3hs0q0KN5GNAduzQMOEjk3AMSFuAIz/SouyvJ/Q6sxuvikazeak77nwvxlXTmknswVWW3ukmPSR39WrhO2Wz3i4VJEf2H7GZ3079bple/1xP9eL3OLK8433nHm8fjZVRj9HnV8BVqhBge+ZZI47skKrSt97Xuk48n4gnQRF2CJg0OSqInHMlzpaErxFTZDkV99EooRTazFktblLSneFctyep2D8AN4HvvorctcE5POAstKW8QG9KlAVROrVR9WjcHdXqKJKp7wAn40TDgDNFF7DqmGSccn/4ML3oZZsDyax16FS2GYCJFKSCp5fEdJo7PhmcHNX4k2zx9a/iz3p04SSj1AAIRsTq7yKwL1foVbg0Ghv7TwBMJK3H9lsURzXawGYRVdOGfG7n5yYtoTnzGvpQyb3KzkcX9EFgY6J+7vmNRleEPywEm98HJl5L40F2MNqsxfAqHZNOCrLNRVvhHKsrZq2i51GIKt+u3coLuALQSTGeY="
+    file_glob: true
+    file: "*/target/*.jar"
+    skip_cleanup: true
+    on:
+      tags: true
