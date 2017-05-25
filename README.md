@@ -1,4 +1,4 @@
-# SocialLink [![DOI][sl-doi-img]][sl-doi] [![W3ID][w3id-img]][w3id]
+# SocialLink [![DOI][sl-doi-img]][sl-doi] [![W3ID][w3id-img]][w3id] [![Build Status][travis-img]][travis]
 
 Alignments between knowledge bases and social media. Please refer to our 
 [website](http://sociallink.futuro.media) for more information about the project.
@@ -25,3 +25,5 @@ Yaroslav Nechaev, Francesco Corcoglioniti, Claudio Giuliano
 [sl-doi]:     https://doi.org/10.5281/zenodo.580034
 [w3id-img]:   https://img.shields.io/badge/w3id-sociallink-blue.svg
 [w3id]:   https://w3id.org/sociallink
+[travis-img]: https://travis-ci.org/Remper/sociallink.svg?branch=master
+[travis]: https://travis-ci.org/Remper/sociallink
