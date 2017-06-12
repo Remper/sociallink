@@ -39,13 +39,13 @@ public class TwitterService {
         TwitterInstance minInstance = twitter.get(0);
 
         for (TwitterInstance instance : this.twitter) {
-            int readyIn = instance.readyIn(method);
+            long readyIn = instance.readyIn(method);
             if (readyIn == 0) {
                 return instance;
             }
 
             if (minTime > readyIn) {
-                minTime = readyIn;
+                minTime = (int) readyIn;
                 minInstance = instance;
             }
         }
@@ -72,8 +72,8 @@ public class TwitterService {
             this.twitter = twitter;
         }
 
-        public int readyIn(String method) {
-            int curTime = (int) new Date().getTime()/1000;
+        public long readyIn(String method) {
+            long curTime = new Date().getTime()/1000;
 
             RateLimitStatus status = getLimitStatus(method);
             if (status == null) {
