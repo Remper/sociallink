@@ -11,17 +11,25 @@ import javax.inject.Inject;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-public class TwitterFactory implements Factory<Twitter> {
+public class TwitterFactory implements Factory<Twitter[]> {
 
-    private final TwitterCredentials credentials;
+    private final TwitterCredentials[] credentials;
 
     @Inject
-    public TwitterFactory(TwitterCredentials credentials) {
+    public TwitterFactory(TwitterCredentials[] credentials) {
         this.credentials = credentials;
     }
 
     @Override
-    public Twitter provide() {
+    public Twitter[] provide() {
+        Twitter[] instances = new Twitter[credentials.length];
+        for (int i = 0; i < credentials.length; i++) {
+            instances[i] = createInstance(credentials[i]);
+        }
+        return instances;
+    }
+
+    private Twitter createInstance(TwitterCredentials credentials) {
         return new twitter4j.TwitterFactory(
                 new ConfigurationBuilder()
                         .setOAuthConsumerKey(credentials.consumerKey)
@@ -32,7 +40,7 @@ public class TwitterFactory implements Factory<Twitter> {
     }
 
     @Override
-    public void dispose(Twitter instance) {
+    public void dispose(Twitter[] instance) {
 
     }
 }

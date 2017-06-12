@@ -33,7 +33,7 @@ import java.net.URISyntaxException;
  * @author Yaroslav Nechaev (remper@me.com)
  */
 public class Application {
-    private static TwitterCredentials credentials;
+    private static TwitterCredentials[] credentials;
     private static DataSource alignments;
     private static String sparqlLocation = "https://api.futuro.media/dbpedia/sparql";
     private static String wikimachineEndpoint;
@@ -51,7 +51,7 @@ public class Application {
         ngramsEndpoint = config.ngramsEndpoint;
         wikimachineEndpoint = config.wikimachineEndpoint;
         alignments = ConnectionFactory.getConf(config.connection);
-        credentials = TwitterCredentials.credentialsFromFile(new File(config.credentials))[0];
+        credentials = TwitterCredentials.credentialsFromFile(new File(config.credentials));
         scaler = gson.fromJson(new FileReader(new File(config.scaler)), Scaler.class);
         modelEndpoint = new ModelEndpoint(config.modelEndpoint, 5000);
         lsaFilename = config.lsaFilename;
@@ -76,7 +76,7 @@ public class Application {
 
         @Override
         protected void configure() {
-            bind(credentials).to(TwitterCredentials.class);
+            bind(credentials).to(TwitterCredentials[].class);
             bind(alignments).to(DataSource.class);
             bind(sparqlLocation).named("SPARQLEndpoint").to(String.class);
             bind(ngramsEndpoint).named("NgramsEndpoint").to(String.class);
@@ -84,7 +84,7 @@ public class Application {
             bind(lsaFilename).named("lsaFilename").to(String.class);
             bind(scaler).to(Scaler.class);
             bind(modelEndpoint).to(ModelEndpoint.class);
-            bindFactory(TwitterFactory.class).to(Twitter.class);
+            bindFactory(TwitterFactory.class).to(Twitter[].class);
             bindFactory(ConnectionFactory.class).to(ConnectionProvider.class).in(Singleton.class);
             bind(AlignmentsService.class).to(AlignmentsService.class);
             bind(TwitterService.class).to(TwitterService.class);

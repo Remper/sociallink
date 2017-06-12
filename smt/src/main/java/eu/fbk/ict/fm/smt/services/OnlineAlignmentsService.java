@@ -66,7 +66,7 @@ public class OnlineAlignmentsService {
         List<User> users;
         try {
             users = twitter.searchUsers(qaStrategy.getQuery(resource));
-        } catch (TwitterException e) {
+        } catch (TwitterService.RateLimitException e) {
             e.printStackTrace();
             return new LinkedList<>();
         }
@@ -106,7 +106,7 @@ public class OnlineAlignmentsService {
         }
     }
 
-    private List<Score> match(DBpediaResource resource, List<User> candidates, SimilarityScorer scorer, boolean debug) {
+    public List<Score> match(DBpediaResource resource, List<User> candidates, SimilarityScorer scorer, boolean debug) {
         List<Score> scores = new LinkedList<>();
         if (candidates.size() == 0) {
             return scores;

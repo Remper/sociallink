@@ -65,10 +65,10 @@ public class ProfilesController {
         Response response = Response.success(result);
         try {
             result.addAll(twitterService.searchUsers(name));
-        } catch (TwitterException e) {
+        } catch (TwitterService.RateLimitException e) {
             e.printStackTrace();
             response.code = Response.GENERIC_ERROR;
-            response.message = e.getErrorCode() + " " + e.getErrorMessage();
+            response.message = e.getMessage();
             return response.respond();
         }
         if (result.size() == 0) {
@@ -110,10 +110,10 @@ public class ProfilesController {
         Response response = Response.success(null);
         try {
             result.addAll(twitterService.searchUsers(query));
-        } catch (TwitterException e) {
+        } catch (TwitterService.RateLimitException e) {
             e.printStackTrace();
             response.code = Response.GENERIC_ERROR;
-            response.message = e.getErrorCode() + " " + e.getErrorMessage();
+            response.message = e.getMessage();
         }
         response.data = result;
         return response;
