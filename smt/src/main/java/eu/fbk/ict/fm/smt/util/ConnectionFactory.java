@@ -1,18 +1,18 @@
 package eu.fbk.ict.fm.smt.util;
 
 import com.google.gson.Gson;
-import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
+import eu.fbk.fm.alignments.utils.DBUtils;
 import org.glassfish.hk2.api.Factory;
 import org.jooq.ConnectionProvider;
 import org.jooq.impl.DataSourceConnectionProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 
 /**
  * Provides SQL connection to services
@@ -21,16 +21,13 @@ import java.sql.SQLException;
  */
 @Singleton
 public class ConnectionFactory implements Factory<ConnectionProvider> {
+    private static final Logger logger = LoggerFactory.getLogger(ConnectionFactory.class);
+
     private DataSourceConnectionProvider provider;
 
     @Inject
     public ConnectionFactory(DataSource credentials) {
-        try {
-            DriverManager.registerDriver(new com.mysql.jdbc.Driver());
-            provider = new DataSourceConnectionProvider(credentials);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        provider = new DataSourceConnectionProvider(credentials);
     }
 
     @Override
@@ -47,12 +44,7 @@ public class ConnectionFactory implements Factory<ConnectionProvider> {
     }
 
     public static DataSource getConf(String file) throws FileNotFoundException {
-        Gson gson = new Gson();
-        MysqlDataSource datasource = new MysqlDataSource();
-        Credentials credentials = gson.fromJson(new FileReader(file), Credentials.class);
-        datasource.setURL(credentials.url);
-        datasource.setUser(credentials.user);
-        datasource.setPassword(credentials.pass);
-        return datasource;
+        Credentials credentials = new Gson().fromJson(new FileReader(file), Credentials.class);
+        return DBUtils.createPGDataSource(credentials.url, credentials.user, credentials.pass);
     }
 }

@@ -1,14 +1,10 @@
 package eu.fbk.ict.fm.smt.api;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
-import eu.fbk.ict.fm.smt.db.alignments.tables.records.AlignmentsRecord;
-import eu.fbk.ict.fm.smt.db.alignments.tables.records.ResourcesRecord;
+import eu.fbk.fm.alignments.index.db.tables.records.AlignmentsRecord;
 import eu.fbk.ict.fm.smt.services.AlignmentsService;
 import eu.fbk.ict.fm.smt.services.KBAccessService;
 import eu.fbk.ict.fm.smt.util.InvalidAttributeResponse;
 import eu.fbk.ict.fm.smt.util.Response;
-import org.jooq.Record2;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -17,7 +13,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Retrieve an alignment records from the DB
@@ -34,67 +29,13 @@ public class AlignmentsController {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("datasets")
-    public String getAvailableDatasets() {
-        return Response
-            .success(alignments
-                .getAvailableDatasets()
-                .stream()
-                .map(Dataset::new)
-                .collect(Collectors.toList())
-            )
-            .respond();
-    }
-
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
     @Path("by_twitter_id")
-    public String getAlignmentsByTwitterID(@QueryParam("id") Long id, @QueryParam("whitelist") String whitelist) {
+    public String getAlignmentsByTwitterID(@QueryParam("id") Long id) {
         if (id == null || id <= 0) {
             return new InvalidAttributeResponse("id").respond();
         }
 
-        return getResultById(id, getWhitelistFromParameter(whitelist));
-    }
-
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("by_twitter_username")
-    public String getAlignmentsByTwitterUsername(
-            @QueryParam("username") String username,
-            @QueryParam("whitelist") String whitelist) {
-
-        if (username == null || username.length() <= 3) {
-            return new InvalidAttributeResponse("username").respond();
-        }
-
-        Long id = alignments.getIdByUsername(username);
-        if (id == null) {
-            return Response.notFound("username").respond();
-        }
-        return getResultById(id, getWhitelistFromParameter(whitelist));
-    }
-
-    private Collection<String> getWhitelistFromParameter(String whitelist) {
-        Collection<String> whitelistArr = tryConstructWhitelistArray(whitelist);
-        if (whitelistArr == null && whitelist != null && whitelist.length() > 0) {
-            whitelistArr = new LinkedList<String>() {{
-                add(whitelist);
-            }};
-        }
-        return whitelistArr;
-    }
-
-    private Collection<String> tryConstructWhitelistArray(String whitelist) {
-        try {
-            String[] whitelistArr = new Gson().fromJson(whitelist, String[].class);
-            if (whitelistArr == null) {
-                return null;
-            }
-            return Arrays.stream(whitelistArr).collect(Collectors.toList());
-        } catch(JsonSyntaxException e) {
-            return null;
-        }
+        return getResultById(id);
     }
 
     @GET
@@ -105,25 +46,18 @@ public class AlignmentsController {
             return new InvalidAttributeResponse("uri").respond();
         }
 
-        ResourcesRecord resource = alignments.getResourceById(uri);
-        if (resource == null) {
-            return Response.notFound("uri").respond();
-        }
-
         List<AlignmentsRecord> records = alignments.getRecordsByResourceId(uri);
         ResourceResult result = new ResourceResult();
         result.request = uri;
         result.alignment = null;
-        result.dataset = resource.getDataset();
-        result.is_dead = resource.getIsDead() == 1;
         result.candidates = new TwitterEntity[records.size()];
         int order = 0;
         for (AlignmentsRecord record : records) {
             TwitterEntity entity = new TwitterEntity();
-            entity.twitterId = record.getTwitterId();
-            entity.score = Double.valueOf(record.getScore());
-            if (record.getIsAlignment() != 0) {
-                result.alignment = entity.twitterId;
+            entity.uid = record.getUid();
+            entity.score = record.getScore();
+            if (record.getIsAlignment()) {
+                result.alignment = entity.uid;
             }
             result.candidates[order] = entity;
             order++;
@@ -131,8 +65,8 @@ public class AlignmentsController {
         return Response.success(result).respond();
     }
 
-    private String getResultById(Long id, Collection<String> whitelist) {
-        List<AlignmentsRecord> records = alignments.getRecordsByTwitterId(id, whitelist);
+    private String getResultById(Long id) {
+        List<AlignmentsRecord> records = alignments.getRecordsByTwitterId(id);
         //Sort by score in descending order
         records.sort((o1, o2) -> {
             double o1v = Double.valueOf(o1.getScore());
@@ -152,12 +86,12 @@ public class AlignmentsController {
         for (AlignmentsRecord record : records) {
             ResourceEntity entity = new ResourceEntity();
             entity.resourceId = record.getResourceId();
-            entity.score = Double.valueOf(record.getScore());
+            entity.score = record.getScore();
             entity.type = kbService.getType(entity.resourceId);
             if (entity.score > 0) {
                 types.put(entity.type, types.getOrDefault(entity.type, 0)+1);
             }
-            if (record.getIsAlignment() != 0) {
+            if (record.getIsAlignment()) {
                 result.alignment = entity.resourceId;
                 result.type = entity.type;
             }
@@ -182,25 +116,15 @@ public class AlignmentsController {
         return Response.success(result).respond();
     }
 
-    private static class Dataset {
-        private String name;
-        private Integer count;
-
-        private Dataset(Record2<String, Integer> record) {
-            name = record.value1();
-            count = record.value2();
-        }
-    }
-
     private static class TwitterEntity {
-        private long twitterId;
-        private double score;
+        private long uid;
+        private float score;
     }
 
     private static class ResourceEntity {
         private String resourceId;
         private String type;
-        private double score;
+        private float score;
     }
 
     private static class TwitterResult {
@@ -213,7 +137,6 @@ public class AlignmentsController {
     private static class ResourceResult {
         private String request;
         private Long alignment;
-        private String dataset;
         private boolean is_dead;
         private TwitterEntity[] candidates;
     }

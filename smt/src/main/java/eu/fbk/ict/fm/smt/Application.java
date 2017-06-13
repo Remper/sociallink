@@ -28,7 +28,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 /**
- * Starting point for the web application
+ * Starting point of the web application
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
