@@ -1,11 +1,16 @@
 package eu.fbk.ict.fm.smt.services;
 
 import static eu.fbk.fm.alignments.index.db.tables.Alignments.ALIGNMENTS;
+import static eu.fbk.fm.alignments.index.db.tables.UserObjects.USER_OBJECTS;
 
 import eu.fbk.fm.alignments.index.db.tables.records.AlignmentsRecord;
+import eu.fbk.fm.alignments.index.db.tables.records.UserObjectsRecord;
 import org.jooq.*;
 import org.jooq.impl.DSL;
 import org.jvnet.hk2.annotations.Service;
+import twitter4j.TwitterException;
+import twitter4j.TwitterObjectFactory;
+import twitter4j.User;
 
 import javax.inject.Inject;
 import java.util.*;
@@ -43,6 +48,23 @@ public class AlignmentsService {
             .selectFrom(ALIGNMENTS)
             .where(ALIGNMENTS.RESOURCE_ID.eq(resourceId))
             .fetch();
+    }
+
+    public User getUserById(Long id) {
+        UserObjectsRecord record = context()
+                .selectFrom(USER_OBJECTS)
+                .where(USER_OBJECTS.UID.eq(id))
+                .fetchAny();
+
+        if (record == null) {
+            return null;
+        }
+
+        try {
+            return TwitterObjectFactory.createUser(record.getObject().toString());
+        } catch (TwitterException e) {
+            return null;
+        }
     }
 
     private DSLContext context() {

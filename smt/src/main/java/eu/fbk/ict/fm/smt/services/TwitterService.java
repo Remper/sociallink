@@ -14,6 +14,7 @@ public class TwitterService {
     private final List<TwitterInstance> twitter;
 
     public static final String USERS_SEARCH = "/users/search";
+    public static final String USER_TIMELINE = "/statuses/user_timeline";
     public static final String FRIENDS_LIST = "/friends/list";
     public static final int MAX_VALUE = 100500;
 
@@ -31,6 +32,10 @@ public class TwitterService {
 
     public List<User> getFriends(long uid) throws RateLimitException {
         return getReadyInstance(FRIENDS_LIST).getFriends(uid);
+    }
+
+    public List<Status> getStatuses(long uid) throws RateLimitException {
+        return getReadyInstance(USER_TIMELINE).getStatuses(uid);
     }
 
 
@@ -104,6 +109,18 @@ public class TwitterService {
                 return users;
             } catch (TwitterException e) {
                 limits.put(USERS_SEARCH, e.getRateLimitStatus());
+            }
+
+            return new LinkedList<>();
+        }
+
+        private List<Status> getStatuses(Long uid) {
+            try {
+                ResponseList<Status> statuses = twitter.timelines().getUserTimeline(uid);
+                limits.put(USER_TIMELINE, statuses.getRateLimitStatus());
+                return statuses;
+            } catch (TwitterException e) {
+                limits.put(USER_TIMELINE, e.getRateLimitStatus());
             }
 
             return new LinkedList<>();

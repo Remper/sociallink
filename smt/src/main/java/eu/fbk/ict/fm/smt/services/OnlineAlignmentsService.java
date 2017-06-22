@@ -14,16 +14,13 @@ import eu.fbk.ict.fm.smt.model.Score;
 import eu.fbk.ict.fm.smt.model.ScoreBundle;
 import eu.fbk.utils.math.Scaler;
 import org.jvnet.hk2.annotations.Service;
-import twitter4j.TwitterException;
 import twitter4j.User;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Runs the entire alignment pipeline

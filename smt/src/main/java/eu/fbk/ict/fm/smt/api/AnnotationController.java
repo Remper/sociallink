@@ -4,11 +4,10 @@ import com.restfb.FacebookClient;
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
 import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.scorer.TextScorer;
 import eu.fbk.ict.fm.smt.model.Score;
 import eu.fbk.ict.fm.smt.model.ScoreBundle;
-import eu.fbk.ict.fm.smt.services.AnnotationService;
-import eu.fbk.ict.fm.smt.services.OnlineAlignmentsService;
-import eu.fbk.ict.fm.smt.services.WikimachineService;
+import eu.fbk.ict.fm.smt.services.*;
 import eu.fbk.ict.fm.smt.util.InvalidAttributeResponse;
 import eu.fbk.ict.fm.smt.util.Response;
 import twitter4j.User;
@@ -37,6 +36,15 @@ public class AnnotationController {
 
     @Inject
     OnlineAlignmentsService onlineAlignmentsService;
+
+    @Inject
+    KBAccessService kbAccessService;
+
+    @Inject
+    AlignmentsService alignmentsService;
+
+    @Inject
+    MLService mlService;
 
     //@Inject
     //FacebookClient facebookClient;
@@ -131,6 +139,33 @@ public class AnnotationController {
         }
 
         return Response.success(annotations).respond();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("is_similar")
+    public String isProfileSimilar(@QueryParam("resource") String resourceId, @QueryParam("uid") Long uid) throws IOException {
+        List<String> errors = new LinkedList<>();
+        if (uid == null || uid <= 0) {
+            errors.add("uid");
+        }
+        if (resourceId == null || resourceId.length() < 12) {
+            errors.add("resource");
+        }
+        if (errors.size() > 0) {
+            return new InvalidAttributeResponse(errors).respond();
+        }
+
+        DBpediaResource resource = kbAccessService.getResource(resourceId);
+        User user = alignmentsService.getUserById(uid);
+
+        double score = 0.0d;
+        if (user != null) {
+            TextScorer scorer = new TextScorer(mlService.getDefaultScorer()).all();
+            score = scorer.getFeature(user, resource);
+        }
+
+        return Response.success(score).respond();
     }
 
     @GET

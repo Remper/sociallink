@@ -35,7 +35,7 @@ import java.net.URISyntaxException;
 public class Application {
     private static TwitterCredentials[] credentials;
     private static DataSource alignments;
-    private static String sparqlLocation = "https://api.futuro.media/dbpedia/sparql";
+    private static String sparqlLocation;
     private static String wikimachineEndpoint;
     private static String ngramsEndpoint;
     private static String lsaFilename;
@@ -55,6 +55,7 @@ public class Application {
         scaler = gson.fromJson(new FileReader(new File(config.scaler)), Scaler.class);
         modelEndpoint = new ModelEndpoint(config.modelEndpoint, 5000);
         lsaFilename = config.lsaFilename;
+        sparqlLocation = config.sparqlEndpoint;
 
         final ResourceConfig rc = new ResourceConfig().packages(Application.class.getPackage().getName());
         rc.register(new Binder());
@@ -183,6 +184,7 @@ public class Application {
         public String ngramsEndpoint = "redis://localhost:6379";
         public String wikimachineEndpoint = "http://ml.apnetwork.it/annotate";
         public String modelEndpoint = "localhost";
+        public String sparqlEndpoint = "https://api.futuro.media/dbpedia/sparql";
         public String lsaFilename;
     }
 
@@ -216,6 +218,10 @@ public class Application {
                 Option.builder().desc("LSA root filename")
                         .required().hasArg().argName("file").longOpt("lsa").build()
         );
+        options.addOption(
+                Option.builder().desc("SPARQL endpoint")
+                        .hasArg().argName("uri").longOpt("sparql").build()
+        );
 
         CommandLineParser parser = new DefaultParser();
         CommandLine line;
@@ -235,6 +241,9 @@ public class Application {
             }
             if (line.hasOption("ngrams")) {
                 config.ngramsEndpoint = line.getOptionValue("ngrams");
+            }
+            if (line.hasOption("sparql")) {
+                config.sparqlEndpoint = line.getOptionValue("sparql");
             }
             return config;
         } catch (ParseException exp) {
