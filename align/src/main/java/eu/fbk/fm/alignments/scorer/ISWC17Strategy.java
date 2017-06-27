@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Strategy designed to work with our ISWC17 setup
- * A much liter strategy that also utilises precomputed LSA for user text
+ * A much lighter strategy that also utilises precomputed LSA for user text
  */
 public class ISWC17Strategy implements ScoringStrategy {
 

@@ -2,6 +2,7 @@ package eu.fbk.fm.alignments;
 
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
+import eu.fbk.fm.alignments.evaluation.*;
 import eu.fbk.fm.alignments.index.FillFromIndex;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
@@ -296,91 +297,6 @@ public class Evaluate {
         }
     }
 
-    public static class Dataset implements Iterable<DatasetEntry> {
-        private String name = "default";
-        private List<DatasetEntry> entries = new LinkedList<>();
-        private Map<String, DatasetEntry> mappedEntries = new HashMap<>();
-
-        protected Dataset() {
-        }
-
-        public List<DatasetEntry> getEntries() {
-            return entries;
-        }
-
-        public int size() {
-            return entries.size();
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public void add(DatasetEntry entry) {
-            if (mappedEntries.containsKey(entry.resourceId)) {
-                logger.error("This example is already in the dataset: " + entry.resourceId);
-            }
-            entries.add(entry);
-            mappedEntries.put(entry.resourceId, entry);
-        }
-
-        public DatasetEntry findEntry(String resourceId) {
-            return mappedEntries.get(resourceId);
-        }
-
-        @Override
-        public Iterator<DatasetEntry> iterator() {
-            return entries.iterator();
-        }
-
-        public static Dataset fromFile(File file) throws IOException {
-            Dataset dataset = new Dataset();
-            dataset.setName(file.getName());
-            try (Reader reader = new FileReader(file)) {
-                CSVParser parser = new CSVParser(
-                        reader,
-                        CSVFormat.DEFAULT.withDelimiter(',').withHeader()
-                );
-                for (CSVRecord record : parser) {
-                    dataset.add(new DatasetEntry(record.get("entity"), record.get("twitter_id")));
-                }
-            }
-            return dataset;
-        }
-    }
-
-    public static class DatasetEntry {
-        public String resourceId;
-        public String twitterId;
-
-        public DatasetEntry(String resourceId, String twitterId) {
-            this.resourceId = resourceId;
-            this.twitterId = twitterId;
-        }
-
-        public DatasetEntry(DBpediaResource resource) {
-            this.resourceId = resource.getIdentifier();
-            this.twitterId = null;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (!(obj instanceof DatasetEntry)) {
-                return super.equals(obj);
-            }
-            return resourceId.equals(((DatasetEntry) obj).resourceId);
-        }
-
-        @Override
-        public int hashCode() {
-            return resourceId.hashCode();
-        }
-    }
-
     public void produceTrainTestSets(Dataset goldStandard, File trainSetFile, File testSetFile, double trainProb) throws IOException {
         FileWriter trainSetWriter = new FileWriter(trainSetFile);
         FileWriter testSetWriter = new FileWriter(testSetFile);
@@ -397,65 +313,6 @@ public class Evaluate {
         }
         IOUtils.closeQuietly(trainSetWriter);
         IOUtils.closeQuietly(testSetWriter);
-    }
-
-    public static class CustomEvaluation {
-        private boolean alwaysFNwhenNoAlign = false;
-        private PrecisionRecall.Evaluator eval;
-
-        public CustomEvaluation() {
-            eval = PrecisionRecall.evaluator();
-        }
-
-        public CustomEvaluation joint() {
-            return joint(true);
-        }
-
-        public CustomEvaluation joint(boolean joint) {
-            alwaysFNwhenNoAlign = joint;
-            return this;
-        }
-
-        public void check(int trueValue, int predicted) {
-            if (trueValue == predicted) {
-                //Prediction aligns
-                if (predicted >= 0) {
-                    //Prediction points to exact candidate
-                    eval.addTP();
-                } else if (alwaysFNwhenNoAlign) {
-                    //Candidate not in the list (mistake in case of overall evaluation)
-                    eval.addFN();
-                }
-            } else {
-                //Prediction misaligns: mistake, there is a right candidate somewhere
-                if (predicted >= 0) {
-                    //Wrong prediction (not abstain). Counts as two errors
-                    eval.addFP();
-                    if (alwaysFNwhenNoAlign || trueValue != -1) {
-                        eval.addFN();
-                    }
-                } else {
-                    //Abstain. Always counts as false negative
-                    eval.addFN();
-                }
-            }
-        }
-
-        public PrecisionRecall.Evaluator getEval() {
-            return eval;
-        }
-
-        public void printResult() {
-            PrecisionRecall result = eval.getResult();
-            logger.info(String.format("Precision: %6.2f%%", result.getPrecision()*100));
-            logger.info(String.format("Recall:    %6.2f%%", result.getRecall()*100));
-            logger.info(String.format("F1:        %6.2f%%", result.getF1()*100));
-        }
-
-        public String printOneliner() {
-            PrecisionRecall result = eval.getResult();
-            return String.format("%.4f\t%.4f\t%.4f", result.getPrecision(), result.getRecall(), result.getF1());
-        }
     }
 
     private int getPrediction(List<double[]> positives, double maxImp, double minScore) {
@@ -515,7 +372,6 @@ public class Evaluate {
                 continue;
             }
             int order = 0;
-            List<double[]> positives = new LinkedList<>();
             List<double[]> modelPositives = new LinkedList<>();
             int trueLabel = -1;
 

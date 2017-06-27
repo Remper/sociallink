@@ -1,6 +1,7 @@
 package eu.fbk.fm.alignments.index;
 
 import eu.fbk.fm.alignments.Evaluate;
+import eu.fbk.fm.alignments.evaluation.DatasetEntry;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.query.StrictStrategy;
 import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
@@ -42,7 +43,7 @@ public class UserLSAInteractive {
     }
 
     public void run(String query) {
-        FullyResolvedEntry entry = new FullyResolvedEntry(new Evaluate.DatasetEntry(query, null));
+        FullyResolvedEntry entry = new FullyResolvedEntry(new DatasetEntry(query, null));
 
         index.fill(entry);
 

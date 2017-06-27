@@ -4,6 +4,7 @@ import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.Evaluate;
+import eu.fbk.fm.alignments.evaluation.DatasetEntry;
 import eu.fbk.fm.alignments.index.db.tables.UserIndex;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.query.QueryAssemblyStrategy;
@@ -277,7 +278,7 @@ public class FillFromIndex implements AutoCloseable {
                 query = "http://wikidata.dbpedia.org/resource/Q359442";
             }
 
-            FullyResolvedEntry entry = new FullyResolvedEntry(new Evaluate.DatasetEntry(query, null));
+            FullyResolvedEntry entry = new FullyResolvedEntry(new DatasetEntry(query, null));
             new FillFromIndex(new Endpoint(endpointUri), new AllNamesStrategy(), dbConnection, dbUser, dbPassword).fill(entry);
 
             LOGGER.info("List of candidates for entity: "+entry.entry.resourceId);
