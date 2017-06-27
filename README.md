@@ -21,8 +21,8 @@ All the code is licensed under the [Apache License 2.0](https://github.com/Rempe
 Yaroslav Nechaev, Francesco Corcoglioniti, Claudio Giuliano
 {nechaev,corcoglio,giuliano}@fbk.eu
 
-[sl-doi-img]: https://zenodo.org/badge/DOI/10.5281/zenodo.580034.svg
-[sl-doi]:     https://doi.org/10.5281/zenodo.580034
+[sl-doi-img]: https://zenodo.org/badge/DOI/10.5281/zenodo.820160.svg
+[sl-doi]:     https://doi.org/10.5281/zenodo.820160
 [w3id-img]:   https://img.shields.io/badge/w3id-sociallink-blue.svg
 [w3id]:   https://w3id.org/sociallink
 [travis-img]: https://travis-ci.org/Remper/sociallink.svg?branch=master

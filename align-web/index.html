@@ -45,7 +45,7 @@
             margin-top: 20px;
         }
         .container {
-            width: 665px;
+            width: 700px;
         }
         .jumbotron {
             background: url(images/pattern.gif);
@@ -77,13 +77,16 @@
             margin:0;
             background-color: #f7f7f9;
         }
+        span.mono {
+            font-family: "Lucida Console", Monaco, monospace;
+        }
     </style>
 </head>
 <body>
     <div class="jumbotron">
         <div class="container">
             <div class="row">
-                <div class="col-md-12" style="width: 665px">
+                <div class="col-md-12" style="width: 700px">
                     <h2 class="display-3" style="background-color:#fff; padding-left: 10px; padding-bottom: 5px;">SocialLink</h2>
                     <p class="lead" style="background-color:#fff; padding-left: 10px">Precomputed alignments between Knowledge Bases and Social Media</p>
                 </div>
@@ -95,12 +98,94 @@
             <div class="col-md-12">
                 <nav class="nav nav-inline">
                     <a class="nav-link active tab" data-toggle="tab" href="#description" role="tab">Description</a>
+                    <a class="nav-link tab" data-toggle="tab" href="#applications" role="tab">Applications</a>
                     <a class="nav-link tab" data-toggle="tab" href="#download" role="tab">Download</a>
                     <a class="nav-link tab" data-toggle="tab" href="#sparql" role="tab">SPARQL Endpoint</a>
                     <a class="nav-link tab" data-toggle="tab" href="#cite" role="tab">Cite & Read</a>
-                    <!-- <a class="nav-link tab" data-toggle="tab" href="#evaluation" role="tab">Evaluation</a> -->
                     <a class="nav-link tab" data-toggle="tab" href="#authors" role="tab">Authors</a>
                 </nav>
+            </div>
+        </div>
+        <div class="row content hiddentab" id="applications" role="tabpanel">
+            <div class="col-md-12" style="text-align: justify">
+                <p>
+                    SocialLink establishes a link between DBpedia and Twitter, centered on popular entities
+                    occurring in both of them, which enables transferring knowledge from one resource to another and back.
+                    On this page, we describe three example use cases where this capability can be leveraged.
+                </p><p>
+                    <b>DBpedia to Twitter: User Profiling.</b> The task of inferring users attributes based on their
+                    digital footprint is typically referred to as <i>user profiling</i>. Prediction of various attributes
+                    based on a person's social graph, posted content or other attributes is popular among researchers and companies.
+                    However, in most setups, namely supervised machine learning-based ones, user profiling requires significant
+                    amounts of manual labour to construct training sets. This both limits the possible attributes that
+                    can be inferred and the applicability of approaches operating on large amounts of training data, such as Deep Neural Networks.
+                </p><p>
+                    Recently, researchers focused on automatic crawling of user profiling datasets from social media.
+                    However, even the largest datasets only contain few thousands examples per property and are limited
+                    to properties explicitly present in social media.
+                </p><p>
+                    SocialLink helps social media researchers to tackle user profiling by providing accurate
+                    machine-readable descriptions for hundreds of thousands of social media profiles.
+                    Any attribute that is present in DBpedia can now be modeled without relying on expensive manual
+                    annotation and our resource can be used both to train and to evaluate any proposed attribute classifiers.
+                </p><p>
+                    Another simple example is the inference of user interests based on a social graph.
+                    Imagine a user that follows a set of accounts that have alignments in SocialLink.
+                    By using this information, one can try to model interests of this person, his/her location and
+                    language just by looking at the DBpedia properties of the accounts that she/he likes. For instance,
+                    following <span class="mono">dbr:SpaceX</span> and <span class="mono">dbr:NASA</span> can point
+                    on a <span class="mono">dbr:Aerospace_engineering</span> industry fan, while the increased amount
+                    of <span class="mono">dbr:Donald_Trump</span>-related tweets can reveal a <span class="mono">dbr:GOP</span> supporter.
+                </p><p>
+                    <b>DBpedia to Twitter: Entity Linking.</b> Another use case is the Named Entity Linking (NEL) task,
+                    whose goal is to link mentions of named entities in a text to their corresponding entities in a
+                    KB such as DBpedia. Challenging on its own, the NEL task presents additional unique challenges
+                    when applied to social media posts due to noisiness, lack of sufficient textual context and their
+                    informal nature (e.g., use of slang).
+                </p><p>
+                    It is worth noticing that social media posts typically contain explicit mentions of social media
+                    accounts in the form of <span class="mono">@username</span> snippets. When referring to Twitter,
+                    some of these mentions (especially the ones referring to popular accounts) may appear in SocialLink,
+                    and thus can be directly disambiguated to DBpedia with high precision using our resource. Apart
+                    being part of the NEL result, these links provide additional contextual information (injected from
+                    DBpedia) that can be leveraged for disambiguating other named entities occurring in the post.
+                </p><p>
+                    SocialLink was used in this capacity by two teams participating to a NEL challenge on Italian tweets
+                    (NEEL-IT task) as part of the EVALITA 2016 campaign, allowing both of them to improve their results.
+                </p><p>
+                    It is worth noting that the two-step approach of the SocialLink pipeline can be adapted to directly
+                    disambiguate named entities in regular texts against the social media. Such functionality is present
+                    in the Social Media Toolkit that is among the complementary tools available on the SocialLink website.
+
+                </p><p>
+                    <b>Twitter to DBpedia: Extracting FOAF Profiles.</b> Up-to-date information about DBpedia persons
+                    and organisations can be extracted from Twitter after an alignment is established through SocialLink.
+                    Focusing on persons, different user profile properties expressible with FOAF may be extracted from
+                    a DBpedia person's Twitter account. They include:
+                    <ul>
+                        <li>
+                            Basic properties like <span class="mono">foaf:name</span>, <span class="mono">foaf:surname</span>,
+                            <span class="mono">foaf:gender</span>, <span class="mono">foaf:birthday</span>, and
+                            <span class="mono">foaf:depiction</span> linking to user images rather scarce in Wikipedia/DBpedia,
+                            often available in Twitter user descriptions and profile metadata;
+                        </li>
+                        <li>
+                            Acquaintances (<span class="mono">foaf:knows</span>), extracted from friends, followers
+                            and Twitter accounts a user interacted with that are aligned to DBpedia entities in SocialLink
+                        </li>
+                        <li>
+                            Links to homepages (<span class="mono">foaf:homepage</span> and similar) and other web
+                            resources from a Twitter user description and posts, that can be matched to external links
+                            in DBpedia to mine relations with other DBpedia entities (e.g., affiliation, authorship,
+                            participation, all expressible in FOAF), which may be possibly disambiguated using natural
+                            language understanding techniques.
+                        </li>
+                    </ul>
+                </p><p>
+                    While a basic FOAF profile can be extracted from any Twitter account, the links to DBpedia
+                    provided by SocialLink allow grounding the extracted data and disambiguating the values of object
+                    properties with respect to a larger knowledge base, this way increasing the usefulness of extracted FOAF profiles.
+                </p>
             </div>
         </div>
         <div class="row content hiddentab" id="sparql" role="tabpanel">
@@ -159,9 +244,6 @@
                 </div>
             </div>
         </div>
-        <div class="row content hiddentab" id="evaluation" role="tabpanel">
-            evaluation
-        </div>
         <div class="row content" id="description" role="tabpanel">
             <div class="col-md-12" style="text-align: justify;">
                 The general idea behind our resource is to create a kind of "bridge" between social media and Linked
@@ -179,8 +261,13 @@
                 images, connections, user locations and descriptions.
                 <br/><br/>
                 SocialLink is updated with periodic releases. The code and relevant technical documentation
-                can be found <a href="https://github.com/Remper/sociallink">here</a>.
+                can be found in our github repository:
                 <br/><br/>
+                <h5><a href="https://github.com/Remper/sociallink">Remper/sociallink</a>&nbsp;
+                    <a href="https://github.com/Remper/sociallink"><img src="https://img.shields.io/github/release/remper/sociallink.svg" /></a>
+                    <a href="https://travis-ci.org/Remper/sociallink"><img src="https://travis-ci.org/Remper/sociallink.svg?branch=master" /></a>
+                </h5>
+                <br/>
                 All data on this website is licenced under a <a href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International license</a>
             </div>
         </div>
@@ -213,8 +300,10 @@
                 </pre>
             </div>
             <div class="col-md-12" style="margin-top: 20px">
-                <p>You can also check out the slides that briefly describe the idea and the approach:</p>
-                <iframe src="https://www.icloud.com/keynote/01rqAOkrJG-S9CH2bKpW3iZfw?embed=true" width="640" height="500" frameborder="0" allowfullscreen="1" referrer="no-referrer"></iframe>
+                <p>
+                    You can also check out the slides that briefly describe the idea and the approach:
+                    <a href="https://www.icloud.com/keynote/01rqAOkrJG-S9CH2bKpW3iZfw#SAC2017_Prod">SAC '17 Talk</a>
+                </p>
             </div>
         </div>
         <div class="row content hiddentab" id="download" role="tabpanel">
@@ -229,7 +318,7 @@
                     <div class="col-xs-12" style="min-width: 655px">
                         <div class="row">
                             <div class="col-md-1 description">
-                                <a href="https://doi.org/10.5281/zenodo.580034">Alignments DBpedia -> Twitter</a>
+                                <a href="https://doi.org/10.5281/zenodo.820160">Alignments DBpedia -> Twitter</a>
                             </div>
                             <div class="col-md-1 version">
                                 Version: v2.0
@@ -241,6 +330,10 @@
                         <div class="row">
                             <div class="col-md-12 minilinks">
                                 <a class="nav-link" href="http://sociallink.futuro.media/v2.0/sociallink.tql.gz">[RDF]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v2.0/sociallink.void.tql.gz">[VOID]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v2.0/sociallink.json.gz">[JSON]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v2.0/sociallink.pretty.json.gz">[JSON (pretty)]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v2.0/sociallink.csv.gz">[CSV]</a>
                             </div>
                         </div>
                     </div>
@@ -260,7 +353,7 @@
                         </div>
                         <div class="row">
                             <div class="col-md-12 minilinks">
-                                <a class="nav-link" href="http://sociallink.futuro.media/v1.0/gold.csv.gz">[CSV]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v2.0/gold.csv.gz">[CSV]</a>
                             </div>
                         </div>
                     </div>
@@ -305,10 +398,10 @@
                         <div class="row">
                             <div class="col-md-12 minilinks">
                                 <a class="nav-link" href="http://sociallink.futuro.media/v0.6/resource.ttl.gz">[RDF]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v0.6/resource.void.ttl.gz">[VOID]</a>
                                 <a class="nav-link" href="http://sociallink.futuro.media/v0.6/resource.json.gz">[JSON]</a>
                                 <a class="nav-link" href="http://sociallink.futuro.media/v0.6/resource.pretty.json.gz">[JSON (pretty)]</a>
                                 <a class="nav-link" href="http://sociallink.futuro.media/v0.6/resource.csv.gz">[CSV]</a>
-                                <a class="nav-link" href="http://sociallink.futuro.media/v0.6/changelog.txt">[changelog]</a>
                             </div>
                         </div>
                     </div>
@@ -329,6 +422,7 @@
                         <div class="row">
                             <div class="col-md-12 minilinks">
                                 <a class="nav-link" href="http://sociallink.futuro.media/v0.5/resource.ttl.gz">[RDF]</a>
+                                <a class="nav-link" href="http://sociallink.futuro.media/v0.5/resource.void.ttl.gz">[VOID]</a>
                                 <a class="nav-link" href="http://sociallink.futuro.media/v0.5/resource.json.gz">[JSON]</a>
                                 <a class="nav-link" href="http://sociallink.futuro.media/v0.5/resource.pretty.json.gz">[JSON (pretty)]</a>
                                 <a class="nav-link" href="http://sociallink.futuro.media/v0.5/resource.csv.gz">[CSV]</a>
@@ -496,15 +590,15 @@
                 </div>
             </div>
         </div>
-        <div class="row">
-            <div class="col-xs-12" style="width:665px;">
+        <div class="row" style="margin-top: 15px">
+            <div class="col-xs-12" style="width:700px;">
                 <a class="pull-right" rel="license" href="http://creativecommons.org/licenses/by/4.0/">
                     <img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/80x15.png" />
                 </a>
             </div>
         </div>
         <div class="row">
-            <div class="col-xs-12" style="width:665px;">
+            <div class="col-xs-12" style="width:700px;">
                 <a class="pull-right" rel="fbk" href="http://fbk.eu">
                     <img alt="FBK logo" style="border:none" src="images/portraits/fbklogo.png" />
                 </a>
