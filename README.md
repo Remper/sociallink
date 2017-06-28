@@ -12,6 +12,10 @@ This repository consists of four components:
 of the SocialLink
  - [**smt-ui**](https://github.com/Remper/sociallink/wiki/SMT-UI) — web-based UI for some of the SMT API
 
+## Installation
+
+Refer to each module's documentation to install each one of them
+
 ## License
 
 All the code is licensed under the [Apache License 2.0](https://github.com/Remper/sociallink/blob/master/LICENSE)
