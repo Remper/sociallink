@@ -5,20 +5,16 @@ import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.scorer.text.CosineScorer;
 import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
 import eu.fbk.fm.alignments.scorer.text.SimilarityScorer;
-import eu.fbk.fm.alignments.utils.ResourcesService;
 import eu.fbk.utils.core.strings.JaroWinklerDistance;
-import eu.fbk.utils.data.Configuration;
-import eu.fbk.utils.data.DatasetRepository;
-import eu.fbk.utils.data.dataset.CSVDataset;
 import eu.fbk.utils.lsa.LSM;
-import org.apache.commons.csv.CSVRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import twitter4j.User;
 
 import javax.sql.DataSource;
-import java.io.IOException;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
