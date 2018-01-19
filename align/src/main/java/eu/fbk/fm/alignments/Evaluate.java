@@ -33,8 +33,13 @@ import twitter4j.User;
 import javax.sql.DataSource;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 /**
  * Script that evaluates a particular alignments pipeline
@@ -86,17 +91,25 @@ public class Evaluate {
         final AtomicInteger processed = new AtomicInteger(0);
 
         logger.info("Requesting entry info from knowledge base and index");
+        //Checking the progress of the execution
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
+        ScheduledFuture<?> progressCheck = executor.scheduleWithFixedDelay(() -> {
+            logger.info(String.format("Processed %d entries", processed.get()));
+        }, 1, 10, TimeUnit.SECONDS);
+
+        //Resolving dataset entries
         List<FullyResolvedEntry> entries = new LinkedList<>();
         dataset.getEntries().parallelStream().forEach(datasetEntry -> {
             FullyResolvedEntry entry = new FullyResolvedEntry(datasetEntry);
             index.fill(entry);
-            entries.add(entry);
-
-            int procValue = processed.incrementAndGet();
-            if (procValue % 100 == 0) {
-                logger.info("Processed " + procValue + " entries");
+            synchronized (entries) {
+                entries.add(entry);
             }
+
+            processed.incrementAndGet();
         });
+        progressCheck.cancel(true);
+        executor.shutdownNow();
 
         return entries;
     }
@@ -803,7 +816,7 @@ public class Evaluate {
     }
 
     public QueryAssemblyStrategy getQaStrategy() {
-        return qaStrategy;
+        return this.index == null ? qaStrategy : this.index.getQaStrategy();
     }
 
     public ScoringStrategy getScoreStrategy() {

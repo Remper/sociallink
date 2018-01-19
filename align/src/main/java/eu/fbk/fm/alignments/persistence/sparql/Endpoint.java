@@ -12,7 +12,8 @@ import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContexts;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -33,7 +34,7 @@ import java.util.Map;
  * @author Yaroslav Nechaev (remper@me.com)
  */
 public class Endpoint {
-    private static final Logger logger = Logger.getLogger(Endpoint.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(Endpoint.class.getName());
     private static final String PROPERTIES_FOR_ENTITY = "" +
             "select " +
             "  ?relation ?property " +
@@ -62,14 +63,19 @@ public class Endpoint {
         }
     }
 
-    public CSVParser execute(String query) throws URISyntaxException, IOException {
+    private CloseableHttpResponse executeQuery(String query) throws URISyntaxException, IOException {
         URI requestURI = getBuilder().setParameter("query", query)
                 .setParameter("accept", "text/csv")
                 .build();
-        CloseableHttpResponse response = client.execute(new HttpGet(requestURI));
+        return client.execute(new HttpGet(requestURI));
+    }
+
+    public CSVParser process(CloseableHttpResponse response) throws URISyntaxException, IOException {
         if (response.getStatusLine().getStatusCode() >= 400) {
+            IOException exception = new IOException(String.format("SPARQL endpoint didn't understand the request. Code: %d",
+                                                response.getStatusLine().getStatusCode()));
             response.close();
-            throw new IOException("SPARQL endpoint didn't understand the request");
+            throw exception;
         }
         return new CSVParser(
                 new BufferedReader(new InputStreamReader(response.getEntity().getContent())),
@@ -79,16 +85,25 @@ public class Endpoint {
 
     public DBpediaResource getResourceById(String resourceId) {
         Map<String, List<String>> properties = new HashMap<>();
+        CloseableHttpResponse response = null;
         try {
-            CSVParser parser = execute(PROPERTIES_FOR_ENTITY.replace(":resourceId", resourceId));
-            for (CSVRecord record : parser) {
+            response = executeQuery(PROPERTIES_FOR_ENTITY.replace(":resourceId", resourceId));
+
+            for (CSVRecord record : process(response)) {
                 List<String> propertyContainer = properties.getOrDefault(record.get("relation"), new LinkedList<>());
                 propertyContainer.add(record.get("property"));
                 properties.put(record.get("relation"), propertyContainer);
             }
-            parser.close();
         } catch (URISyntaxException | IOException e) {
-            logger.error(e);
+            logger.error(String.format("Error while querying KB with resource ID %s", resourceId), e);
+        } finally {
+            if (response != null) {
+                try {
+                    response.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
         return new DBpediaResource(resourceId, properties);
     }

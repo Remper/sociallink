@@ -3,32 +3,24 @@ package eu.fbk.fm.alignments.index;
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import eu.fbk.fm.alignments.DBpediaResource;
-import eu.fbk.fm.alignments.Evaluate;
 import eu.fbk.fm.alignments.evaluation.DatasetEntry;
 import eu.fbk.fm.alignments.index.db.tables.UserIndex;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.query.QueryAssemblyStrategy;
-import eu.fbk.fm.alignments.query.StrictStrategy;
 import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
 import eu.fbk.fm.alignments.scorer.FullyResolvedEntry;
 import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.utils.core.CommandLine;
-import org.apache.flink.util.IOUtils;
-import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
-import org.postgresql.ds.PGSimpleDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import twitter4j.TwitterException;
 import twitter4j.TwitterObjectFactory;
 import twitter4j.User;
 
-import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -37,7 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static eu.fbk.fm.alignments.Evaluate.CANDIDATES_THRESHOLD;
 import static eu.fbk.fm.alignments.index.db.tables.UserIndex.USER_INDEX;
 import static eu.fbk.fm.alignments.index.db.tables.UserObjects.USER_OBJECTS;
-import static org.jooq.impl.DSL.max;
 import static org.jooq.impl.DSL.select;
 import static org.jooq.impl.DSL.sum;
 
@@ -301,5 +292,9 @@ public class FillFromIndex implements AutoCloseable {
 
     public void turnOffVerbose() {
         this.verbose = false;
+    }
+
+    public QueryAssemblyStrategy getQaStrategy() {
+        return qaStrategy;
     }
 }
