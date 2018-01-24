@@ -14,6 +14,8 @@ public class DBpediaResource {
     private static final String DBPEDIA_PROPERTY = "http://dbpedia.org/property/";
     private static final String WIKIDATA_ENTITY = "http://www.wikidata.org/entity/";
 
+    private static final String ALIGNMENTS_ONTOLOGY = "http://alignments.futuro.media/ontology#";
+
     public static final String COMMENT_PROPERTY = "http://www.w3.org/2000/01/rdf-schema#comment";
     public static final String ABSTRACT_PROPERTY = DBPEDIA_ONTOLOGY + "abstract";
 
@@ -22,6 +24,9 @@ public class DBpediaResource {
     public static final String ATTRIBUTE_NAME = "http://xmlns.com/foaf/0.1/name";
     public static final String ATTRIBUTE_GIVEN_NAME = "http://xmlns.com/foaf/0.1/givenName";
     public static final String ATTRIBUTE_SURNAME = "http://xmlns.com/foaf/0.1/surname";
+
+    public static final String ALIGNMENTS_PERSON = ALIGNMENTS_ONTOLOGY + "Person";
+    public static final String ALIGNMENTS_ORGANISATION = ALIGNMENTS_ONTOLOGY + "Organisation";
 
     public static final String TYPE_PERSON = DBPEDIA_ONTOLOGY + "Person";
     public static final String TYPE_ORGANISATION = DBPEDIA_ONTOLOGY + "Organisation";
@@ -71,12 +76,20 @@ public class DBpediaResource {
         return attributes.getOrDefault(property, new LinkedList<>());
     }
 
-    public boolean isPerson() {
+    public boolean isPersonLegacy() {
         return hasProperty(ATTRIBUTE_TYPE, TYPE_PERSON);
     }
 
-    public boolean isCompany() {
+    public boolean isCompanyLegacy() {
         return hasProperty(ATTRIBUTE_TYPE, TYPE_ORGANISATION) || hasProperty(ATTRIBUTE_TYPE, TYPE_COMPANY);
+    }
+
+    public boolean isPerson() {
+        return hasProperty(ATTRIBUTE_TYPE, ALIGNMENTS_PERSON);
+    }
+
+    public boolean isCompany() {
+        return hasProperty(ATTRIBUTE_TYPE, ALIGNMENTS_ORGANISATION);
     }
 
     public boolean isOther() {
