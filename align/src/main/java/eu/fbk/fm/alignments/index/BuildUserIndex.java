@@ -7,6 +7,7 @@ import eu.fbk.fm.alignments.index.db.tables.records.UserIndexRecord;
 import eu.fbk.fm.alignments.index.db.tables.records.UserObjectsRecord;
 import eu.fbk.fm.alignments.index.sink.AbstractPostgresSink;
 import eu.fbk.fm.alignments.index.sink.PostgresFileSink;
+import eu.fbk.fm.alignments.index.utils.Deserializer;
 import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
 import eu.fbk.fm.alignments.utils.flink.TextInputFormat;
 import eu.fbk.utils.core.CommandLine;
@@ -266,33 +267,6 @@ public class BuildUserIndex implements JsonObjectProcessor {
             });
 
             return buffer.toString();
-        }
-    }
-
-    public static final class Deserializer implements FlatMapFunction<String, JsonObject>, JsonObjectProcessor {
-
-        private static final long serialVersionUID = 1L;
-
-        private static final Gson GSON = new Gson();
-
-        @Override
-        public void flatMap(String value, Collector<JsonObject> out) {
-            try {
-                JsonObject object = GSON.fromJson(value, JsonObject.class);
-
-                if (object == null) {
-                    return;
-                }
-
-                final Long source = get(object, Long.class, "user", "id");
-                if (source == null) {
-                    return;
-                }
-
-                out.collect(object);
-            } catch (final Throwable e) {
-                //Don't care much about thrown away records
-            }
         }
     }
 

@@ -2,6 +2,7 @@ package eu.fbk.fm.alignments.index;
 
 import com.google.gson.JsonObject;
 import eu.fbk.fm.alignments.index.sink.PostgresFileSink;
+import eu.fbk.fm.alignments.index.utils.Deserializer;
 import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
 import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
 import eu.fbk.fm.alignments.utils.flink.TextInputFormat;
@@ -47,7 +48,7 @@ public class BuildUserLSA {
 
         //Deserialize and convert
         DataSet<JsonObject> tweets = text
-                .flatMap(new BuildUserIndex.Deserializer());
+                .flatMap(new Deserializer());
 
 
         DataSet<Tuple2<Long, String>> reducedUserObjects = tweets
