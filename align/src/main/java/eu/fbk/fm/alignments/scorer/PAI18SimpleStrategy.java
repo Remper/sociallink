@@ -58,6 +58,7 @@ public class PAI18SimpleStrategy extends ISWC17Strategy {
         int pointer = 0;
         for (double[] subFeatures : features) {
             System.arraycopy(subFeatures, 0, result, pointer, subFeatures.length);
+            pointer += subFeatures.length;
         }
 
         return result;

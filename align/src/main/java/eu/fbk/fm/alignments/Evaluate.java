@@ -508,7 +508,7 @@ public class Evaluate {
         Endpoint endpoint = new Endpoint(configuration.endpoint);
         Evaluate evaluate;
         if (configuration.dbConnection != null && configuration.dbUser != null && configuration.dbPassword != null) {
-            DataSource source = DBUtils.createPGDataSource(configuration.dbConnection, configuration.dbUser, configuration.dbPassword);
+            DataSource source = DBUtils.createHikariDataSource(configuration.dbConnection, configuration.dbUser, configuration.dbPassword);
             evaluate = new Evaluate(new FillFromIndex(
                     endpoint,
                     qaStrategy,

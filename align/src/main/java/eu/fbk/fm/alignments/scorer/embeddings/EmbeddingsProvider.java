@@ -13,6 +13,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.log4j.Logger;
+import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import twitter4j.User;
@@ -37,6 +38,7 @@ public class EmbeddingsProvider implements FeatureVectorProvider, JsonObjectProc
 
     private final String embName;
     private final DataSource source;
+    private final DSLContext context;
     private final String host = "localhost";
     private final int port = 5241;
     private final CloseableHttpClient client = HttpClients.createDefault();
@@ -45,6 +47,7 @@ public class EmbeddingsProvider implements FeatureVectorProvider, JsonObjectProc
     public EmbeddingsProvider(DataSource source, String embName) throws URISyntaxException {
         this.embName = embName;
         this.source = source;
+        this.context = DSL.using(source, SQLDialect.POSTGRES);
         init();
     }
 
@@ -90,7 +93,7 @@ public class EmbeddingsProvider implements FeatureVectorProvider, JsonObjectProc
     @Override
     public double[] getFeatures(User user, DBpediaResource resource) {
         if (this.embName.equals("sg300")) {
-            Long[] userVectorRaw = DSL.using(source, SQLDialect.POSTGRES)
+            Long[] userVectorRaw = context
                     .select(USER_SG.FOLLOWEES)
                     .from(USER_SG)
                     .where(USER_SG.UID.eq(user.getId()))
@@ -103,7 +106,7 @@ public class EmbeddingsProvider implements FeatureVectorProvider, JsonObjectProc
             return predict(userVectorRaw);
         }
 
-        Long userVectorRaw = DSL.using(source, SQLDialect.POSTGRES)
+        Long userVectorRaw = context
                 .select(KB_INDEX.KBID)
                 .from(KB_INDEX)
                 .where(KB_INDEX.URI.eq(resource.getIdentifier()))
