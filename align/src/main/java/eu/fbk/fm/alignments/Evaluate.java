@@ -8,10 +8,7 @@ import eu.fbk.fm.alignments.persistence.ModelEndpoint;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.query.*;
 import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
-import eu.fbk.fm.alignments.scorer.DefaultScoringStrategy;
-import eu.fbk.fm.alignments.scorer.FullyResolvedEntry;
-import eu.fbk.fm.alignments.scorer.ISWC17Strategy;
-import eu.fbk.fm.alignments.scorer.ScoringStrategy;
+import eu.fbk.fm.alignments.scorer.*;
 import eu.fbk.fm.alignments.twitter.SearchRunner;
 import eu.fbk.fm.alignments.twitter.TwitterCredentials;
 import eu.fbk.fm.alignments.twitter.TwitterDeserializer;
@@ -517,8 +514,8 @@ public class Evaluate {
                     qaStrategy,
                     source));
             if (configuration.lsa != null) {
-                logger.info("LSA specified. Enabling ISWC17 strategy");
-                evaluate.setScoreStrategy(new ISWC17Strategy(source, configuration.lsa));
+                logger.info("LSA specified. Enabling PAI18 strategy");
+                evaluate.setScoreStrategy(new PAI18SimpleStrategy(source, configuration.lsa));
             } else {
                 logger.info("LSA is not specified. Falling back to the default strategy");
             }

@@ -1,4 +1,18 @@
-﻿-- Table: public.user_index
+﻿-- Table: public.user_sg
+
+-- DROP TABLE public.user_sg;
+
+CREATE TABLE public.user_sg
+(
+    uid bigint NOT NULL,
+    followees bigint[][] NOT NULL,
+    CONSTRAINT user_sg_pkey PRIMARY KEY (uid)
+)
+WITH (
+    OIDS = FALSE
+);
+
+-- Table: public.user_index
 
 -- DROP TABLE public.user_index;
 
@@ -51,14 +65,6 @@ WITH (
     OIDS = FALSE
 );
 
--- Index: uid_obj
-
--- DROP INDEX public.uid_obj;
-
-CREATE INDEX uid_obj
-    ON public.user_objects USING btree
-    (uid);
-
 -- Table: public.user_text
 
 -- DROP TABLE public.user_text;
@@ -70,13 +76,27 @@ CREATE TABLE public.user_text
   CONSTRAINT user_text_pkey PRIMARY KEY (uid)
 )
 WITH (
-  OIDS = FALSE
+    OIDS = FALSE
 );
 
--- Index: uid_text
+-- Table: public.kb_index
 
--- DROP INDEX public.uid_text;
+-- DROP TABLE public.kb_index;
 
-CREATE INDEX uid_text
-  ON public.user_text USING btree
-  (uid);
+CREATE TABLE public.kb_index
+(
+    kbid integer NOT NULL,
+    uri text NOT NULL,
+    CONSTRAINT kb_index_pkey PRIMARY KEY (kbid)
+)
+WITH (
+    OIDS = FALSE
+);
+
+-- Index: uid
+
+-- DROP INDEX public.uid;
+
+CREATE INDEX kb_index_uri
+    ON public.kb_index USING btree
+    (uri);

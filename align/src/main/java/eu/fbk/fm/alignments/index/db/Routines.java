@@ -32,6 +32,7 @@ import eu.fbk.fm.alignments.index.db.routines.CubeOut;
 import eu.fbk.fm.alignments.index.db.routines.CubeOverlap;
 import eu.fbk.fm.alignments.index.db.routines.CubeSize;
 import eu.fbk.fm.alignments.index.db.routines.CubeSubset;
+import eu.fbk.fm.alignments.index.db.routines.CubeToArray;
 import eu.fbk.fm.alignments.index.db.routines.CubeUnion;
 import eu.fbk.fm.alignments.index.db.routines.CubeUrCoord;
 import eu.fbk.fm.alignments.index.db.routines.DistanceChebyshev;
@@ -997,6 +998,37 @@ public class Routines {
         CubeSubset f = new CubeSubset();
         f.set__1(__1);
         f.set__2(__2);
+
+        return f.asField();
+    }
+
+    /**
+     * Call <code>public.cube_to_array</code>
+     */
+    public static Double[] cubeToArray(Configuration configuration, Object __1) {
+        CubeToArray f = new CubeToArray();
+        f.set__1(__1);
+
+        f.execute(configuration);
+        return f.getReturnValue();
+    }
+
+    /**
+     * Get <code>public.cube_to_array</code> as a field.
+     */
+    public static Field<Double[]> cubeToArray(Object __1) {
+        CubeToArray f = new CubeToArray();
+        f.set__1(__1);
+
+        return f.asField();
+    }
+
+    /**
+     * Get <code>public.cube_to_array</code> as a field.
+     */
+    public static Field<Double[]> cubeToArray(Field<Object> __1) {
+        CubeToArray f = new CubeToArray();
+        f.set__1(__1);
 
         return f.asField();
     }

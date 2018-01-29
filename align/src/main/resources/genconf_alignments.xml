@@ -4,7 +4,7 @@
     <jdbc>
         <driver>org.postgresql.Driver</driver>
         <url>jdbc:postgresql://localhost/alignments</url>
-        <user>remper</user>
+        <user>nechaev</user>
         <password></password>
     </jdbc>
 

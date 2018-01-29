@@ -20,11 +20,13 @@ import java.util.concurrent.TimeUnit;
 /**
  * Strategy designed to work with our ISWC17 setup
  * A much lighter strategy that also utilises precomputed LSA for user text
+ *
+ * @author Yaroslav Nechaev (remper@me.com)
  */
 public class ISWC17Strategy implements ScoringStrategy {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ISWC17Strategy.class);
-    private List<FeatureProvider> providers;
+    private final List<FeatureProvider> providers;
 
     private int numUniqueFeatures;
 

@@ -5,8 +5,11 @@ package eu.fbk.fm.alignments.index.db;
 
 
 import eu.fbk.fm.alignments.index.db.tables.Alignments;
+import eu.fbk.fm.alignments.index.db.tables.KbIndex;
 import eu.fbk.fm.alignments.index.db.tables.UserIndex;
 import eu.fbk.fm.alignments.index.db.tables.UserObjects;
+import eu.fbk.fm.alignments.index.db.tables.UserSg;
+import eu.fbk.fm.alignments.index.db.tables.UserSgW;
 import eu.fbk.fm.alignments.index.db.tables.UserText;
 import eu.fbk.fm.alignments.index.db.tables.UserTextArr;
 
@@ -32,6 +35,11 @@ public class Tables {
     public static final Alignments ALIGNMENTS = eu.fbk.fm.alignments.index.db.tables.Alignments.ALIGNMENTS;
 
     /**
+     * The table <code>public.kb_index</code>.
+     */
+    public static final KbIndex KB_INDEX = eu.fbk.fm.alignments.index.db.tables.KbIndex.KB_INDEX;
+
+    /**
      * The table <code>public.user_index</code>.
      */
     public static final UserIndex USER_INDEX = eu.fbk.fm.alignments.index.db.tables.UserIndex.USER_INDEX;
@@ -40,6 +48,16 @@ public class Tables {
      * The table <code>public.user_objects</code>.
      */
     public static final UserObjects USER_OBJECTS = eu.fbk.fm.alignments.index.db.tables.UserObjects.USER_OBJECTS;
+
+    /**
+     * The table <code>public.user_sg</code>.
+     */
+    public static final UserSg USER_SG = eu.fbk.fm.alignments.index.db.tables.UserSg.USER_SG;
+
+    /**
+     * The table <code>public.user_sg_w</code>.
+     */
+    public static final UserSgW USER_SG_W = eu.fbk.fm.alignments.index.db.tables.UserSgW.USER_SG_W;
 
     /**
      * The table <code>public.user_text</code>.
