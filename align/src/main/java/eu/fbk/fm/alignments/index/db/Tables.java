@@ -9,7 +9,6 @@ import eu.fbk.fm.alignments.index.db.tables.KbIndex;
 import eu.fbk.fm.alignments.index.db.tables.UserIndex;
 import eu.fbk.fm.alignments.index.db.tables.UserObjects;
 import eu.fbk.fm.alignments.index.db.tables.UserSg;
-import eu.fbk.fm.alignments.index.db.tables.UserSgW;
 import eu.fbk.fm.alignments.index.db.tables.UserText;
 import eu.fbk.fm.alignments.index.db.tables.UserTextArr;
 
@@ -53,11 +52,6 @@ public class Tables {
      * The table <code>public.user_sg</code>.
      */
     public static final UserSg USER_SG = eu.fbk.fm.alignments.index.db.tables.UserSg.USER_SG;
-
-    /**
-     * The table <code>public.user_sg_w</code>.
-     */
-    public static final UserSgW USER_SG_W = eu.fbk.fm.alignments.index.db.tables.UserSgW.USER_SG_W;
 
     /**
      * The table <code>public.user_text</code>.

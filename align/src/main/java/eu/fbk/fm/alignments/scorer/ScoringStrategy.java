@@ -7,6 +7,7 @@ import twitter4j.User;
  * Scoring strategy interface
  *
  * @author Yaroslav Nechaev (remper@me.com)
+ * @deprecated Will be deleted in 2.0
  */
 public interface ScoringStrategy {
     void fillScore(FullyResolvedEntry entry);

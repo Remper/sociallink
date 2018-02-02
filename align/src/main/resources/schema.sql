@@ -5,7 +5,8 @@
 CREATE TABLE public.user_sg
 (
     uid bigint NOT NULL,
-    followees bigint[][] NOT NULL,
+    followees bigint[] NOT NULL,
+    weights real[] NOT NULL,
     CONSTRAINT user_sg_pkey PRIMARY KEY (uid)
 )
 WITH (

@@ -9,7 +9,6 @@ import eu.fbk.fm.alignments.index.db.tables.KbIndex;
 import eu.fbk.fm.alignments.index.db.tables.UserIndex;
 import eu.fbk.fm.alignments.index.db.tables.UserObjects;
 import eu.fbk.fm.alignments.index.db.tables.UserSg;
-import eu.fbk.fm.alignments.index.db.tables.UserSgW;
 import eu.fbk.fm.alignments.index.db.tables.UserText;
 import eu.fbk.fm.alignments.index.db.tables.UserTextArr;
 
@@ -37,7 +36,7 @@ import org.jooq.impl.SchemaImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Public extends SchemaImpl {
 
-    private static final long serialVersionUID = 1491376457;
+    private static final long serialVersionUID = 275761985;
 
     /**
      * The reference instance of <code>public</code>
@@ -68,11 +67,6 @@ public class Public extends SchemaImpl {
      * The table <code>public.user_sg</code>.
      */
     public final UserSg USER_SG = eu.fbk.fm.alignments.index.db.tables.UserSg.USER_SG;
-
-    /**
-     * The table <code>public.user_sg_w</code>.
-     */
-    public final UserSgW USER_SG_W = eu.fbk.fm.alignments.index.db.tables.UserSgW.USER_SG_W;
 
     /**
      * The table <code>public.user_text</code>.
@@ -114,7 +108,6 @@ public class Public extends SchemaImpl {
             UserIndex.USER_INDEX,
             UserObjects.USER_OBJECTS,
             UserSg.USER_SG,
-            UserSgW.USER_SG_W,
             UserText.USER_TEXT,
             UserTextArr.USER_TEXT_ARR);
     }

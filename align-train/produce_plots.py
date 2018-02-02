@@ -2,9 +2,9 @@
 from math import ceil, sqrt
 
 import matplotlib.pyplot as plt
-import pandas as pd
 import argparse
 import re
+
 
 class Sample:
     def __init__(self, line):
@@ -15,17 +15,13 @@ class Sample:
         self.t1 = float(line[4])
         self.t2 = float(line[5])
 
-def main():
-    parser = argparse.ArgumentParser(description='Plots precision/recall curves')
-    parser.add_argument('--input', metavar='#', nargs='+', help='files from evaluation pipelines')
-    parser.add_argument('--output', metavar='#', help='an output plot file')
-    args = parser.parse_args()
 
+def main(input: list, output: str):
     # Parsing files
     files = dict()
     plots = 0
     min_prec = 1.0
-    for file in args.input:
+    for file in input:
         files[file] = dict()
         cur_section = None
         cur_subsection = None
@@ -51,7 +47,7 @@ def main():
                 files[file][cur_section][subsection_name].append(sample)
 
     # Producing joint graphs
-    file1 = files[args.input[0]]
+    file1 = files[input[0]]
     plots //= len(files)
     grid_size = int(ceil(sqrt(plots)))
     saturation = int(ceil(plots / grid_size))
@@ -81,7 +77,11 @@ def main():
                 sp.plot(x, y, '-', label=label)
             sp.legend(numpoints=1, loc='best')
     fig.tight_layout()
-    fig.savefig(args.output)
+    fig.savefig(output)
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Plots precision/recall curves')
+    parser.add_argument('--input', metavar='#', nargs='+', help='files from evaluation pipelines')
+    parser.add_argument('--output', metavar='#', help='an output plot file')
+    args = parser.parse_args()
+    main(args.input, args.output)

@@ -2,11 +2,8 @@ package eu.fbk.fm.alignments.scorer.embeddings;
 
 import com.google.gson.*;
 import eu.fbk.fm.alignments.DBpediaResource;
-import eu.fbk.fm.alignments.persistence.ModelEndpoint;
-import eu.fbk.fm.alignments.scorer.DBTextScorer;
 import eu.fbk.fm.alignments.scorer.FeatureVectorProvider;
 import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.URIBuilder;
@@ -14,6 +11,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.log4j.Logger;
 import org.jooq.DSLContext;
+import org.jooq.Record2;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import twitter4j.User;
@@ -44,6 +42,8 @@ public class EmbeddingsProvider implements FeatureVectorProvider, JsonObjectProc
     private final CloseableHttpClient client = HttpClients.createDefault();
     private URI url;
 
+    private boolean enableWeights = true;
+
     public EmbeddingsProvider(DataSource source, String embName) throws URISyntaxException {
         this.embName = embName;
         this.source = source;
@@ -51,17 +51,31 @@ public class EmbeddingsProvider implements FeatureVectorProvider, JsonObjectProc
         init();
     }
 
+    public EmbeddingsProvider turnOffWeights() {
+        enableWeights = false;
+        return this;
+    }
+
     private void init() throws URISyntaxException {
         url = new URIBuilder().setScheme("http").setHost(host).setPort(port).setPath("/transform/"+embName).build();
     }
 
     public double[] predict(Long[] features) {
+        return predict(features, null);
+    }
+
+    public double[] predict(Long[] features, Float[] weights) {
         Gson gson = new GsonBuilder().create();
         double[] result = null;
         CloseableHttpResponse response = null;
         try {
-            URI requestURI = new URIBuilder(url).setParameter("followees", gson.toJson(features)).build();
-            response = client.execute(new HttpGet(requestURI));
+            URIBuilder requestBuilder = new URIBuilder(url).setParameter("followees", gson.toJson(features));
+            if (weights != null && enableWeights) {
+                requestBuilder.setParameter("weights", gson.toJson(weights));
+            }
+            URI requestURI = requestBuilder.build();
+
+                    response = client.execute(new HttpGet(requestURI));
             if (response.getStatusLine().getStatusCode() >= 400) {
                 response.close();
             }
@@ -92,18 +106,18 @@ public class EmbeddingsProvider implements FeatureVectorProvider, JsonObjectProc
 
     @Override
     public double[] getFeatures(User user, DBpediaResource resource) {
-        if (this.embName.equals("sg300")) {
-            Long[] userVectorRaw = context
-                    .select(USER_SG.FOLLOWEES)
+        if (this.embName.startsWith("sg")) {
+            Record2<Long[], Float[]> userVectorRaw = context
+                    .select(USER_SG.FOLLOWEES, USER_SG.WEIGHTS)
                     .from(USER_SG)
                     .where(USER_SG.UID.eq(user.getId()))
-                    .fetchOne(USER_SG.FOLLOWEES, Long[].class);
+                    .fetchOne();
 
             if (userVectorRaw == null) {
                 return predict(new Long[0]);
             }
 
-            return predict(userVectorRaw);
+            return predict(userVectorRaw.value1(), userVectorRaw.value2());
         }
 
         Long userVectorRaw = context

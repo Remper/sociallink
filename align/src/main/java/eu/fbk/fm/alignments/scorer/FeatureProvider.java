@@ -7,6 +7,7 @@ import twitter4j.User;
  * Provides a single feature to the classifier
  *
  * @author Yaroslav Nechaev (remper@me.com)
+ * @deprecated Will be deleted in 2.0
  */
 public interface FeatureProvider extends FeatureVectorProvider {
     double getFeature(User user, DBpediaResource resource);

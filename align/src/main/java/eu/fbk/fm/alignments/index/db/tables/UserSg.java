@@ -4,12 +4,8 @@
 package eu.fbk.fm.alignments.index.db.tables;
 
 
-import eu.fbk.fm.alignments.index.db.Keys;
 import eu.fbk.fm.alignments.index.db.Public;
 import eu.fbk.fm.alignments.index.db.tables.records.UserSgRecord;
-
-import java.util.Arrays;
-import java.util.List;
 
 import javax.annotation.Generated;
 
@@ -17,7 +13,6 @@ import org.jooq.Field;
 import org.jooq.Schema;
 import org.jooq.Table;
 import org.jooq.TableField;
-import org.jooq.UniqueKey;
 import org.jooq.impl.TableImpl;
 
 
@@ -34,7 +29,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class UserSg extends TableImpl<UserSgRecord> {
 
-    private static final long serialVersionUID = -782052703;
+    private static final long serialVersionUID = -1823883885;
 
     /**
      * The reference instance of <code>public.user_sg</code>
@@ -58,6 +53,11 @@ public class UserSg extends TableImpl<UserSgRecord> {
      * The column <code>public.user_sg.followees</code>.
      */
     public final TableField<UserSgRecord, Long[]> FOLLOWEES = createField("followees", org.jooq.impl.SQLDataType.BIGINT.getArrayDataType(), this, "");
+
+    /**
+     * The column <code>public.user_sg.weights</code>.
+     */
+    public final TableField<UserSgRecord, Float[]> WEIGHTS = createField("weights", org.jooq.impl.SQLDataType.REAL.getArrayDataType(), this, "");
 
     /**
      * Create a <code>public.user_sg</code> table reference
@@ -87,22 +87,6 @@ public class UserSg extends TableImpl<UserSgRecord> {
     @Override
     public Schema getSchema() {
         return Public.PUBLIC;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public UniqueKey<UserSgRecord> getPrimaryKey() {
-        return Keys.USER_SG_PKEY;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public List<UniqueKey<UserSgRecord>> getKeys() {
-        return Arrays.<UniqueKey<UserSgRecord>>asList(Keys.USER_SG_PKEY);
     }
 
     /**
