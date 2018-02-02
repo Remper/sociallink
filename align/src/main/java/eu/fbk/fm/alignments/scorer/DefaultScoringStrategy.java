@@ -13,9 +13,9 @@ import eu.fbk.utils.data.DatasetRepository;
 import eu.fbk.utils.data.dataset.CSVDataset;
 import eu.fbk.utils.data.dataset.bow.FeatureMappingInterface;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.lang.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import twitter4j.User;
 
 import java.util.*;

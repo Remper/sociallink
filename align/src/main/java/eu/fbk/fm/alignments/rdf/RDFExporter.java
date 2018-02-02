@@ -20,9 +20,9 @@ import java.util.zip.GZIPOutputStream;
 
 import com.google.common.base.Charsets;
 
-import org.apache.flink.hadoop.shaded.com.google.common.collect.Ordering;
-import org.apache.flink.shaded.com.google.common.base.Preconditions;
-import org.apache.flink.shaded.com.google.common.collect.Maps;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Resource;
