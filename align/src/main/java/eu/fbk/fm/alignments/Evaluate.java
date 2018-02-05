@@ -2,7 +2,6 @@ package eu.fbk.fm.alignments;
 
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import eu.fbk.fm.alignments.evaluation.*;
 import eu.fbk.fm.alignments.index.FillFromIndex;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
@@ -27,14 +26,12 @@ import twitter4j.User;
 
 import javax.sql.DataSource;
 import java.io.*;
-import java.lang.reflect.Type;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
@@ -186,7 +183,7 @@ public class Evaluate {
         entries.parallelStream().forEach(entry -> {
             scoreStrategy.fillScore(entry);
             int curProc = processed.incrementAndGet();
-            if (curProc % 10 == 0 && (watch.elapsed(TimeUnit.SECONDS) > 60 || curProc % 1000 == 0)) {
+            if (curProc % 10 == 0 && (watch.elapsed(TimeUnit.SECONDS) > 120 || curProc % 1000 == 0)) {
                 synchronized (this) {
                     logger.info(String.format("Processed %d entities (%.2f seconds)", curProc, (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
                     watch.reset().start();
@@ -200,15 +197,17 @@ public class Evaluate {
         FileWriter jsonOutput = new FileWriter(output.JSONFeat);
         CSVPrinter indexPrinter = new CSVPrinter(new FileWriter(output.index), CSVFormat.DEFAULT);
 
+        boolean first = true;
         for (FullyResolvedEntry entry : entries) {
             int order = 0;
             for (User user : entry.candidates) {
-                if (order > 0) {
+                if (!first) {
                     jsonOutput.write('\n');
                 }
+                first = false;
 
-                indexPrinter.printRecord(entry.resource.getIdentifier(), user.getId(), user.getScreenName());
-                boolean isPositive = user.getScreenName().equals(entry.entry.twitterId);
+                indexPrinter.printRecord(entry.resource.getIdentifier(), entry.entry.twitterId, user.getId(), user.getScreenName());
+                boolean isPositive = user.getScreenName().equalsIgnoreCase(entry.entry.twitterId);
                 Map<String, double[]> features = entry.features.get(order);
 
                 jsonOutput.write(String.valueOf(isPositive ? 1 : 0));
@@ -222,16 +221,15 @@ public class Evaluate {
     }
 
     private static Map<String, Scaler> fitDataset(List<FullyResolvedEntry> entries) {
-        return fitDataset(entries, false);
-    }
-
-    private static Map<String, Scaler> fitDataset(List<FullyResolvedEntry> entries, boolean transform) {
         HashMap<String, List<double[]>> features = new HashMap<>();
         HashMap<String, Scaler> scalers = new HashMap<>();
 
         entries.stream()
+                //For each feature vector in a dataset entry
                 .flatMap(entry -> entry.features.stream())
+                //For each feature subspace
                 .flatMap(map -> map.entrySet().stream())
+                //Create scaler if needed and add feature subspace in an appropriate bucket
                 .forEach(entry -> {
                     if (!features.containsKey(entry.getKey())) {
                         features.put(entry.getKey(), new LinkedList<>());
@@ -241,20 +239,26 @@ public class Evaluate {
                 });
 
         scalers.entrySet().parallelStream()
-                .forEach(entry -> {
-                    entry.getValue().fit(features.get(entry.getKey()));
-                    if (transform) {
-                        entry.getValue().transform(features.get(entry.getKey()));
-                    }
-                });
+                //Fit scalers for each bucket (feature subspace)
+                .forEach(entry -> entry.getValue().fit(features.get(entry.getKey())));
 
         return scalers;
     }
 
     private static void transformDataset(Map<String, Scaler> scalers, List<FullyResolvedEntry> entries) {
+        //Transform everything by default
+        transformDataset(scalers, entries, null);
+    }
+
+    private static void transformDataset(Map<String, Scaler> scalers, List<FullyResolvedEntry> entries, String[] whitelist) {
         entries.parallelStream()
+                //For each feature vector in a dataset entry
                 .flatMap(entry -> entry.features.stream())
+                //For each feature subspace
                 .flatMap(map -> map.entrySet().stream())
+                //Check if we should transform this subspace
+                .filter(entry -> whitelist == null || Stream.of(whitelist).anyMatch(ele -> ele.equals(entry.getKey())))
+                //Transform the subspace
                 .forEach(entry -> scalers.get(entry.getKey()).transform(entry.getValue()));
     }
 
@@ -444,6 +448,45 @@ public class Evaluate {
         writer.close();
     }
 
+    private static void strategiesCheck(Collection<FullyResolvedEntry> resolveDataset) {
+        //Here we check all the strategies doing a random pick from the resolved dataset
+        logger.info("Strategies check");
+        QueryAssemblyStrategy[] strategies = {
+                new AllNamesStrategy(),
+                new NoQuotesDupesStrategy(),
+                new StrictQuotesStrategy(),
+                new StrictStrategy(),
+                new StrictWithTopicStrategy()
+        };
+        Iterator<FullyResolvedEntry> datasetIterator = resolveDataset.iterator();
+        Random rnd = new Random();
+        for (int i = 0; i < 10; i++) {
+            FullyResolvedEntry entry;
+            do {
+                entry = datasetIterator.next();
+
+                if (!datasetIterator.hasNext()) {
+                    datasetIterator = resolveDataset.iterator();
+                }
+            } while (rnd.nextDouble() > 0.1);
+
+            logger.info("Entity: " + entry.entry.resourceId + ". True alignments: @" + entry.entry.twitterId);
+            logger.info("  Names: " + String.join(", ", entry.resource.getNames()));
+            for (QueryAssemblyStrategy strategy : strategies) {
+                logger.info("  Strategy: " + strategy.getClass().getSimpleName() + ". Query: " + strategy.getQuery(entry.resource));
+            }
+            if (entry.candidates == null || entry.candidates.size() == 0) {
+                logger.info("  No candidates");
+            } else {
+                logger.info("  Candidates:");
+                for (User candidate : entry.candidates) {
+                    logger.info("    @" + candidate.getScreenName() + " (" + candidate.getName() + ")");
+                }
+            }
+        }
+        logger.info("Strategies check finished");
+    }
+
     public static void main(String[] args) throws Exception {
         Gson gson = TwitterDeserializer.getDefault().getBuilder().create();
 
@@ -488,73 +531,55 @@ public class Evaluate {
             return;
         }
 
-        try {
-            Dataset goldStandardDataset = Dataset.fromFile(files.gold);
-            if (!files.train.plain.exists() || !files.test.plain.exists()) {
-                logger.info("Generating training/test sets");
-                evaluate.produceTrainTestSets(goldStandardDataset, files.train.plain, files.test.plain, 0.8);
+        //Loading full gold standard
+        Dataset goldStandardDataset = Dataset.fromFile(files.gold);
+
+        //Resolving all the data needed for analysis
+        Collection<FullyResolvedEntry> resolveDataset;
+        if (!files.resolved.exists()) {
+            resolveDataset = new LinkedList<>();
+
+            if (configuration.credentials != null) {
+                evaluate.setCredentials(TwitterCredentials.credentialsFromFile(new File(configuration.credentials)));
             }
+            logger.info("Resolving all data from the dataset (" + goldStandardDataset.size() + " entries)");
+            logger.info("Query strategy: " + evaluate.getQaStrategy().getClass().getSimpleName());
+            resolveDataset.addAll(evaluate.resolveDataset(goldStandardDataset));
+            FileWriter resolvedWriter = new FileWriter(files.resolved);
+            gson.toJson(resolveDataset.toArray(new FullyResolvedEntry[0]), resolvedWriter);
+            IOUtils.closeQuietly(resolvedWriter);
+        } else {
+            logger.info("Deserialising user data");
+            Stopwatch watch = Stopwatch.createStarted();
+            resolveDataset = new LinkedList<>();
+            Collections.addAll(resolveDataset, gson.fromJson(new FileReader(files.resolved), FullyResolvedEntry[].class));
+            logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
+        }
+
+        strategiesCheck(resolveDataset);
+
+        //Produce multiple train/test splits
+        if (!files.train.plain.exists() || !files.test.plain.exists()) {
+            int numSplits = 2;
+            FileProvider provider = null;
+            for (int i = numSplits; i > 0; i--) {
+                File newWorkdir = new File(configuration.workdir, "split"+i);
+                if (!newWorkdir.mkdir()) {
+                    logger.error("Error while creating subdirectory for split "+i);
+                }
+                provider = new FileProvider(newWorkdir);
+                logger.info("Generating training/test sets for split"+i);
+                evaluate.produceTrainTestSets(goldStandardDataset, provider.train.plain, provider.test.plain, 0.8);
+                Files.createSymbolicLink(provider.resolved.toPath(), files.resolved.toPath());
+                Files.copy(files.gold.toPath(), provider.gold.toPath());
+            }
+            //Picking one of the providers to continue
+            files = provider;
+        }
+
+        try {
             Dataset trainSetDataset = Dataset.fromFile(files.train.plain);
             Dataset testSetDataset = Dataset.fromFile(files.test.plain);
-
-            //Resolving all the data needed for analysis
-            Collection<FullyResolvedEntry> resolveDataset;
-            if (!files.resolved.exists()) {
-                resolveDataset = new LinkedList<>();
-
-                if (configuration.credentials != null) {
-                    evaluate.setCredentials(TwitterCredentials.credentialsFromFile(new File(configuration.credentials)));
-                }
-                logger.info("Resolving all data from the dataset (" + goldStandardDataset.size() + " entries)");
-                logger.info("Query strategy: " + evaluate.getQaStrategy().getClass().getSimpleName());
-                resolveDataset.addAll(evaluate.resolveDataset(goldStandardDataset));
-                FileWriter resolvedWriter = new FileWriter(files.resolved);
-                gson.toJson(resolveDataset.toArray(new FullyResolvedEntry[0]), resolvedWriter);
-                IOUtils.closeQuietly(resolvedWriter);
-            } else {
-                logger.info("Deserialising user data");
-                Stopwatch watch = Stopwatch.createStarted();
-                resolveDataset = new LinkedList<>();
-                Collections.addAll(resolveDataset, gson.fromJson(new FileReader(files.resolved), FullyResolvedEntry[].class));
-                logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
-            }
-
-            //Here we check all the strategies doing a random pick from the resolved dataset
-            logger.info("Strategies check");
-            QueryAssemblyStrategy[] strategies = {
-                    new AllNamesStrategy(),
-                    new NoQuotesDupesStrategy(),
-                    new StrictQuotesStrategy(),
-                    new StrictStrategy(),
-                    new StrictWithTopicStrategy()
-            };
-            Iterator<FullyResolvedEntry> datasetIterator = resolveDataset.iterator();
-            Random rnd = new Random();
-            for (int i = 0; i < 10; i++) {
-                FullyResolvedEntry entry;
-                do {
-                    entry = datasetIterator.next();
-
-                    if (!datasetIterator.hasNext()) {
-                        datasetIterator = resolveDataset.iterator();
-                    }
-                } while (rnd.nextDouble() > 0.1);
-
-                logger.info("Entity: " + entry.entry.resourceId + ". True alignments: @" + entry.entry.twitterId);
-                logger.info("  Names: " + String.join(", ", entry.resource.getNames()));
-                for (QueryAssemblyStrategy strategy : strategies) {
-                    logger.info("  Strategy: " + strategy.getClass().getSimpleName() + ". Query: " + strategy.getQuery(entry.resource));
-                }
-                if (entry.candidates == null || entry.candidates.size() == 0) {
-                    logger.info("  No candidates");
-                } else {
-                    logger.info("  Candidates:");
-                    for (User candidate : entry.candidates) {
-                        logger.info("    @" + candidate.getScreenName() + " (" + candidate.getName() + ")");
-                    }
-                }
-            }
-            logger.info("Strategies check finished");
 
             List<FullyResolvedEntry> resolvedTestSet = new LinkedList<>();
             List<FullyResolvedEntry> resolvedTrainingSet = new LinkedList<>();
@@ -574,7 +599,7 @@ public class Evaluate {
                 }
                 int order = 0;
                 for (User candidate : entry.candidates) {
-                    if (candidate.getScreenName().toLowerCase().equals(entry.entry.twitterId.toLowerCase())) {
+                    if (candidate.getScreenName().equalsIgnoreCase(entry.entry.twitterId)) {
                         trueCandidates++;
                         if (order < CANDIDATES_THRESHOLD) {
                             trueCandidatesOrder[order]++;
@@ -622,7 +647,7 @@ public class Evaluate {
             evaluate.generateFeatures(resolvedTestSet);
             logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
 
-            //Saving unscaled SVM and CSV features to disk
+            //Saving unscaled JSON features to disk
             evaluate.dumpFeatures(resolvedTrainingSet, files.train.unscaled);
             evaluate.dumpFeatures(resolvedTestSet, files.test.unscaled);
 
@@ -638,8 +663,8 @@ public class Evaluate {
             //Rescaling features
             logger.info("Rescaling features");
             watch.reset().start();
-            transformDataset(scalers, resolvedTrainingSet);
-            transformDataset(scalers, resolvedTestSet);
+            transformDataset(scalers, resolvedTrainingSet, new String[]{"iswc17"});
+            transformDataset(scalers, resolvedTestSet, new String[]{"iswc17"});
             logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
 
             //Saving JSON features to disk

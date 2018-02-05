@@ -2,6 +2,7 @@ package eu.fbk.fm.alignments.scorer;
 
 import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.scorer.embeddings.EmbeddingsProvider;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import twitter4j.User;
@@ -34,18 +35,23 @@ public class PAI18Strategy extends AbstractScoringStrategy {
 
         HashMap<String, double[]> features = new HashMap<>();
 
-        for (FeatureVectorProvider provider : vectorProviders) {
+        vectorProviders.parallelStream().map(provider -> {
             double[] providedFeatures = provider.getFeatures(user, resource);
-            features.put(provider.getSubspaceId(), providedFeatures);
             if (providedFeatures.length == 0) {
                 LOGGER.error(String.format(
-                    "0 features detected for provider: %s, entity: %s, candidate: %s",
-                    provider.getClass().getSimpleName(),
-                    resource.getIdentifier(),
-                    user.getScreenName()
+                        "0 features detected for provider: %s, entity: %s, candidate: %s",
+                        provider.getClass().getSimpleName(),
+                        resource.getIdentifier(),
+                        user.getScreenName()
                 ));
             }
-        }
+
+            return new Tuple2<>(provider.getSubspaceId(), providedFeatures);
+        }).forEach(tuple -> {
+            synchronized (this) {
+                features.put(tuple.f0, tuple.f1);
+            }
+        });
 
         return features;
     }

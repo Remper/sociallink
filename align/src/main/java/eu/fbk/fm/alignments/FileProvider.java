@@ -18,7 +18,14 @@ public class FileProvider {
     public final Type scalerType = new TypeToken<Map<String, Scaler>>(){}.getType();
 
     public FileProvider(String workdir) {
-        File coreDirectory = new File(workdir);
+        this(new File(workdir));
+    }
+
+    public FileProvider(File coreDirectory) {
+        if (!coreDirectory.exists() || !coreDirectory.isDirectory()) {
+            throw new IllegalArgumentException("Target directory doesn't exist or isn't a directory");
+        }
+
         gold = new File(coreDirectory, "gold.csv");
         resolved = new File(coreDirectory, "resolved.json");
         scaler = new File(coreDirectory, "scaler.json");
@@ -27,10 +34,6 @@ public class FileProvider {
         train = new FileSet(coreDirectory, "train");
         evaluation = new File(coreDirectory, "evaluation.json");
         evaluationResult = new File(coreDirectory, "evaluation.txt");
-
-        if (!coreDirectory.exists() || !coreDirectory.isDirectory()) {
-            throw new IllegalArgumentException("Target directory doesn't exist or isn't a directory");
-        }
     }
 
     public static class FileSet {
@@ -46,7 +49,6 @@ public class FileProvider {
 
     public static class FeatureSet {
         public File JSONFeat, index;
-        public File CSVContrastive;
 
         private FeatureSet(File coreDirectory, String prefix) {
             JSONFeat = new File(coreDirectory, prefix + ".feat.json");
