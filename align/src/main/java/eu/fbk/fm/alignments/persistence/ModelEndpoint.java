@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 
 /**
  * Temporary class for returning prediction results from the model endpoint
@@ -40,6 +41,10 @@ public class ModelEndpoint {
 
     public void init() throws URISyntaxException {
         url = new URIBuilder().setScheme("http").setHost(host).setPort(port).setPath("/predict").build();
+    }
+
+    public double[] predict(Map<String, double[]> features) {
+        return new double[0];
     }
 
     public double[] predict(double[] features) {

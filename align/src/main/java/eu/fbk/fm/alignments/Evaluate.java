@@ -2,6 +2,7 @@ package eu.fbk.fm.alignments;
 
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import eu.fbk.fm.alignments.evaluation.*;
 import eu.fbk.fm.alignments.index.FillFromIndex;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
@@ -13,13 +14,10 @@ import eu.fbk.fm.alignments.twitter.SearchRunner;
 import eu.fbk.fm.alignments.twitter.TwitterCredentials;
 import eu.fbk.fm.alignments.twitter.TwitterDeserializer;
 import eu.fbk.fm.alignments.utils.DBUtils;
-import eu.fbk.utils.eval.PrecisionRecall;
 import eu.fbk.utils.math.Scaler;
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -29,14 +27,15 @@ import twitter4j.User;
 
 import javax.sql.DataSource;
 import java.io.*;
+import java.lang.reflect.Type;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 /**
  * Script that evaluates a particular alignments pipeline
@@ -51,7 +50,7 @@ public class Evaluate {
     private Endpoint endpoint;
     private TwitterCredentials[] credentials = null;
     private QueryAssemblyStrategy qaStrategy = QueryAssemblyStrategyFactory.def();
-    private ScoringStrategy scoreStrategy = new DefaultScoringStrategy();
+    private ScoringStrategy scoreStrategy = null;
     private Gson gson;
 
     private FillFromIndex index = null;
@@ -196,115 +195,67 @@ public class Evaluate {
         });
     }
 
-    public void dumpContrastiveFeatures(List<FullyResolvedEntry> entries, FileProvider.FeatureSet output) throws IOException {
-        CSVPrinter csvPrinter = new CSVPrinter(new FileWriter(output.CSVContrastive), CSVFormat.DEFAULT);
-
-        double[] zeros = null;
-        Random rnd = new Random();
-        for (FullyResolvedEntry entry : entries) {
-            int candidates = entry.candidates.size();
-            if (candidates == 0) {
-                continue;
-            }
-            if (zeros == null) {
-                zeros = new double[entry.features.get(0).length];
-                Arrays.fill(zeros, 0.0);
-            }
-
-            int order = 0;
-            boolean hasPositive = false;
-            for (User user : entry.candidates) {
-                if (user.getScreenName().equals(entry.entry.twitterId)) {
-                    hasPositive = true;
-                    break;
-                }
-                order++;
-            }
-
-            if (hasPositive) {
-                double[] positiveFeatures = entry.features.get(order);
-
-                for (int i = 0; i < candidates; i++) {
-                    double value = 1.0;
-                    if (order == i) {
-                        value = 0.5;
-                    }
-                    csvPrinter.print(value);
-                    for (double positiveFeature : positiveFeatures) {
-                        csvPrinter.print(positiveFeature);
-                    }
-                    for (double feature : entry.features.get(i)) {
-                        csvPrinter.print(feature);
-                    }
-                    csvPrinter.println();
-                }
-            }
-
-            int featuresPrinted = 0;
-            int iterations = 0;
-            while (featuresPrinted < candidates && iterations < 1000) {
-                int cand1 = rnd.nextInt(candidates);
-                int cand2 = rnd.nextInt(candidates);
-                if (cand1 != cand2 && (!hasPositive || (cand1 != order && cand2 != order))) {
-                    csvPrinter.print(0.5);
-                    for (double feature : entry.features.get(cand1)) {
-                        csvPrinter.print(feature);
-                    }
-                    for (double feature : entry.features.get(cand2)) {
-                        csvPrinter.print(feature);
-                    }
-                    csvPrinter.println();
-                    featuresPrinted++;
-                }
-                iterations++;
-            }
-        }
-
-        csvPrinter.close();
-    }
-
     public void dumpFeatures(List<FullyResolvedEntry> entries, FileProvider.FeatureSet output) throws IOException {
-        FileWriter svmOutput = new FileWriter(output.SVMFeat);
-        CSVPrinter csvPrinter = new CSVPrinter(new FileWriter(output.CSVFeat), CSVFormat.DEFAULT);
+        Gson gson = new Gson();
+        FileWriter jsonOutput = new FileWriter(output.JSONFeat);
         CSVPrinter indexPrinter = new CSVPrinter(new FileWriter(output.index), CSVFormat.DEFAULT);
 
         for (FullyResolvedEntry entry : entries) {
             int order = 0;
             for (User user : entry.candidates) {
+                if (order > 0) {
+                    jsonOutput.write('\n');
+                }
+
                 indexPrinter.printRecord(entry.resource.getIdentifier(), user.getId(), user.getScreenName());
                 boolean isPositive = user.getScreenName().equals(entry.entry.twitterId);
-                double[] features = entry.features.get(order);
+                Map<String, double[]> features = entry.features.get(order);
 
-                csvPrinter.print(isPositive ? 1 : 0);
-                svmOutput.write(String.valueOf(isPositive ? 1 : 0));
-                for (int i = 0; i < features.length; i++) {
-                    csvPrinter.print(features[i]);
-                    svmOutput.write(" " + (i + 1) + ":");
-                    svmOutput.write(String.valueOf(features[i]));
-                }
-                svmOutput.write('\n');
-                csvPrinter.println();
+                jsonOutput.write(String.valueOf(isPositive ? 1 : 0));
+                jsonOutput.write('\t');
+                jsonOutput.write(gson.toJson(features));
                 order++;
             }
         }
-        IOUtils.closeQuietly(svmOutput);
+        IOUtils.closeQuietly(jsonOutput);
         indexPrinter.close();
-        csvPrinter.close();
     }
 
-    private static void fitDataset(Scaler scaler, List<FullyResolvedEntry> entries) {
-        List<double[]> features = new LinkedList<>();
-        for (FullyResolvedEntry entry : entries) {
-            features.addAll(entry.features);
-        }
-        scaler.fit(features);
+    private static Map<String, Scaler> fitDataset(List<FullyResolvedEntry> entries) {
+        return fitDataset(entries, false);
     }
 
-    private static void transformDataset(Scaler scaler, List<FullyResolvedEntry> entries) {
-        List<double[]> features = new LinkedList<>();
-        for (FullyResolvedEntry entry : entries) {
-            scaler.transform(entry.features);
-        }
+    private static Map<String, Scaler> fitDataset(List<FullyResolvedEntry> entries, boolean transform) {
+        HashMap<String, List<double[]>> features = new HashMap<>();
+        HashMap<String, Scaler> scalers = new HashMap<>();
+
+        entries.stream()
+                .flatMap(entry -> entry.features.stream())
+                .flatMap(map -> map.entrySet().stream())
+                .forEach(entry -> {
+                    if (!features.containsKey(entry.getKey())) {
+                        features.put(entry.getKey(), new LinkedList<>());
+                        scalers.put(entry.getKey(), new Scaler());
+                    }
+                    features.get(entry.getKey()).add(entry.getValue());
+                });
+
+        scalers.entrySet().parallelStream()
+                .forEach(entry -> {
+                    entry.getValue().fit(features.get(entry.getKey()));
+                    if (transform) {
+                        entry.getValue().transform(features.get(entry.getKey()));
+                    }
+                });
+
+        return scalers;
+    }
+
+    private static void transformDataset(Map<String, Scaler> scalers, List<FullyResolvedEntry> entries) {
+        entries.parallelStream()
+                .flatMap(entry -> entry.features.stream())
+                .flatMap(map -> map.entrySet().stream())
+                .forEach(entry -> scalers.get(entry.getKey()).transform(entry.getValue()));
     }
 
     public void produceTrainTestSets(Dataset goldStandard, File trainSetFile, File testSetFile, double trainProb) throws IOException {
@@ -385,15 +336,13 @@ public class Evaluate {
             List<double[]> modelPositives = new LinkedList<>();
             int trueLabel = -1;
 
-            for (double[] features : entry.features) {
+            for (Map<String, double[]> features : entry.features) {
                 double label = 0, score = 0;
                 double[] endpointScores = new double[2];
 
                 if (endpoint != null) {
                     endpointScores = endpoint.predict(features);
-                    //if (endpointScores[1] > 0.5) {
                     modelPositives.add(new double[]{order, endpointScores[1]});
-                    //}
                 }
 
                 User candidate = entry.candidates.get(order);
@@ -515,7 +464,7 @@ public class Evaluate {
                     source));
             if (configuration.lsa != null) {
                 logger.info("LSA specified. Enabling PAI18 strategy");
-                evaluate.setScoreStrategy(new PAI18SimpleStrategy(source, configuration.lsa));
+                evaluate.setScoreStrategy(new PAI18Strategy(source, configuration.lsa));
             } else {
                 logger.info("LSA is not specified. Falling back to the default strategy");
             }
@@ -677,27 +626,25 @@ public class Evaluate {
             evaluate.dumpFeatures(resolvedTrainingSet, files.train.unscaled);
             evaluate.dumpFeatures(resolvedTestSet, files.test.unscaled);
 
-            Scaler scaler;
+            Map<String, Scaler> scalers;
             if (files.scaler.exists()) {
-                scaler = gson.fromJson(new FileReader(files.scaler), Scaler.class);
+                scalers = gson.fromJson(new FileReader(files.scaler), files.scalerType);
             } else {
-                scaler = new Scaler();
-                fitDataset(scaler, resolvedTrainingSet);
+                scalers = fitDataset(resolvedTrainingSet);
                 //Saving scaler to disk
-                FileUtils.writeStringToFile(files.scaler, gson.toJson(scaler));
+                FileUtils.writeStringToFile(files.scaler, gson.toJson(scalers));
             }
 
             //Rescaling features
             logger.info("Rescaling features");
             watch.reset().start();
-            transformDataset(scaler, resolvedTrainingSet);
-            transformDataset(scaler, resolvedTestSet);
+            transformDataset(scalers, resolvedTrainingSet);
+            transformDataset(scalers, resolvedTestSet);
             logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
 
-            //Saving SVM and CSV features to disk
+            //Saving JSON features to disk
             evaluate.dumpFeatures(resolvedTrainingSet, files.train.scaled);
             evaluate.dumpFeatures(resolvedTestSet, files.test.scaled);
-            //evaluate.dumpContrastiveFeatures(resolvedTrainingSet, files.train.scaled);
 
             logger.info("Dumping full experimental setting to JSON");
             watch.reset().start();

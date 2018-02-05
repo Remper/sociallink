@@ -24,8 +24,9 @@ import java.util.*;
  * Default set of feature providers
  *
  * @author Yaroslav Nechaev (remper@me.com)
+ * @deprecated
  */
-public class DefaultScoringStrategy implements ScoringStrategy {
+public class DefaultScoringStrategy {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultScoringStrategy.class);
 
@@ -142,7 +143,6 @@ public class DefaultScoringStrategy implements ScoringStrategy {
         LOGGER.info("Done. Num unique features: " + numUniqueFeatures);
     }
 
-    @Override
     public void fillScore(FullyResolvedEntry entry) {
         init();
         int order = 0;
@@ -202,11 +202,10 @@ public class DefaultScoringStrategy implements ScoringStrategy {
                     index++;
                 }
             }
-            entry.features.add(features);
+            //entry.features.add(features);
         }
     }
 
-    @Override
     public double[] getScore(User user, DBpediaResource resource, int order) {
         throw new NotImplementedException();
     }

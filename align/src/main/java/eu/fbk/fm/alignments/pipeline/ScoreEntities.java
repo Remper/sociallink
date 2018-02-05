@@ -29,6 +29,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -53,14 +54,13 @@ public class ScoreEntities {
     private final Endpoint endpoint;
     private final ModelEndpoint modelEndpoint;
     private final ScoringStrategy strategy;
-    private final Scaler scaler;
+    private final Map<String, Scaler> scalers;
 
-
-    public ScoreEntities(DataSource source, Endpoint endpoint, Scaler scaler, ScoringStrategy strategy) throws URISyntaxException {
+    public ScoreEntities(DataSource source, Endpoint endpoint, Map<String, Scaler> scalers, ScoringStrategy strategy) throws URISyntaxException {
         this.source = source;
         this.endpoint = endpoint;
         this.modelEndpoint = new ModelEndpoint();
-        this.scaler = scaler;
+        this.scalers = scalers;
         this.strategy = strategy;
     }
 
@@ -117,8 +117,8 @@ public class ScoreEntities {
                         DBpediaResource resource = endpoint.getResourceById(alignment.getResourceId());
 
                         // Scoring and rescaling
-                        double[] features = strategy.getScore(user, resource);
-                        scaler.transform(features);
+                        Map<String, double[]> features = strategy.getScore(user, resource);
+                        scalers.forEach((key, value) -> value.transform(features.get(key)));
 
                         // Classifying
                         double result = modelEndpoint.predict(features)[1];
@@ -177,9 +177,9 @@ public class ScoreEntities {
             DataSource source = DBUtils.createPGDataSource(dbConnection, dbUser, dbPassword);
             Endpoint endpoint = new Endpoint(endpointUri);
             FileProvider provider = new FileProvider(workingDir);
-            Scaler scaler = new Gson().fromJson(new FileReader(provider.scaler), Scaler.class);
+            Map<String, Scaler> scalers = new Gson().fromJson(new FileReader(provider.scaler), provider.scalerType);
             ScoringStrategy strategy = new ISWC17Strategy(source, lsaPath);
-            ScoreEntities script = new ScoreEntities(source, endpoint, scaler, strategy);
+            ScoreEntities script = new ScoreEntities(source, endpoint, scalers, strategy);
 
             script.run();
         } catch (final Throwable ex) {

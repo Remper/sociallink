@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Objects;
 
 import static eu.fbk.fm.alignments.index.db.Tables.USER_SG;
 import static eu.fbk.fm.alignments.index.db.Tables.KB_INDEX;
@@ -36,19 +37,27 @@ public class EmbeddingsProvider implements FeatureVectorProvider, JsonObjectProc
 
     private final String embName;
     private final DataSource source;
-    private final DSLContext context;
     private final String host = "localhost";
     private final int port = 5241;
     private final CloseableHttpClient client = HttpClients.createDefault();
+
     private URI url;
+    private DSLContext context;
 
     private boolean enableWeights = true;
 
     public EmbeddingsProvider(DataSource source, String embName) throws URISyntaxException {
+        if (embName.length() == 0) {
+            throw new IllegalArgumentException("embName can't be empty");
+        }
+
         this.embName = embName;
         this.source = source;
-        this.context = DSL.using(source, SQLDialect.POSTGRES);
         init();
+    }
+
+    public String getSubspaceId() {
+        return "emb_" + this.embName + (enableWeights ? "_w" : "");
     }
 
     public EmbeddingsProvider turnOffWeights() {
@@ -57,6 +66,7 @@ public class EmbeddingsProvider implements FeatureVectorProvider, JsonObjectProc
     }
 
     private void init() throws URISyntaxException {
+        context = DSL.using(source, SQLDialect.POSTGRES);
         url = new URIBuilder().setScheme("http").setHost(host).setPort(port).setPath("/transform/"+embName).build();
     }
 
@@ -75,9 +85,12 @@ public class EmbeddingsProvider implements FeatureVectorProvider, JsonObjectProc
             }
             URI requestURI = requestBuilder.build();
 
-                    response = client.execute(new HttpGet(requestURI));
+            response = client.execute(new HttpGet(requestURI));
             if (response.getStatusLine().getStatusCode() >= 400) {
-                response.close();
+                throw new IOException(String.format(
+                        "Embeddings endpoint didn't understand the request. Code: %d",
+                        response.getStatusLine().getStatusCode()
+                ));
             }
             JsonObject object = gson.fromJson(new InputStreamReader(response.getEntity().getContent()), JsonObject.class);
             JsonArray results = get(object, JsonArray.class, "data", "embedding");
@@ -91,6 +104,8 @@ public class EmbeddingsProvider implements FeatureVectorProvider, JsonObjectProc
             e.printStackTrace();
             logger.error(e);
         }
+
+        //Checking if everything is properly closed
         if (response != null) {
             try {
                 response.close();
@@ -98,6 +113,8 @@ public class EmbeddingsProvider implements FeatureVectorProvider, JsonObjectProc
                 e.printStackTrace();
             }
         }
+
+        //Returning empty result in case of an error
         if (result == null) {
             return new double[0];
         }

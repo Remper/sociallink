@@ -10,4 +10,8 @@ import twitter4j.User;
  */
 public interface FeatureVectorProvider {
     double[] getFeatures(User user, DBpediaResource resource);
+
+    default String getSubspaceId() {
+        return this.getClass().getSimpleName();
+    }
 }

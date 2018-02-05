@@ -1,6 +1,11 @@
 package eu.fbk.fm.alignments;
 
+import com.google.gson.reflect.TypeToken;
+import eu.fbk.utils.math.Scaler;
+
 import java.io.File;
+import java.lang.reflect.Type;
+import java.util.Map;
 
 /**
  * Provides file objects for the common filename structure
@@ -8,8 +13,9 @@ import java.io.File;
  * @author Yaroslav Nechaev (remper@me.com)
  */
 public class FileProvider {
-    public File gold, resolved, scaler, model, evaluation, evaluationResult;
-    public FileSet test, train;
+    public final File gold, resolved, scaler, model, evaluation, evaluationResult;
+    public final FileSet test, train;
+    public final Type scalerType = new TypeToken<Map<String, Scaler>>(){}.getType();
 
     public FileProvider(String workdir) {
         File coreDirectory = new File(workdir);
@@ -39,14 +45,12 @@ public class FileProvider {
     }
 
     public static class FeatureSet {
-        public File SVMFeat, CSVFeat, index;
+        public File JSONFeat, index;
         public File CSVContrastive;
 
         private FeatureSet(File coreDirectory, String prefix) {
-            SVMFeat = new File(coreDirectory, prefix + ".feat.svm");
-            CSVFeat = new File(coreDirectory, prefix + ".feat.csv");
+            JSONFeat = new File(coreDirectory, prefix + ".feat.json");
             index = new File(coreDirectory, prefix + ".index.csv");
-            CSVContrastive = new File(coreDirectory, prefix + ".feat.contrastive.csv");
         }
     }
 }

@@ -12,9 +12,7 @@ import org.slf4j.LoggerFactory;
 import twitter4j.User;
 
 import javax.sql.DataSource;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -23,7 +21,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-public class ISWC17Strategy implements ScoringStrategy {
+public class ISWC17Strategy extends AbstractScoringStrategy implements FeatureVectorProvider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ISWC17Strategy.class);
     private final List<FeatureProvider> providers;
@@ -58,22 +56,14 @@ public class ISWC17Strategy implements ScoringStrategy {
     }
 
     @Override
-    public void fillScore(FullyResolvedEntry entry) {
-        int order = 0;
-        entry.features = new LinkedList<>();
-        for (User user : entry.candidates) {
-            if (user == null) {
-                LOGGER.error("Candidate is null for entity: " + entry.entry.resourceId);
-                continue;
-            }
-
-            entry.features.add(getScore(user, entry.resource, order));
-            order++;
-        }
+    public Map<String, double[]> getScore(User user, DBpediaResource resource, int order) {
+        return new HashMap<String, double[]>() {{
+            put(getSubspaceId(), getFeatures(user, resource));
+        }};
     }
 
     @Override
-    public double[] getScore(User user, DBpediaResource resource, int order) {
+    public double[] getFeatures(User user, DBpediaResource resource) {
         Objects.requireNonNull(user);
         Objects.requireNonNull(resource);
 
@@ -104,5 +94,10 @@ public class ISWC17Strategy implements ScoringStrategy {
             }
         }
         return features;
+    }
+
+    @Override
+    public String getSubspaceId() {
+        return "iswc17";
     }
 }
