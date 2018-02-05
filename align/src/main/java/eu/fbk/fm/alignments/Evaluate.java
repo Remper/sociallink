@@ -350,7 +350,7 @@ public class Evaluate {
                 }
 
                 User candidate = entry.candidates.get(order);
-                boolean isPositive = entry.entry.twitterId.toLowerCase().equals(candidate.getScreenName().toLowerCase());
+                boolean isPositive = entry.entry.twitterId.equalsIgnoreCase(candidate.getScreenName());
                 boolean isBaseline = order == 0;
                 if (isPositive) {
                     trueLabel = order;

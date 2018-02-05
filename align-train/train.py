@@ -46,7 +46,7 @@ batch, labels, _ = train_prod.produce(2).__next__()
 for idx, _ in enumerate(labels):
     print("  Features: ")
     for subspace in batch:
-        print("  ", subspace, batch[subspace][idx])
+        print("  ", subspace, batch[subspace][idx][:25], "(total: %d)" % len(batch[subspace][idx]))
     print("  Label: ", labels[idx])
     print("")
 

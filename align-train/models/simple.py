@@ -33,7 +33,7 @@ def f1(tp: int, fp: int, fn: int) -> float:
 class SimpleModel(Model):
     def __init__(self, name, inputs, classes):
         Model.__init__(self, name)
-        self._inputs = inputs
+        self._inputs = {"iswc17":inputs["iswc17"]}
         self._classes = classes
         self.batch_size(DEFAULT_BATCH_SIZE).units(DEFAULT_UNITS).layers(DEFAULT_LAYERS)\
             .max_epochs(DEFAULT_MAX_EPOCHS).learning_rate(DEFAULT_LEARNING_RATE)\
@@ -71,10 +71,12 @@ class SimpleModel(Model):
         graph = tf.Graph()
         with graph.as_default():
             # Graph begins with input. tf.placeholder tells TF that we will input those variables at each iteration
-            self._train_features = []
+            self._train_features = dict()
+            feature_list = []
             input_size = 0
             for id, length in self._inputs.items():
-                self._train_features.append(tf.placeholder(tf.float32, shape=[None, length], name="X-"+id))
+                self._train_features[id] = tf.placeholder(tf.float32, shape=[None, length], name="X-"+id)
+                feature_list.append(self._train_features[id])
                 input_size += length
             self._train_labels = tf.placeholder(tf.float32, shape=[None, self._classes], name="Y")
 
@@ -83,7 +85,7 @@ class SimpleModel(Model):
 
             # Multiple dense layers
             hidden_units = self._units
-            layer = tf.concat(self._train_features, 1, name="subspaces-concat")
+            layer = tf.concat(feature_list, 1, name="subspaces-concat")
             for idx in range(self._layers):
                 with tf.name_scope("dense_layer"):
                     weights = self.weight_variable([input_size, hidden_units])
@@ -99,7 +101,7 @@ class SimpleModel(Model):
 
 
             # Softmax and cross entropy in the end
-            losses = tf.nn.softmax_cross_entropy_with_logits(labels=self._train_labels, logits=layer)
+            losses = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self._train_labels, logits=layer)
             self._loss = tf.reduce_mean(losses)
 
             # L1 regularization
@@ -153,13 +155,17 @@ class SimpleModel(Model):
                         break
 
                     run_metadata = tf.RunMetadata()
+
+                    feed = dict()
+                    for id, subspace in self._train_features.items():
+                        feed[subspace] = features[id]
+                    feed.update({
+                        self._train_labels:   labels,
+                        self._dropout_rate:   DEFAULT_DROPOUT_RATE
+                    })
                     _, loss_value, global_step, summary_v = self._session.run(
                         [self._optimizer, self._loss, self._global_step, g_summary],
-                        feed_dict={
-                            self._train_features: features,
-                            self._train_labels:   labels,
-                            self._dropout_rate:   DEFAULT_DROPOUT_RATE
-                        },
+                        feed_dict=feed,
                         run_metadata=run_metadata)
 
                     # Writes loss_summary to log. Each call represents a single point on the plot
@@ -184,12 +190,15 @@ class SimpleModel(Model):
                             fp = 0
                             fn = 0
                             for test_X, true_Y, _ in eval_prod.produce(self._batch_size):
+                                feed = dict()
+                                for id, subspace in self._train_features.items():
+                                    feed[subspace] = test_X[id]
+                                feed.update({
+                                    self._dropout_rate: 1.0
+                                })
                                 pred_Y = self._results.eval(
                                     session=self._session,
-                                    feed_dict={
-                                        self._train_features: test_X,
-                                        self._dropout_rate: 1.0
-                                    })
+                                    feed_dict=feed)
                                 try:
                                     _, cur_fp, cur_fn, cur_tp = confusion_matrix(np.argmax(true_Y, axis=1), pred_Y).ravel()
                                     tp += cur_tp
@@ -205,8 +214,8 @@ class SimpleModel(Model):
                                 precision(tp, fp) * 100, recall(tp, fn) * 100, f1(tp, fp, fn) * 100
                             )
 
-                        print("[+] step: %d, %.2f steps/s, tol: %2d, epoch: %.2f, avg.loss: %.5f, min.loss: %.5f%s"
-                              % (global_step, float(check_interval) / (time.time() - timestamp),
+                        print("[+] step: %4.1f, %6.2f steps/s, tol: %2d, epoch: %5.2f, avg.loss: %.5f, min.loss: %.5f%s"
+                              % (float(global_step) / 1000, float(check_interval) / (time.time() - timestamp),
                                  tolerance, cur_epoch+(pointer/train_prod.set_size), average_loss, min_loss, appendix))
                         timestamp = time.time()
                         average_loss = 0
@@ -219,13 +228,16 @@ class SimpleModel(Model):
     def predict(self, features):
         self._init()
         self._check_if_ready()
-        features = np.array(features).reshape(-1, self._inputs)
+
+        feed = dict()
+        for id, subspace in self._train_features.items():
+            feed[subspace] = features[id].reshape(-1, self._inputs[id])
+        feed.update({
+            self._dropout_rate: 1.0
+        })
         return self._prediction.eval(
             session=self._session,
-            feed_dict={
-                self._train_features: features,
-                self._dropout_rate: 1.0
-            })
+            feed_dict=feed)
 
     @staticmethod
     def restore_definition(filename):

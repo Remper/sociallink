@@ -44,10 +44,6 @@ public class ModelEndpoint {
     }
 
     public double[] predict(Map<String, double[]> features) {
-        return new double[0];
-    }
-
-    public double[] predict(double[] features) {
         Gson gson = new GsonBuilder().create();
         double[] result = null;
         CloseableHttpResponse response = null;

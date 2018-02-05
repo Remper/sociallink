@@ -80,8 +80,10 @@ class BatchProducer:
         pass
 
     def _print_stats(self):
-        print("Feature space: %s. Classes: %d. Training set size: %d"
-              % (", ".join(["%s(%d)" % (id, length) for id, length in self.feature_space.items()]), len(self.labels), self.set_size))
+        print("Feature space: %s. Classes: %d. Training set size: %d (%s)"
+              % (", ".join(["%s(%d)" % (id, length) for id, length in self.feature_space.items()]),
+                 len(self.labels), self.set_size,
+                 ", ".join(["%d: %d" % (id, count) for id, count in self.labels])))
 
     def _train_set_reader(self):
         raise NotImplementedError("You should implement a reader function for the batch producer")

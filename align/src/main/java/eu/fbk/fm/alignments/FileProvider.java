@@ -5,6 +5,8 @@ import eu.fbk.utils.math.Scaler;
 
 import java.io.File;
 import java.lang.reflect.Type;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 /**
@@ -33,7 +35,8 @@ public class FileProvider {
         test = new FileSet(coreDirectory, "test");
         train = new FileSet(coreDirectory, "train");
         evaluation = new File(coreDirectory, "evaluation.json");
-        evaluationResult = new File(coreDirectory, "evaluation.txt");
+        String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM-dd-HH-mm"));
+        evaluationResult = new File(coreDirectory, "evaluation-"+date+".txt");
     }
 
     public static class FileSet {

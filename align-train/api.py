@@ -15,7 +15,9 @@ def predict():
         features = request.args['features']
         if features is None:
             raise ValueError('provide a list of features')
-        features = np.array(json.loads(features))
+        features = json.loads(features)
+        for subspace in features:
+            features[subspace] = np.array(features[subspace])
         result = model.predict(features=features)
         return json.jsonify(result.reshape(-1).tolist())
     except Exception as e:
