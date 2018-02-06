@@ -357,8 +357,12 @@ public class Evaluate {
                 }
 
                 if (sampleNum <= 200) {
-                    logger.debug(String.format("%f\t%.2f\t%.2f\t%.2f\t%d\t%d\t\t%s\t\t\t%s",
-                            label, score, endpointScores[0], endpointScores[1], isPositive ? 1 : 0, isBaseline ? 1 : 0, entry.entry.twitterId, candidate.getScreenName())
+                    logger.debug(String.format(
+                        "%f\t%.2f\t%.2f\t%.2f\t%d\t%d\t\t%s\t\t\t%s",
+                        label, score,
+                        endpointScores[0], endpointScores[1],
+                        isPositive ? 1 : 0, isBaseline ? 1 : 0,
+                        entry.entry.twitterId, candidate.getScreenName())
                     );
                 }
                 order++;

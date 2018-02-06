@@ -33,7 +33,8 @@ def f1(tp: int, fp: int, fn: int) -> float:
 class SimpleModel(Model):
     def __init__(self, name, inputs, classes):
         Model.__init__(self, name)
-        self._inputs = {"iswc17":inputs["iswc17"]}
+        # self._inputs = {"iswc17":inputs["iswc17"]}
+        self._inputs = inputs
         self._classes = classes
         self.batch_size(DEFAULT_BATCH_SIZE).units(DEFAULT_UNITS).layers(DEFAULT_LAYERS)\
             .max_epochs(DEFAULT_MAX_EPOCHS).learning_rate(DEFAULT_LEARNING_RATE)\
@@ -85,7 +86,7 @@ class SimpleModel(Model):
 
             # Multiple dense layers
             hidden_units = self._units
-            layer = tf.concat(feature_list, 1, name="subspaces-concat")
+            layer = tf.concat(feature_list, 1, name="subspace-stitching")
             for idx in range(self._layers):
                 with tf.name_scope("dense_layer"):
                     weights = self.weight_variable([input_size, hidden_units])
@@ -214,7 +215,7 @@ class SimpleModel(Model):
                                 precision(tp, fp) * 100, recall(tp, fn) * 100, f1(tp, fp, fn) * 100
                             )
 
-                        print("[+] step: %4.1f, %6.2f steps/s, tol: %2d, epoch: %5.2f, avg.loss: %.5f, min.loss: %.5f%s"
+                        print("[+] step: %4.1fk, %6.2f steps/s, tol: %2d, epoch: %5.2f, avg.loss: %.5f, min.loss: %.5f%s"
                               % (float(global_step) / 1000, float(check_interval) / (time.time() - timestamp),
                                  tolerance, cur_epoch+(pointer/train_prod.set_size), average_loss, min_loss, appendix))
                         timestamp = time.time()
