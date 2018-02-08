@@ -4,7 +4,8 @@ from math import ceil, sqrt
 import matplotlib.pyplot as plt
 import argparse
 import re
-
+from os import listdir
+from os import path
 
 class Sample:
     def __init__(self, line):
@@ -26,6 +27,7 @@ def main(input: list, output: str):
         cur_section = None
         cur_subsection = None
         with open(file, 'r') as reader:
+            print("Parsing file %s" % file)
             for line in reader:
                 line = line.rstrip()
                 if ':' in line:
@@ -81,7 +83,10 @@ def main(input: list, output: str):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Plots precision/recall curves')
-    parser.add_argument('--input', metavar='#', nargs='+', help='files from evaluation pipelines')
-    parser.add_argument('--output', metavar='#', help='an output plot file')
+    parser.add_argument('--input', metavar='#', help='files from evaluation pipelines')
+    parser.add_argument('--output', default=None, metavar='#', help='an output plot file')
     args = parser.parse_args()
-    main(args.input, args.output)
+
+    if args.output is None:
+        args.output = path.join(args.input, 'output.pdf')
+    main([path.join(args.input, file) for file in listdir(args.input) if file.endswith(".txt")], args.output)

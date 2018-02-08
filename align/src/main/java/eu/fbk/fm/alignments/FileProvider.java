@@ -51,10 +51,11 @@ public class FileProvider {
     }
 
     public static class FeatureSet {
-        public File JSONFeat, index;
+        public File JSONFeat, index, JSONJointFeat;
 
         private FeatureSet(File coreDirectory, String prefix) {
             JSONFeat = new File(coreDirectory, prefix + ".feat.json");
+            JSONJointFeat = new File(coreDirectory, prefix + ".joint.feat.json");
             index = new File(coreDirectory, prefix + ".index.csv");
         }
     }

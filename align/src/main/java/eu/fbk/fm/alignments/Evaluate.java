@@ -398,14 +398,13 @@ public class Evaluate {
         return result.toString();
     }
 
-    public static void evaluationPipeline(Evaluate evaluate, FileProvider files, List<FullyResolvedEntry> testSet) throws Exception {
+    public static void evaluationPipeline(Evaluate evaluate, FileProvider files, List<FullyResolvedEntry> testSet, ModelEndpoint modelEndpoint) throws Exception {
         logger.info("Starting evaluation");
         if (testSet.size() == 0) {
             logger.info("Test set is empty, skipping evaluation");
             return;
         }
 
-        ModelEndpoint modelEndpoint = new ModelEndpoint();
         int i = 0;
         while (testSet.get(i).features.size() == 0) {
             i++;
@@ -499,6 +498,8 @@ public class Evaluate {
             return;
         }
 
+        logger.info(String.format("Options %s", gson.toJson(configuration)));
+
         QueryAssemblyStrategy qaStrategy = new AllNamesStrategy();//QueryAssemblyStrategyFactory.get(configuration.strategy);
 
         Endpoint endpoint = new Endpoint(configuration.endpoint);
@@ -531,7 +532,7 @@ public class Evaluate {
             FullyResolvedEntry[] testSetRaw = gson.fromJson(new FileReader(files.evaluation), FullyResolvedEntry[].class);
             logger.info("Deserialised " + testSetRaw.length + " entities");
             Collections.addAll(testSet, testSetRaw);
-            evaluationPipeline(evaluate, files, testSet);
+            evaluationPipeline(evaluate, files, testSet, new ModelEndpoint("localhost", configuration.modelPort));
             return;
         }
 
@@ -667,8 +668,8 @@ public class Evaluate {
             //Rescaling features
             logger.info("Rescaling features");
             watch.reset().start();
-            transformDataset(scalers, resolvedTrainingSet, new String[]{"iswc17"});
-            transformDataset(scalers, resolvedTestSet, new String[]{"iswc17"});
+            transformDataset(scalers, resolvedTrainingSet);
+            transformDataset(scalers, resolvedTestSet);
             logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
 
             //Saving JSON features to disk
@@ -681,7 +682,7 @@ public class Evaluate {
             gson.toJson(resolvedTestSet.toArray(new FullyResolvedEntry[0]), resolvedWriter);
             IOUtils.closeQuietly(resolvedWriter);
             logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
-            evaluationPipeline(evaluate, files, resolvedTestSet);
+            evaluationPipeline(evaluate, files, resolvedTestSet, new ModelEndpoint("localhost", configuration.modelPort));
         } catch (Exception e) {
             logger.error("Error while processing pipeline", e);
             e.printStackTrace();
@@ -697,6 +698,7 @@ public class Evaluate {
         String credentials;
         String strategy;
         String lsa = null;
+        int modelPort = 5000;
     }
 
     public static Configuration loadConfiguration(String[] args) {
@@ -733,6 +735,10 @@ public class Evaluate {
                 Option.builder().desc("Use LSA")
                         .hasArg().argName("DIRECTORY").longOpt("lsa-path").build()
         );
+        options.addOption(
+                Option.builder().desc("Port for the model endpoint")
+                        .hasArg().argName("PORT").longOpt("model-port").build()
+        );
 
         options.addOption(Option.builder().desc("trace mode").longOpt("trace").build());
         options.addOption(Option.builder().desc("debug mode").longOpt("debug").build());
@@ -754,6 +760,9 @@ public class Evaluate {
             configuration.credentials = line.getOptionValue("credentials");
             configuration.strategy = line.getOptionValue("strategy");
             configuration.lsa = line.getOptionValue("lsa-path");
+            if (line.hasOption("model-port")) {
+                configuration.modelPort = Integer.valueOf(line.getOptionValue("model-port"));
+            }
 
             return configuration;
         } catch (ParseException exp) {

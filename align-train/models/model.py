@@ -1,11 +1,11 @@
 import json
 
+from os import path
 from sklearn.utils import shuffle
 
 import tensorflow as tf
 import time
 import numpy as np
-
 
 class Model:
     def __init__(self, name):
@@ -46,7 +46,7 @@ class Model:
         self._check_if_ready()
         print("Saving model")
         timestamp = time.time()
-        self._saver.save(sess=self._session, save_path=filename+'.cpkt')
+        self._saver.save(sess=self._session, save_path=path.join(filename,'model.cpkt'))
         print("Done in %.2fs" % (time.time() - timestamp))
 
     @staticmethod

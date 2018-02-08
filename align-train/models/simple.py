@@ -2,6 +2,7 @@ import time
 import tensorflow as tf
 import numpy as np
 from flask import json
+from os import path
 from sklearn.metrics import confusion_matrix
 
 from models.model import Model, BatchProducer
@@ -31,10 +32,15 @@ def f1(tp: int, fp: int, fn: int) -> float:
 
 
 class SimpleModel(Model):
-    def __init__(self, name, inputs, classes):
+    def __init__(self, name, inputs, classes, use_features=None):
         Model.__init__(self, name)
-        # self._inputs = {"iswc17":inputs["iswc17"]}
-        self._inputs = inputs
+        if use_features is not None:
+            features = dict()
+            for subspace in use_features:
+                features[subspace] = inputs[subspace]
+            self._inputs = features
+        else:
+            self._inputs = inputs
         self._classes = classes
         self.batch_size(DEFAULT_BATCH_SIZE).units(DEFAULT_UNITS).layers(DEFAULT_LAYERS)\
             .max_epochs(DEFAULT_MAX_EPOCHS).learning_rate(DEFAULT_LEARNING_RATE)\
@@ -68,6 +74,14 @@ class SimpleModel(Model):
         self._learning_rate = learning_rate
         return self
 
+    def dense(self, input, input_size, out_size, dropout):
+        with tf.name_scope("dense_layer"):
+            weights = self.weight_variable([input_size, out_size])
+            biases = self.bias_variable([out_size])
+            hidden = tf.nn.relu(tf.matmul(input, weights) + biases)
+            out = tf.nn.dropout(hidden, dropout)
+        return out
+
     def _definition(self):
         graph = tf.Graph()
         with graph.as_default():
@@ -88,12 +102,8 @@ class SimpleModel(Model):
             hidden_units = self._units
             layer = tf.concat(feature_list, 1, name="subspace-stitching")
             for idx in range(self._layers):
-                with tf.name_scope("dense_layer"):
-                    weights = self.weight_variable([input_size, hidden_units])
-                    biases = self.bias_variable([hidden_units])
-                    hidden = tf.nn.relu(tf.matmul(layer, weights) + biases)
-                    layer = tf.nn.dropout(hidden, self._dropout_rate)
-                    input_size = hidden_units
+                layer = self.dense(layer, input_size, hidden_units, self._dropout_rate)
+                input_size = hidden_units
 
             # Linear layer before softmax
             weights = self.weight_variable([input_size, self._classes])
@@ -241,8 +251,7 @@ class SimpleModel(Model):
             feed_dict=feed)
 
     @staticmethod
-    def restore_definition(filename):
-        params = json.load(open(filename + '.json', 'r'))
+    def restore_definition(params: dict) -> Model:
         model = SimpleModel(params["name"], params["inputs"], params["classes"])
         return model
 
@@ -252,4 +261,4 @@ class SimpleModel(Model):
             'name': self._name,
             'inputs': self._inputs,
             'classes': self._classes
-        }, open(filename+'.json', 'w'))
+        }, open(path.join(filename,'model.json'), 'w'))

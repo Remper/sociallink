@@ -1,8 +1,9 @@
 import argparse
 import numpy as np
 
-from flask import Flask, request, json, g
-from models.simple import SimpleModel
+from flask import Flask, request, json
+
+from models import restore_definition
 
 app = Flask(__name__)
 model = None
@@ -27,9 +28,11 @@ def predict():
             'message': e.message
         })
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Simple API that returns predictions from a model')
     parser.add_argument('--input', default='model', help='Input model', metavar='#')
+    parser.add_argument('--port', default='5000', help='Port to listen', metavar='#')
     args = parser.parse_args()
 
     print("Initialized with settings:")
@@ -37,9 +40,8 @@ if __name__ == "__main__":
 
     print("Loading model")
 
-    SelectedModel = SimpleModel
-    model = SelectedModel.restore_definition(args.input)
+    model = restore_definition(args.input)
     model.restore_from_file(args.input)
 
     print("Starting webserver")
-    app.run()
+    app.run(port=int(args.port))

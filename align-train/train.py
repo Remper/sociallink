@@ -2,7 +2,9 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
+from os import path
 
+from models import get_custom_models
 from models.simple import SimpleModel
 from models.model import JSONBatchProducer, PreloadedJSONBatchProducer
 
@@ -13,7 +15,7 @@ from models.model import JSONBatchProducer, PreloadedJSONBatchProducer
 parser = argparse.ArgumentParser(description='Basic deep neural network that works with SVM input')
 parser.add_argument('--train', default='', required=True, help='Location of the training set', metavar='#')
 parser.add_argument('--eval', default=None, help='Location of the evaluation set', metavar='#')
-parser.add_argument('--output', default='', required=True, help='Save model to', metavar='#')
+parser.add_argument('--output_dir', default='', required=True, help='A directory to save the model to', metavar='#')
 parser.add_argument('--max_epochs', default=100, help='Maximum amount of epochs', metavar='#')
 parser.add_argument('--layers', default=5, help='Amount of hidden layers', metavar='#')
 parser.add_argument('--units', default=256, help='Amount of hidden units per layer', metavar='#')
@@ -50,10 +52,30 @@ for idx, _ in enumerate(labels):
     print("  Label: ", labels[idx])
     print("")
 
-model = SimpleModel("Model", train_prod.feature_space, len(train_prod.labels))
-model.units(args.units).layers(args.layers).batch_size(args.batch_size)\
-    .max_epochs(args.max_epochs).tolerance(args.tolerance).l1(args.l1)
-model.train(train_prod=train_prod, eval_prod=eval_prod)
-model.save_to_file(args.output)
+
+feature_sets = [train_prod.feature_space.keys()]
+if args.main_feature is not None:
+    feature_sets.append([args.main_feature])
+    for subspace in train_prod.feature_space:
+        if subspace == args.main_feature:
+            continue
+        feature_sets.append([args.main_feature, subspace])
+
+models = get_custom_models()
+for model_name in models:
+    print("Starting training special model: %s" % model_name)
+    model = models[model_name](model_name, train_prod.feature_space, len(train_prod.labels))
+    model.units(args.units).layers(args.layers).batch_size(args.batch_size)\
+        .max_epochs(args.max_epochs).tolerance(args.tolerance).l1(args.l1)
+    model.train(train_prod=train_prod, eval_prod=eval_prod)
+    model.save_to_file(path.join(args.output_dir, model_name))
+
+for feature_set in feature_sets:
+    print("Starting training model with the following feature set:", ", ".join(feature_set))
+    model = SimpleModel("SimpleModel", train_prod.feature_space, len(train_prod.labels), use_features=feature_set)
+    model.units(args.units).layers(args.layers).batch_size(args.batch_size)\
+        .max_epochs(args.max_epochs).tolerance(args.tolerance).l1(args.l1)
+    model.train(train_prod=train_prod, eval_prod=eval_prod)
+    model.save_to_file(path.join(args.output_dir, "_".join(feature_set)))
 
 print("Done")
