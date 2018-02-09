@@ -69,7 +69,7 @@ def main(input: list, output: str):
             sp.set_ylim(bottom=min_prec, top=1)
 
             for file in files:
-                label = re.match('(.+)\.[a-z]+$', file).group(1)
+                label = re.match('(.+/)?([a-zA-Z0-9_-]+)\.[a-z]+$', file).group(2)
                 x = []
                 y = []
                 source = sorted(files[file][section][subsection], key=lambda sample : sample.r)

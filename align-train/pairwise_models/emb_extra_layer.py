@@ -6,8 +6,8 @@ from sklearn.metrics import confusion_matrix
 
 from tensorflow.contrib import slim
 
-from models.simple import SimpleModel
-from models.model import Model
+from pairwise_models.simple import SimpleModel
+from pairwise_models.model import Model
 
 DEFAULT_LAYERS = 5
 DEFAULT_UNITS = 256
@@ -68,7 +68,7 @@ class EmbExtraLayer(SimpleModel):
                 emb_feat = tf.reduce_sum(tf.multiply(
                     tf.nn.l2_normalize(kb_emb, axis=0),
                     tf.nn.l2_normalize(sg_emb, axis=0)
-                ), axis=1, keep_dims=True)
+                ), axis=1, keepdims=True)
             feature_list.append(emb_feat)
             input_size += 1
 

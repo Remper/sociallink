@@ -192,6 +192,49 @@ public class Evaluate {
         });
     }
 
+    public class PairSample {
+        public final Map<String, double[]> features;
+        public final int label;
+
+        public PairSample(int label, Map<String, double[]> features) {
+            this.label = label;
+            this.features = features;
+        }
+    }
+
+    public class JointSample {
+        public int joint_label = 0;
+        public PairSample[] samples;
+    }
+
+    public void dumpJointFeatures(List<FullyResolvedEntry> entries, FileProvider.FeatureSet output) throws IOException {
+        Gson gson = new Gson();
+        FileWriter jsonOutput = new FileWriter(output.JSONJointFeat);
+
+        boolean first = true;
+        for (FullyResolvedEntry entry : entries) {
+            int order = 0;
+            JointSample curSample = new JointSample();
+            curSample.samples = new PairSample[entry.candidates.size()];
+            for (User user : entry.candidates) {
+                if (!first) {
+                    jsonOutput.write('\n');
+                }
+                first = false;
+
+                int label = user.getScreenName().equalsIgnoreCase(entry.entry.twitterId) ? 1 : 0;
+                Map<String, double[]> features = entry.features.get(order);
+                curSample.samples[order] = new PairSample(label, features);
+                if (label == 1) {
+                    curSample.joint_label = label;
+                }
+                order++;
+            }
+            jsonOutput.write(gson.toJson(curSample));
+        }
+        IOUtils.closeQuietly(jsonOutput);
+    }
+
     public void dumpFeatures(List<FullyResolvedEntry> entries, FileProvider.FeatureSet output) throws IOException {
         Gson gson = new Gson();
         FileWriter jsonOutput = new FileWriter(output.JSONFeat);
@@ -653,8 +696,8 @@ public class Evaluate {
             logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
 
             //Saving unscaled JSON features to disk
-            evaluate.dumpFeatures(resolvedTrainingSet, files.train.unscaled);
-            evaluate.dumpFeatures(resolvedTestSet, files.test.unscaled);
+            //evaluate.dumpFeatures(resolvedTrainingSet, files.train.unscaled);
+            //evaluate.dumpFeatures(resolvedTestSet, files.test.unscaled);
 
             Map<String, Scaler> scalers;
             if (files.scaler.exists()) {
@@ -673,8 +716,13 @@ public class Evaluate {
             logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
 
             //Saving JSON features to disk
+            logger.info("Dumping features");
+            watch.reset().start();
             evaluate.dumpFeatures(resolvedTrainingSet, files.train.scaled);
             evaluate.dumpFeatures(resolvedTestSet, files.test.scaled);
+            evaluate.dumpJointFeatures(resolvedTrainingSet, files.test.scaled);
+            evaluate.dumpJointFeatures(resolvedTestSet, files.test.scaled);
+            logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
 
             logger.info("Dumping full experimental setting to JSON");
             watch.reset().start();

@@ -5,7 +5,7 @@ from flask import json
 from os import path
 from sklearn.metrics import confusion_matrix
 
-from models.model import Model, BatchProducer
+from pairwise_models.model import Model, BatchProducer
 from tensorflow.contrib import slim
 
 DEFAULT_LAYERS = 5

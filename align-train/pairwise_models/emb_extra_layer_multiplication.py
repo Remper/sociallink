@@ -4,10 +4,10 @@ import numpy as np
 from flask import json
 from sklearn.metrics import confusion_matrix
 
-from models.model import Model, BatchProducer
+from pairwise_models.model import Model, BatchProducer
 from tensorflow.contrib import slim
 
-from models.simple import SimpleModel
+from pairwise_models.simple import SimpleModel
 
 DEFAULT_LAYERS = 5
 DEFAULT_UNITS = 256
@@ -42,13 +42,11 @@ class EmbExtraLayerMul(SimpleModel):
                         raise Exception("Two embeddings for knowledge base detected")
                     kb_emb = self._train_features[id]
                     emb_size = length
-                    continue
-                if id.startswith("emb_sg"):
+                elif id.startswith("emb_sg"):
                     if sg_emb is not None:
                         raise Exception("Two embeddings for social graph detected")
                     sg_emb = self._train_features[id]
                     emb_size = length
-                    continue
 
                 feature_list.append(self._train_features[id])
                 input_size += length
@@ -64,11 +62,7 @@ class EmbExtraLayerMul(SimpleModel):
                 kb_emb = self.dense(kb_emb, emb_size, emb_size, self._dropout_rate)
             with tf.name_scope("emb_dense_transform"):
                 sg_emb = self.dense(sg_emb, emb_size, emb_size, self._dropout_rate)
-            with tf.name_scope("emb_cosine_similarity"):
-                emb_feat = tf.multiply(
-                    tf.nn.l2_normalize(kb_emb, axis=0),
-                    tf.nn.l2_normalize(sg_emb, axis=0)
-                )
+            emb_feat = tf.multiply(kb_emb, sg_emb, name="emb_combination")
             feature_list.append(emb_feat)
             input_size += emb_size
 

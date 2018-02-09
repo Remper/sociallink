@@ -3,7 +3,7 @@ import numpy as np
 
 from flask import Flask, request, json
 
-from models import restore_definition
+from pairwise_models import restore_definition
 
 app = Flask(__name__)
 model = None

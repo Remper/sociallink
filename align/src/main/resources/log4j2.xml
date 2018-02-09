@@ -7,7 +7,7 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Root level="info">
+        <Root level="debug">
             <AppenderRef ref="stdout" />
         </Root>
         <Logger name="edu.stanford" level="warn" />
@@ -15,5 +15,6 @@
         <Logger name="com.lambdaworks.redis" level="info" />
         <Logger name="io.netty" level="info" />
         <Logger name="org.jooq" level="info" />
+        <Logger name="com.zaxxer.hikari" level="info" />
     </Loggers>
 </Configuration>

@@ -1,9 +1,9 @@
 import json
 
-from models.model import Model
-from models.simple import SimpleModel
-from models.emb_extra_layer import EmbExtraLayer
-from models.emb_extra_layer_multiplication import EmbExtraLayerMul
+from pairwise_models.model import Model
+from pairwise_models.simple import SimpleModel
+from pairwise_models.emb_extra_layer import EmbExtraLayer
+from pairwise_models.emb_extra_layer_multiplication import EmbExtraLayerMul
 
 
 def get_custom_models() -> dict:
