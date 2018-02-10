@@ -23,6 +23,8 @@ parser.add_argument('--batch_size', default=64, help='Amount of samples in a bat
 parser.add_argument('--preload', default=False, action='store_true', help='Preload datasets into memory')
 parser.add_argument('--tolerance', default=False, action='store_true', help='Use tolerance margin to determine the end of training')
 parser.add_argument('--l1', default=False, action='store_true', help='Use l1 regularization')
+parser.add_argument('--l2', default=False, action='store_true', help='Use l2 regularization')
+parser.add_argument('--no_randomisation', default=False, action='store_true', help='Disable randomisation')
 parser.add_argument('--main_feature', default=None, help='Train pairwise_models for main feature set, main+each and all', metavar='#')
 args = parser.parse_args()
 
@@ -42,6 +44,9 @@ train_prod = Producer(args.train)
 eval_prod = None
 if args.eval:
     eval_prod = Producer(args.eval)
+    eval_prod.random_off()
+if args.no_randomisation:
+    train_prod.random_off()
 
 print("Test batch:")
 batch, labels, _ = train_prod.produce(2).__next__()
@@ -66,7 +71,7 @@ for model_name in models:
     print("Starting training special model: %s" % model_name)
     model = models[model_name](model_name, train_prod.feature_space, len(train_prod.labels))
     model.units(args.units).layers(args.layers).batch_size(args.batch_size)\
-        .max_epochs(args.max_epochs).tolerance(args.tolerance).l1(args.l1)
+        .max_epochs(args.max_epochs).tolerance(args.tolerance).l1(args.l1).l2(args.l2)
     model.train(train_prod=train_prod, eval_prod=eval_prod)
     model.save_to_file(path.join(args.output_dir, model_name))
 
@@ -74,7 +79,7 @@ for feature_set in feature_sets:
     print("Starting training model with the following feature set:", ", ".join(feature_set))
     model = SimpleModel("SimpleModel", train_prod.feature_space, len(train_prod.labels), use_features=feature_set)
     model.units(args.units).layers(args.layers).batch_size(args.batch_size)\
-        .max_epochs(args.max_epochs).tolerance(args.tolerance).l1(args.l1)
+        .max_epochs(args.max_epochs).tolerance(args.tolerance).l1(args.l1).l2(args.l2)
     model.train(train_prod=train_prod, eval_prod=eval_prod)
     model.save_to_file(path.join(args.output_dir, "_".join(feature_set)))
 

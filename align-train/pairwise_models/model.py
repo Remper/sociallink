@@ -7,6 +7,7 @@ import tensorflow as tf
 import time
 import numpy as np
 
+
 class Model:
     def __init__(self, name):
         self._name = name
@@ -66,12 +67,17 @@ class BatchProducer:
         self.labels = {}
         self.set_size = 0
         self.filename = filename
+        self.randomisation = True
 
         print("Figuring out dataset metadata")
         timestamp = time.time()
         self.feature_space, self.labels, self.set_size = self._get_dataset_metadata()
         print("Done in %.2fs" % (time.time() - timestamp))
         self._print_stats()
+
+    def random_off(self):
+        print("Disabling randomisation for BatchProducer")
+        self.randomisation = False
 
     def produce(self, batch_size: int) -> (np.ndarray, np.ndarray, int):
         """
@@ -156,7 +162,7 @@ class JSONBatchProducer(BatchProducer):
                 bc[subspace] = []
             bc[subspace].append(vector[subspace])
 
-    def _train_set_reader(self) -> (np.ndarray, dict):
+    def _train_set_reader(self) -> (int, dict):
         """
             Reads training set one sample at the time
         """
@@ -206,7 +212,11 @@ class PreloadedJSONBatchProducer(JSONBatchProducer):
             Produces full batch ready to be input in NN
         """
 
-        X, Y = self.resample()
+        if self.randomisation:
+            X, Y = self.resample()
+        else:
+            X = self.X
+            Y = self.Y
         size = Y.shape[0]
 
         pointer = 0

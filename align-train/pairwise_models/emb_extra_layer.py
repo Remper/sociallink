@@ -1,8 +1,4 @@
-import time
 import tensorflow as tf
-import numpy as np
-from flask import json
-from sklearn.metrics import confusion_matrix
 
 from tensorflow.contrib import slim
 
@@ -57,7 +53,7 @@ class EmbExtraLayer(SimpleModel):
                 raise Exception("Both KB and SG embeddings required for this model")
 
             # Dropout rate
-            self._dropout_rate = tf.placeholder(tf.float32)
+            self._dropout_rate = tf.placeholder(tf.float32, name="dropout_rate")
 
             # Embeddings multiplication
             with tf.name_scope("emb_dense_transform"):
@@ -80,23 +76,17 @@ class EmbExtraLayer(SimpleModel):
                 input_size = hidden_units
 
             # Linear layer before softmax
-            weights = self.weight_variable([input_size, self._classes])
-            biases = self.bias_variable([self._classes])
-            layer = tf.matmul(layer, weights) + biases
-
+            with tf.name_scope("dense_output"):
+                weights = self.weight_variable([input_size, self._classes])
+                biases = self.bias_variable([self._classes])
+                layer = tf.matmul(layer, weights) + biases
 
             # Softmax and cross entropy in the end
             losses = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self._train_labels, logits=layer)
             self._loss = tf.reduce_mean(losses)
 
-            # L1 regularization
-            if self._l1:
-                l1_regularizer = tf.contrib.layers.l1_regularizer(
-                    scale=0.0005 / (self._units * self._layers), scope=None
-                )
-                weights = tf.trainable_variables()
-                l1_reg = tf.contrib.layers.apply_regularization(l1_regularizer, weights)
-                self._loss += l1_reg
+            # L1&L2 regularization
+            self._add_regularization()
 
             self._prediction = tf.nn.softmax(layer)
             tf.summary.scalar("loss", self._loss)
@@ -113,4 +103,5 @@ class EmbExtraLayer(SimpleModel):
     @staticmethod
     def restore_definition(params: dict) -> Model:
         model = EmbExtraLayer(params["name"], params["inputs"], params["classes"])
+        model.layers(params["layers"]).units(params["units"])
         return model

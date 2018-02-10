@@ -14,7 +14,8 @@ DEFAULT_BATCH_SIZE = 256
 DEFAULT_MAX_EPOCHS = 100
 
 DEFAULT_LEARNING_RATE = 1e-4
-DEFAULT_DROPOUT_RATE = 0.8
+DEFAULT_DROPOUT_RATE = 0.6
+DEFAULT_REGULARIZATION_WEIGHT = 0.005
 
 
 def precision(tp: int, fp: int) -> float:
@@ -44,7 +45,7 @@ class SimpleModel(Model):
         self._classes = classes
         self.batch_size(DEFAULT_BATCH_SIZE).units(DEFAULT_UNITS).layers(DEFAULT_LAYERS)\
             .max_epochs(DEFAULT_MAX_EPOCHS).learning_rate(DEFAULT_LEARNING_RATE)\
-            .l1(False).tolerance(False)
+            .l1(False).l2(False).tolerance(False)
 
     def batch_size(self, batch_size):
         self._batch_size = batch_size
@@ -64,6 +65,10 @@ class SimpleModel(Model):
 
     def l1(self, l1: bool):
         self._l1 = l1
+        return self
+
+    def l2(self, l2: bool):
+        self._l2 = l2
         return self
 
     def tolerance(self, tolerance: bool):
@@ -96,7 +101,7 @@ class SimpleModel(Model):
             self._train_labels = tf.placeholder(tf.float32, shape=[None, self._classes], name="Y")
 
             # Dropout rate
-            self._dropout_rate = tf.placeholder(tf.float32)
+            self._dropout_rate = tf.placeholder(tf.float32, name="dropout_rate")
 
             # Multiple dense layers
             hidden_units = self._units
@@ -106,23 +111,17 @@ class SimpleModel(Model):
                 input_size = hidden_units
 
             # Linear layer before softmax
-            weights = self.weight_variable([input_size, self._classes])
-            biases = self.bias_variable([self._classes])
-            layer = tf.matmul(layer, weights) + biases
-
+            with tf.name_scope("dense_output"):
+                weights = self.weight_variable([input_size, self._classes])
+                biases = self.bias_variable([self._classes])
+                layer = tf.matmul(layer, weights) + biases
 
             # Softmax and cross entropy in the end
             losses = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self._train_labels, logits=layer)
             self._loss = tf.reduce_mean(losses)
 
-            # L1 regularization
-            if self._l1:
-                l1_regularizer = tf.contrib.layers.l1_regularizer(
-                    scale=0.0005 / (self._units * self._layers), scope=None
-                )
-                weights = tf.trainable_variables()
-                l1_reg = tf.contrib.layers.apply_regularization(l1_regularizer, weights)
-                self._loss += l1_reg
+            # L1&L2 regularization
+            self._add_regularization()
 
             self._prediction = tf.nn.softmax(layer)
             tf.summary.scalar("loss", self._loss)
@@ -135,6 +134,24 @@ class SimpleModel(Model):
             # Evaluation
             self._results = tf.argmax(layer, axis=1)
         return graph
+
+    def _add_regularization(self):
+        weights = tf.trainable_variables()
+        if self._l1 or self._l2:
+            with tf.name_scope("regularization"):
+                if self._l1:
+                    l1_regularizer = tf.contrib.layers.l1_regularizer(
+                        scale=DEFAULT_REGULARIZATION_WEIGHT / (self._units * self._layers), scope=None
+                    )
+                    l1_reg = tf.contrib.layers.apply_regularization(l1_regularizer, weights)
+                    self._loss += l1_reg
+
+                if self._l2:
+                    l2_regularizer = tf.contrib.layers.l2_regularizer(
+                        scale=DEFAULT_REGULARIZATION_WEIGHT / (self._units * self._layers), scope=None
+                    )
+                    l2_reg = tf.contrib.layers.apply_regularization(l2_regularizer, weights)
+                    self._loss += l2_reg
 
     def train(self, train_prod: BatchProducer, eval_prod: BatchProducer = None):
         self._init()
@@ -155,17 +172,15 @@ class SimpleModel(Model):
             # Main execution loop
             average_loss = 0
             timestamp = time.time()
-            tolerance_margin = 5120 // self._batch_size
-            if tolerance_margin < 20:
-                tolerance_margin = 20
+            tolerance_margin = 1280 // self._batch_size
+            if tolerance_margin < 5:
+                tolerance_margin = 5
             tolerance = tolerance_margin + 1
             min_loss = -1
             for cur_epoch in range(self._max_epochs):
                 for features, labels, pointer in train_prod.produce(self._batch_size):
                     if self._tolerance and tolerance == 0:
                         break
-
-                    run_metadata = tf.RunMetadata()
 
                     feed = dict()
                     for id, subspace in self._train_features.items():
@@ -176,11 +191,9 @@ class SimpleModel(Model):
                     })
                     _, loss_value, global_step, summary_v = self._session.run(
                         [self._optimizer, self._loss, self._global_step, g_summary],
-                        feed_dict=feed,
-                        run_metadata=run_metadata)
+                        feed_dict=feed)
 
                     # Writes loss_summary to log. Each call represents a single point on the plot
-                    writer.add_run_metadata(run_metadata, 'step%d' % global_step)
                     writer.add_summary(summary=summary_v, global_step=global_step)
 
                     # Output average loss periodically
@@ -253,6 +266,7 @@ class SimpleModel(Model):
     @staticmethod
     def restore_definition(params: dict) -> Model:
         model = SimpleModel(params["name"], params["inputs"], params["classes"])
+        model.layers(params["layers"]).units(params["units"])
         return model
 
     def save_to_file(self, filename):
@@ -260,5 +274,7 @@ class SimpleModel(Model):
         json.dump({
             'name': self._name,
             'inputs': self._inputs,
-            'classes': self._classes
+            'classes': self._classes,
+            'layers': self._layers,
+            'units': self._units
         }, open(path.join(filename,'model.json'), 'w'))

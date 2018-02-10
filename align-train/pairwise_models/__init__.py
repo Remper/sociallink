@@ -8,7 +8,7 @@ from pairwise_models.emb_extra_layer_multiplication import EmbExtraLayerMul
 
 def get_custom_models() -> dict:
     return {
-        "emb_extra_layer": EmbExtraLayer,
+        # "emb_extra_layer": EmbExtraLayer,
         "emb_extra_layer_mul": EmbExtraLayerMul
     }
 

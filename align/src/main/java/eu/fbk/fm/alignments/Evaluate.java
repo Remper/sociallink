@@ -213,15 +213,18 @@ public class Evaluate {
 
         boolean first = true;
         for (FullyResolvedEntry entry : entries) {
+            if (entry.candidates.size() == 0) {
+                continue;
+            }
+            if (!first) {
+                jsonOutput.write('\n');
+            }
+            first = false;
+
             int order = 0;
             JointSample curSample = new JointSample();
             curSample.samples = new PairSample[entry.candidates.size()];
             for (User user : entry.candidates) {
-                if (!first) {
-                    jsonOutput.write('\n');
-                }
-                first = false;
-
                 int label = user.getScreenName().equalsIgnoreCase(entry.entry.twitterId) ? 1 : 0;
                 Map<String, double[]> features = entry.features.get(order);
                 curSample.samples[order] = new PairSample(label, features);
@@ -244,13 +247,17 @@ public class Evaluate {
         for (FullyResolvedEntry entry : entries) {
             int order = 0;
             for (User user : entry.candidates) {
+                boolean isPositive = user.getScreenName().equalsIgnoreCase(entry.entry.twitterId);
+                if (order >= 10 && !isPositive) {
+                    order++;
+                    continue;
+                }
                 if (!first) {
                     jsonOutput.write('\n');
                 }
                 first = false;
 
                 indexPrinter.printRecord(entry.resource.getIdentifier(), entry.entry.twitterId, user.getId(), user.getScreenName());
-                boolean isPositive = user.getScreenName().equalsIgnoreCase(entry.entry.twitterId);
                 Map<String, double[]> features = entry.features.get(order);
 
                 jsonOutput.write(String.valueOf(isPositive ? 1 : 0));
@@ -720,7 +727,7 @@ public class Evaluate {
             watch.reset().start();
             evaluate.dumpFeatures(resolvedTrainingSet, files.train.scaled);
             evaluate.dumpFeatures(resolvedTestSet, files.test.scaled);
-            evaluate.dumpJointFeatures(resolvedTrainingSet, files.test.scaled);
+            evaluate.dumpJointFeatures(resolvedTrainingSet, files.train.scaled);
             evaluate.dumpJointFeatures(resolvedTestSet, files.test.scaled);
             logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
 
