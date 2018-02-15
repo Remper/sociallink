@@ -15,7 +15,7 @@ import java.util.Map;
  * @author Yaroslav Nechaev (remper@me.com)
  */
 public class FileProvider {
-    public final File gold, resolved, scaler, model, evaluation, evaluationResult;
+    public final File gold, resolved, scaler, model, evaluation, evaluationResult, evaluationRawResult;
     public final FileSet test, train;
     public final Type scalerType = new TypeToken<Map<String, Scaler>>(){}.getType();
 
@@ -37,6 +37,11 @@ public class FileProvider {
         evaluation = new File(coreDirectory, "evaluation.json");
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM-dd-HH-mm"));
         evaluationResult = new File(coreDirectory, "evaluation-"+date+".txt");
+        evaluationRawResult = new File(coreDirectory, "evaluation-raw-"+date);
+    }
+
+    public File getEvaluationRawResultFile(boolean joint, String type) {
+        return new File(evaluationRawResult, String.format("%s-%s.txt", type, joint ? "joint" : "selection"));
     }
 
     public static class FileSet {

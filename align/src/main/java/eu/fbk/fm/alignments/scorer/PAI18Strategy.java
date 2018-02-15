@@ -2,6 +2,7 @@ package eu.fbk.fm.alignments.scorer;
 
 import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.scorer.embeddings.EmbeddingsProvider;
+import eu.fbk.fm.alignments.scorer.embeddings.EntityDirectEmbeddings;
 import eu.fbk.fm.alignments.scorer.embeddings.EntityEmbeddings;
 import eu.fbk.fm.alignments.scorer.embeddings.SocialGraphEmbeddings;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -25,7 +26,7 @@ public class PAI18Strategy extends AbstractScoringStrategy {
     public PAI18Strategy(DataSource source, String lsaPath) throws Exception {
         vectorProviders = new LinkedList<FeatureVectorProvider>(){{
             add(new ISWC17Strategy(source, lsaPath));
-            add(new EntityEmbeddings(source, "kb300"));
+            add(new EntityDirectEmbeddings(source, "kb200_rdf2vec"));
             add(new SocialGraphEmbeddings(source, "sg300"));
         }};
     }

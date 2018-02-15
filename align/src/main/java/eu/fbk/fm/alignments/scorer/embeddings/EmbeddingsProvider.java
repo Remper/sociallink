@@ -19,6 +19,7 @@ import twitter4j.User;
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -72,11 +73,11 @@ public abstract class EmbeddingsProvider implements FeatureVectorProvider, JsonO
         url = new URIBuilder().setScheme("http").setHost(host).setPort(port).setPath("/transform/"+embName).build();
     }
 
-    protected double[] predict(Long[] features) {
+    protected double[] predict(Serializable[] features) {
         return predict(features, null);
     }
 
-    protected double[] predict(Long[] features, Float[] weights) {
+    protected double[] predict(Serializable[] features, Float[] weights) {
         Gson gson = new GsonBuilder().create();
         double[] result = null;
         CloseableHttpResponse response = null;

@@ -29,7 +29,8 @@ class EmbExtraLayerMul(SimpleModel):
             # Getting all appropriate subspaces for this model
             kb_emb = None
             sg_emb = None
-            emb_size = None
+            kb_emb_size = None
+            sg_emb_size = None
             self._train_labels = tf.placeholder(tf.float32, shape=[None, self._classes], name="Y")
             for id, length in self._inputs.items():
                 self._train_features[id] = tf.placeholder(tf.float32, shape=[None, length], name="X-"+id)
@@ -37,12 +38,14 @@ class EmbExtraLayerMul(SimpleModel):
                     if kb_emb is not None:
                         raise Exception("Two embeddings for knowledge base detected")
                     kb_emb = self._train_features[id]
-                    emb_size = length
+                    kb_emb_size = length
+                    continue
                 elif id.startswith("emb_sg"):
                     if sg_emb is not None:
                         raise Exception("Two embeddings for social graph detected")
                     sg_emb = self._train_features[id]
-                    emb_size = length
+                    sg_emb_size = length
+                    continue
 
                 feature_list.append(self._train_features[id])
                 input_size += length
@@ -55,12 +58,14 @@ class EmbExtraLayerMul(SimpleModel):
 
             # Embeddings multiplication
             with tf.name_scope("emb_dense_transform"):
-                kb_emb = self.dense(kb_emb, emb_size, emb_size, self._dropout_rate)
+                kb_emb = self.dense(kb_emb, kb_emb_size, 50, self._dropout_rate)
             with tf.name_scope("emb_dense_transform"):
-                sg_emb = self.dense(sg_emb, emb_size, emb_size, self._dropout_rate)
+                sg_emb = self.dense(sg_emb, sg_emb_size, 50, self._dropout_rate)
             emb_feat = tf.multiply(kb_emb, sg_emb, name="emb_combination")
             feature_list.append(emb_feat)
-            input_size += emb_size
+            feature_list.append(kb_emb)
+            feature_list.append(sg_emb)
+            input_size += 50*3
 
             # Multiple dense layers
             hidden_units = self._units

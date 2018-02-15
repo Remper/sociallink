@@ -19,6 +19,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.NullWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import twitter4j.TwitterException;
@@ -248,7 +249,7 @@ public class Evaluate {
             int order = 0;
             for (User user : entry.candidates) {
                 boolean isPositive = user.getScreenName().equalsIgnoreCase(entry.entry.twitterId);
-                if (order >= 10 && !isPositive) {
+                if (order >= 6 && !isPositive) {
                     order++;
                     continue;
                 }
@@ -351,10 +352,14 @@ public class Evaluate {
     }
 
     public String evaluate(Collection<FullyResolvedEntry> entries, ModelEndpoint endpoint) {
-        return evaluate(entries, endpoint, false);
+        return evaluate(entries, endpoint, false, new NullWriter());
     }
 
     public String evaluate(Collection<FullyResolvedEntry> entries, ModelEndpoint endpoint, boolean joint) {
+        return evaluate(entries, endpoint, joint, new NullWriter());
+    }
+
+    public String evaluate(Collection<FullyResolvedEntry> entries, ModelEndpoint endpoint, boolean joint, Writer rawResult) {
         int gridImp = 5;
         int gridScore = 20;
         CustomEvaluation[] nnEvals = new CustomEvaluation[gridImp * gridScore];
@@ -375,6 +380,13 @@ public class Evaluate {
                 logger.debug("Entry: " + entry.entry.resourceId);
                 logger.debug("Query: " + new AllNamesStrategy().getQuery(entry.resource));
             }
+            try {
+                rawResult.write("Entry: " + entry.entry.resourceId + "\n");
+                rawResult.write("Query: " + new AllNamesStrategy().getQuery(entry.resource) + "\n");
+            } catch (Exception e) {
+                logger.error("Raw result writer is broken, replacing with null writer");
+                rawResult = new NullWriter();
+            }
             if (entry.candidates.size() == 0) {
                 if (joint) {
                     for (int i = 0; i < gridScore; i++) {
@@ -391,7 +403,6 @@ public class Evaluate {
             int trueLabel = -1;
 
             for (Map<String, double[]> features : entry.features) {
-                double label = 0, score = 0;
                 double[] endpointScores = new double[2];
 
                 if (endpoint != null) {
@@ -406,14 +417,21 @@ public class Evaluate {
                     trueLabel = order;
                 }
 
-                if (sampleNum <= 200) {
-                    logger.debug(String.format(
-                        "%f\t%.2f\t%.2f\t%.2f\t%d\t%d\t\t%s\t\t\t%s",
-                        label, score,
+                String report = String.format(
+                        "%.2f\t%.2f\t%d\t%d\t\t%s\t\t\t%s",
                         endpointScores[0], endpointScores[1],
                         isPositive ? 1 : 0, isBaseline ? 1 : 0,
-                        entry.entry.twitterId, candidate.getScreenName())
-                    );
+                        entry.entry.twitterId, candidate.getScreenName()
+                );
+                try {
+                    rawResult.write(report);
+                    rawResult.write('\n');
+                } catch (Exception e) {
+                    logger.error("Raw result writer is broken, replacing with null writer");
+                    rawResult = new NullWriter();
+                }
+                if (sampleNum <= 200) {
+                    logger.debug(report);
                 }
                 order++;
                 sampleNum++;
@@ -483,20 +501,29 @@ public class Evaluate {
         logger.info("Orgs    in a test set: " + testSetOrganisations.size());
 
         FileWriter writer = new FileWriter(files.evaluationResult);
+        if (!files.evaluationRawResult.exists()) {
+            files.evaluationRawResult.mkdir();
+        }
         for (boolean joint : new boolean[]{false, true}) {
             logger.info(joint ? "Joint eval:" : "Selection eval:");
             writer.write(joint ? "Joint eval:" : "Selection eval:");
             writer.write('\n');
-            writer.write(evaluate.evaluate(testSet, modelEndpoint, joint));
-            Thread.sleep(60000);
+            FileWriter report = new FileWriter(files.getEvaluationRawResultFile(joint, "all"));
+            writer.write(evaluate.evaluate(testSet, modelEndpoint, joint, report));
+            IOUtils.closeQuietly(report);
+            Thread.sleep(10000);
             logger.info("Persons:");
             writer.write("Persons\n");
-            writer.write(evaluate.evaluate(testSetPersons, modelEndpoint, joint));
-            Thread.sleep(60000);
+            report = new FileWriter(files.getEvaluationRawResultFile(joint, "persons"));
+            writer.write(evaluate.evaluate(testSetPersons, modelEndpoint, joint, report));
+            IOUtils.closeQuietly(report);
+            Thread.sleep(10000);
             logger.info("Organisations:");
             writer.write("Organisations\n");
-            writer.write(evaluate.evaluate(testSetOrganisations, modelEndpoint, joint));
-            Thread.sleep(60000);
+            report = new FileWriter(files.getEvaluationRawResultFile(joint, "organisations"));
+            writer.write(evaluate.evaluate(testSetOrganisations, modelEndpoint, joint, report));
+            IOUtils.closeQuietly(report);
+            Thread.sleep(10000);
         }
         writer.close();
     }

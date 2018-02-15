@@ -5,6 +5,7 @@ import org.jooq.Record2;
 import twitter4j.User;
 
 import javax.sql.DataSource;
+import java.io.Serializable;
 import java.net.URISyntaxException;
 
 import static eu.fbk.fm.alignments.index.db.Tables.USER_SG;
@@ -32,9 +33,9 @@ public class SocialGraphEmbeddings extends EmbeddingsProvider {
                 .fetchOne();
 
         if (userVectorRaw == null) {
-            return predict(new Long[0]);
+            return predict((Serializable[]) new Long[0]);
         }
 
-        return predict(userVectorRaw.value1(), userVectorRaw.value2());
+        return predict((Serializable[]) userVectorRaw.value1(), userVectorRaw.value2());
     }
 }

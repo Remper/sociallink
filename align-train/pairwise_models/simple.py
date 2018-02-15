@@ -14,8 +14,8 @@ DEFAULT_BATCH_SIZE = 256
 DEFAULT_MAX_EPOCHS = 100
 
 DEFAULT_LEARNING_RATE = 1e-4
-DEFAULT_DROPOUT_RATE = 0.6
-DEFAULT_REGULARIZATION_WEIGHT = 0.005
+DEFAULT_DROPOUT_RATE = 0.5
+DEFAULT_REGULARIZATION_WEIGHT = 0.1
 
 
 def precision(tp: int, fp: int) -> float:
@@ -83,7 +83,7 @@ class SimpleModel(Model):
         with tf.name_scope("dense_layer"):
             weights = self.weight_variable([input_size, out_size])
             biases = self.bias_variable([out_size])
-            hidden = tf.nn.relu(tf.matmul(input, weights) + biases)
+            hidden = tf.nn.tanh(tf.matmul(input, weights) + biases)
             out = tf.nn.dropout(hidden, dropout)
         return out
 
@@ -135,8 +135,9 @@ class SimpleModel(Model):
             self._results = tf.argmax(layer, axis=1)
         return graph
 
-    def _add_regularization(self):
-        weights = tf.trainable_variables()
+    def _add_regularization(self, weights=None):
+        if weights is None:
+            weights = tf.trainable_variables()
         if self._l1 or self._l2:
             with tf.name_scope("regularization"):
                 if self._l1:
