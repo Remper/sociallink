@@ -121,7 +121,7 @@ class SimpleModel(Model):
             self._loss = tf.reduce_mean(losses)
 
             # L1&L2 regularization
-            self._add_regularization()
+            self._add_regularization(reg_weight=0.001)
 
             self._prediction = tf.nn.softmax(layer)
             tf.summary.scalar("loss", self._loss)
@@ -135,24 +135,53 @@ class SimpleModel(Model):
             self._results = tf.argmax(layer, axis=1)
         return graph
 
-    def _add_regularization(self, weights=None):
+    def _add_regularization(self, weights=None, reg_weight=DEFAULT_REGULARIZATION_WEIGHT):
         if weights is None:
             weights = tf.trainable_variables()
         if self._l1 or self._l2:
             with tf.name_scope("regularization"):
                 if self._l1:
                     l1_regularizer = tf.contrib.layers.l1_regularizer(
-                        scale=DEFAULT_REGULARIZATION_WEIGHT / (self._units * self._layers), scope=None
+                        scale=reg_weight / (self._units * self._layers), scope=None
                     )
                     l1_reg = tf.contrib.layers.apply_regularization(l1_regularizer, weights)
                     self._loss += l1_reg
 
                 if self._l2:
                     l2_regularizer = tf.contrib.layers.l2_regularizer(
-                        scale=DEFAULT_REGULARIZATION_WEIGHT / (self._units * self._layers), scope=None
+                        scale=reg_weight / (self._units * self._layers), scope=None
                     )
                     l2_reg = tf.contrib.layers.apply_regularization(l2_regularizer, weights)
                     self._loss += l2_reg
+
+    def do_eval(self, eval_prod: BatchProducer):
+        tp = 0
+        fp = 0
+        fn = 0
+        for test_X, true_Y, _ in eval_prod.produce(self._batch_size):
+            feed = dict()
+            for id, subspace in self._train_features.items():
+                feed[subspace] = test_X[id]
+            feed.update({
+                self._dropout_rate: 1.0
+            })
+            pred_Y = self._results.eval(
+                session=self._session,
+                feed_dict=feed)
+            try:
+                _, cur_fp, cur_fn, cur_tp = confusion_matrix(np.argmax(true_Y, axis=1), pred_Y).ravel()
+                tp += cur_tp
+                fp += cur_fp
+                fn += cur_fn
+            except ValueError as e:
+                pass
+            except Exception as e:
+                print(e)
+                print(confusion_matrix(np.argmax(true_Y, axis=1), pred_Y).ravel())
+                print(confusion_matrix(np.argmax(true_Y, axis=1), pred_Y))
+        return "P: %.2f%%, R: %.2f%%, F1: %.2f%%" % (
+            precision(tp, fp) * 100, recall(tp, fn) * 100, f1(tp, fp, fn) * 100
+        )
 
     def train(self, train_prod: BatchProducer, eval_prod: BatchProducer = None):
         self._init()
@@ -211,33 +240,7 @@ class SimpleModel(Model):
 
                         appendix = ""
                         if eval_prod is not None and len(eval_prod.labels) == 2 and global_step % (check_interval*3) == 0:
-                            tp = 0
-                            fp = 0
-                            fn = 0
-                            for test_X, true_Y, _ in eval_prod.produce(self._batch_size):
-                                feed = dict()
-                                for id, subspace in self._train_features.items():
-                                    feed[subspace] = test_X[id]
-                                feed.update({
-                                    self._dropout_rate: 1.0
-                                })
-                                pred_Y = self._results.eval(
-                                    session=self._session,
-                                    feed_dict=feed)
-                                try:
-                                    _, cur_fp, cur_fn, cur_tp = confusion_matrix(np.argmax(true_Y, axis=1), pred_Y).ravel()
-                                    tp += cur_tp
-                                    fp += cur_fp
-                                    fn += cur_fn
-                                except ValueError as e:
-                                    pass
-                                except Exception as e:
-                                    print(e)
-                                    print(confusion_matrix(np.argmax(true_Y, axis=1), pred_Y).ravel())
-                                    print(confusion_matrix(np.argmax(true_Y, axis=1), pred_Y))
-                            appendix += ", P: %.2f%%, R: %.2f%%, F1: %.2f%%" % (
-                                precision(tp, fp) * 100, recall(tp, fn) * 100, f1(tp, fp, fn) * 100
-                            )
+                            appendix += ", "+self.do_eval(eval_prod)
 
                         print("[+] step: %4.1fk, %6.2f steps/s, tol: %2d, epoch: %5.2f, avg.loss: %.5f, min.loss: %.5f%s"
                               % (float(global_step) / 1000, float(check_interval) / (time.time() - timestamp),
@@ -249,6 +252,11 @@ class SimpleModel(Model):
         else:
             print("Amount of epochs reached")
         self._ready = True
+        if eval_prod is not None and len(eval_prod.labels) == 2:
+            print("Performing final evaluation")
+            return self.do_eval(eval_prod)
+        else:
+            return "No evaluation performed"
 
     def predict(self, features):
         self._init()

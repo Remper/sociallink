@@ -40,6 +40,7 @@ public class Endpoint {
             "  ?relation ?property " +
             "where { " +
             "  <:resourceId> ?relation ?property " +
+            "  FILTER (!ISLITERAL(?property) || LANG(?property) = '' || LANG(?property) = 'en') " +
             "} " +
             "group by ?property ?relation";
 

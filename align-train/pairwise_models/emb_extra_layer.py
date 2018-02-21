@@ -1,22 +1,14 @@
 import tensorflow as tf
 
+from pairwise_models.model import Model
 from tensorflow.contrib import slim
 
 from pairwise_models.simple import SimpleModel
-from pairwise_models.model import Model
-
-DEFAULT_LAYERS = 5
-DEFAULT_UNITS = 256
-DEFAULT_BATCH_SIZE = 256
-DEFAULT_MAX_EPOCHS = 100
-
-DEFAULT_LEARNING_RATE = 1e-4
-DEFAULT_DROPOUT_RATE = 0.8
 
 
 class EmbExtraLayer(SimpleModel):
-    def __init__(self, name, inputs, classes):
-        SimpleModel.__init__(self, name, inputs, classes)
+    def __init__(self, name, inputs, classes, use_features=None):
+        SimpleModel.__init__(self, name, inputs, classes, use_features=use_features)
 
     def _definition(self):
         graph = tf.Graph()
@@ -29,7 +21,8 @@ class EmbExtraLayer(SimpleModel):
             # Getting all appropriate subspaces for this model
             kb_emb = None
             sg_emb = None
-            emb_size = None
+            kb_emb_size = None
+            sg_emb_size = None
             self._train_labels = tf.placeholder(tf.float32, shape=[None, self._classes], name="Y")
             for id, length in self._inputs.items():
                 self._train_features[id] = tf.placeholder(tf.float32, shape=[None, length], name="X-"+id)
@@ -37,36 +30,40 @@ class EmbExtraLayer(SimpleModel):
                     if kb_emb is not None:
                         raise Exception("Two embeddings for knowledge base detected")
                     kb_emb = self._train_features[id]
-                    emb_size = length
+                    kb_emb_size = length
                     continue
-                if id.startswith("emb_sg"):
+                elif id.startswith("emb_sg"):
                     if sg_emb is not None:
                         raise Exception("Two embeddings for social graph detected")
                     sg_emb = self._train_features[id]
-                    emb_size = length
+                    sg_emb_size = length
                     continue
 
                 feature_list.append(self._train_features[id])
                 input_size += length
 
-            if sg_emb is None or kb_emb is None:
-                raise Exception("Both KB and SG embeddings required for this model")
+            if sg_emb is None and kb_emb is None:
+                raise Exception("Either KB or SG embedding is required for this model")
 
             # Dropout rate
             self._dropout_rate = tf.placeholder(tf.float32, name="dropout_rate")
 
             # Embeddings multiplication
-            with tf.name_scope("emb_dense_transform"):
-                kb_emb = self.dense(kb_emb, emb_size, emb_size, self._dropout_rate)
-            with tf.name_scope("emb_dense_transform"):
-                sg_emb = self.dense(sg_emb, emb_size, emb_size, self._dropout_rate)
-            with tf.name_scope("emb_cosine_similarity"):
-                emb_feat = tf.reduce_sum(tf.multiply(
-                    tf.nn.l2_normalize(kb_emb, axis=0),
-                    tf.nn.l2_normalize(sg_emb, axis=0)
-                ), axis=1, keepdims=True)
-            feature_list.append(emb_feat)
-            input_size += 1
+            final_emb_size = 50
+            if kb_emb is not None:
+                with tf.name_scope("kb_dense_transform"):
+                    kb_emb = self.dense(kb_emb, kb_emb_size, final_emb_size, self._dropout_rate)
+                    feature_list.append(kb_emb)
+                    input_size += final_emb_size
+            if sg_emb is not None:
+                with tf.name_scope("sg_dense_transform"):
+                    sg_emb = self.dense(sg_emb, sg_emb_size, final_emb_size, self._dropout_rate)
+                    feature_list.append(sg_emb)
+                    input_size += final_emb_size
+            if sg_emb is not None and kb_emb is not None:
+                emb_feat = tf.multiply(kb_emb, sg_emb, name="emb_combination")
+                feature_list.append(emb_feat)
+                input_size += final_emb_size
 
             # Multiple dense layers
             hidden_units = self._units

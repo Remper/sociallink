@@ -2,7 +2,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
-from os import path
+import traceback
+from os import path, mkdir
 
 from pairwise_models import get_custom_models
 from pairwise_models.simple import SimpleModel
@@ -25,7 +26,6 @@ parser.add_argument('--tolerance', default=False, action='store_true', help='Use
 parser.add_argument('--l1', default=False, action='store_true', help='Use l1 regularization')
 parser.add_argument('--l2', default=False, action='store_true', help='Use l2 regularization')
 parser.add_argument('--no_randomisation', default=False, action='store_true', help='Disable randomisation')
-parser.add_argument('--main_feature', default=None, help='Train pairwise_models for main feature set, main+each and all', metavar='#')
 args = parser.parse_args()
 
 args.batch_size = int(args.batch_size)
@@ -49,38 +49,50 @@ if args.no_randomisation:
     train_prod.random_off()
 
 print("Test batch:")
-batch, labels, _ = train_prod.produce(2).__next__()
+batch, labels, _ = train_prod.produce(5).__next__()
 for idx, _ in enumerate(labels):
     print("  Features: ")
     for subspace in batch:
-        print("  ", subspace, batch[subspace][idx][:25], "(total: %d)" % len(batch[subspace][idx]))
+        print("  ", subspace, batch[subspace][idx][:10], "(total: %d)" % len(batch[subspace][idx]))
     print("  Label: ", labels[idx])
     print("")
 
-
-feature_sets = [train_prod.feature_space.keys()]
-if args.main_feature is not None:
-    feature_sets.append([args.main_feature])
-    for subspace in train_prod.feature_space:
-        if subspace == args.main_feature:
-            continue
-        feature_sets.append([args.main_feature, subspace])
-
 models = get_custom_models()
-for model_name in models:
-    print("Starting training special model: %s" % model_name)
-    model = models[model_name](model_name, train_prod.feature_space, len(train_prod.labels))
-    model.units(args.units).layers(args.layers).batch_size(args.batch_size)\
-        .max_epochs(args.max_epochs).tolerance(args.tolerance).l1(args.l1).l2(args.l2)
-    model.train(train_prod=train_prod, eval_prod=eval_prod)
-    model.save_to_file(path.join(args.output_dir, model_name))
+feature_manifest = [
+    ['iswc17'],
+    ['iswc17', 'emb_kb', 'emb_sg'],
+    ['iswc17', 'emb_kb'],
+    ['iswc17', 'emb_sg'],
+    ['emb_kb', 'emb_sg']
+]
+available_features = train_prod.feature_space.keys()
+eval_results = {}
+for feature_set in feature_manifest:
+    aligned_features = []
+    use_features = []
+    for feature in feature_set:
+        for avail_feature in available_features:
+            if avail_feature.startswith(feature):
+                aligned_features.append("%s -> %s" % (feature, avail_feature))
+                use_features.append(avail_feature)
+                break
 
-for feature_set in feature_sets:
-    print("Starting training model with the following feature set:", ", ".join(feature_set))
-    model = SimpleModel("SimpleModel", train_prod.feature_space, len(train_prod.labels), use_features=feature_set)
-    model.units(args.units).layers(args.layers).batch_size(args.batch_size)\
-        .max_epochs(args.max_epochs).tolerance(args.tolerance).l1(args.l1).l2(args.l2)
-    model.train(train_prod=train_prod, eval_prod=eval_prod)
-    model.save_to_file(path.join(args.output_dir, "_".join(feature_set)))
+    for model_name in models:
+        try:
+            print("Starting training model \"%s\" with the following feature set: %s" % (model_name, ", ".join(aligned_features)))
+            model = models[model_name](model_name, train_prod.feature_space, len(train_prod.labels), use_features=use_features)
+            model.units(args.units).layers(args.layers).batch_size(args.batch_size)\
+                .max_epochs(args.max_epochs).tolerance(args.tolerance).l1(args.l1).l2(args.l2)
+            eval_result = model.train(train_prod=train_prod, eval_prod=eval_prod)
+            eval_results[model_name+"@"+"+".join(use_features)] = eval_result
+            model_dir = path.join(args.output_dir, model_name)
+            if not path.exists(model_dir):
+                mkdir(model_dir)
+            model.save_to_file(path.join(model_dir, "+".join(use_features)))
+        except Exception as e:
+            print("Skipping: %s" % str(e))
 
-print("Done")
+print("Eval results:")
+for model_name in eval_results:
+    print("  %s -> %s" % (model_name, eval_results[model_name]))
+

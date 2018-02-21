@@ -331,20 +331,32 @@ public class Evaluate {
         IOUtils.closeQuietly(testSetWriter);
     }
 
+    /**
+     * Predicts the id of the correct candidate
+     *
+     * @param positives list of candidates showing positive scores
+     * @param maxImp improvement to the second best that is needed
+     * @param minScore minimum score that is considered positive
+     * @return id of the correct candidate or -1
+     */
     private int getPrediction(List<double[]> positives, double maxImp, double minScore) {
         int predicted = -1;
         if (positives.size() > 0) {
-            double maxScore = -200.0;
+            double maxScore = -1.0;
+            double secondBestScore = -1.0;
             int maxId = 0;
-            double lastImprovement = 0.0;
             for (double[] positive : positives) {
                 if (positive[1] > maxScore) {
+                    secondBestScore = maxScore;
                     maxId = (int) positive[0];
-                    lastImprovement = positive[1] - maxScore;
                     maxScore = positive[1];
+                    continue;
+                }
+                if (positive[1] > secondBestScore) {
+                    secondBestScore = positive[1];
                 }
             }
-            if (lastImprovement > maxImp && maxScore > minScore) {
+            if ((maxScore - secondBestScore) > maxImp && maxScore > minScore) {
                 predicted = maxId;
             }
         }
@@ -384,8 +396,7 @@ public class Evaluate {
                 rawResult.write("Entry: " + entry.entry.resourceId + "\n");
                 rawResult.write("Query: " + new AllNamesStrategy().getQuery(entry.resource) + "\n");
             } catch (Exception e) {
-                logger.error("Raw result writer is broken, replacing with null writer");
-                rawResult = new NullWriter();
+                logger.error("Raw result writer is broken");
             }
             if (entry.candidates.size() == 0) {
                 if (joint) {
@@ -427,8 +438,7 @@ public class Evaluate {
                     rawResult.write(report);
                     rawResult.write('\n');
                 } catch (Exception e) {
-                    logger.error("Raw result writer is broken, replacing with null writer");
-                    rawResult = new NullWriter();
+                    logger.error("Raw result writer is broken");
                 }
                 if (sampleNum <= 200) {
                     logger.debug(report);

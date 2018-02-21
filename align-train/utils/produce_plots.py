@@ -7,6 +7,7 @@ import re
 from os import listdir
 from os import path
 
+
 class Sample:
     def __init__(self, line):
         line = line.split('\t')
@@ -42,11 +43,14 @@ def main(input: list, output: str):
                 sample = Sample(line)
                 if sample.p < min_prec:
                     min_prec = sample.p
+                #if sample.t1 != 0.4 or cur_subsection != 'All' or cur_section != 'Selection eval':
+                #    continue
                 subsection_name = "%s %.1f min improvement" % (cur_subsection, sample.t1)
                 if subsection_name not in files[file][cur_section]:
                     plots += 1
                     files[file][cur_section][subsection_name] = []
                 files[file][cur_section][subsection_name].append(sample)
+    #min_prec = 0.8
 
     # Producing joint graphs
     file1 = files[input[0]]
@@ -68,15 +72,23 @@ def main(input: list, output: str):
             sp.set_xlim(left=0, right=1)
             sp.set_ylim(bottom=min_prec, top=1)
 
+            markers = ['o', 's', '^', 'p']
+            linestyles = ['-', '--', '-.', ':']
+            cur_file = 0
             for file in files:
-                label = re.match('(.+/)?([+a-zA-Z0-9_-]+)\.[a-z]+$', file).group(2)
+                label = re.match('(.+/)?([+@a-zA-Z0-9_-]+)\.[a-z]+$', file).group(2)
                 x = []
                 y = []
+                if section not in files[file] or subsection not in files[file][section]:
+                    continue
                 source = sorted(files[file][section][subsection], key=lambda sample : sample.r)
                 for sample in source:
                     x.append(sample.r)
                     y.append(sample.p)
-                sp.plot(x, y, '-', label=label)
+                sp.plot(x, y, '-',
+                        label=label, marker=markers[cur_file % len(markers)],
+                        markersize=2, linewidth=1, linestyle=linestyles[cur_file % len(linestyles)])
+                cur_file += 1
             sp.legend(numpoints=1, loc='best')
     fig.tight_layout()
     fig.savefig(output)
