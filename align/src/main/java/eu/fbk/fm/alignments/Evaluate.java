@@ -429,7 +429,7 @@ public class Evaluate {
                 }
 
                 String report = String.format(
-                        "%.2f\t%.2f\t%d\t%d\t\t%s\t\t\t%s",
+                        "%f\t%f\t%d\t%d\t\t%s\t\t\t%s",
                         endpointScores[0], endpointScores[1],
                         isPositive ? 1 : 0, isBaseline ? 1 : 0,
                         entry.entry.twitterId, candidate.getScreenName()
