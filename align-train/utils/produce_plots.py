@@ -7,6 +7,8 @@ import re
 from os import listdir
 from os import path
 
+from evaluation.common import draw_f1_lines
+
 
 class Sample:
     def __init__(self, line):
@@ -65,6 +67,7 @@ def main(input: list, output: str):
             plot += 1
             sp = fig.add_subplot(grid_size, grid_size, plot)
             sp.title.set_text("%s %s" % (section, subsection))
+            draw_f1_lines(sp, prange=(min_prec, 1))
 
             sp.set_xlabel("Recall")
             sp.set_ylabel("Precision")
@@ -72,7 +75,7 @@ def main(input: list, output: str):
             sp.set_xlim(left=0, right=1)
             sp.set_ylim(bottom=min_prec, top=1)
 
-            markers = ['o', 's', '^', 'p']
+            #markers = ['o', 's', '^', 'p']
             linestyles = ['-', '--', '-.', ':']
             cur_file = 0
             for file in files:
@@ -86,12 +89,13 @@ def main(input: list, output: str):
                     x.append(sample.r)
                     y.append(sample.p)
                 sp.plot(x, y, '-',
-                        label=label, marker=markers[cur_file % len(markers)],
-                        markersize=2, linewidth=1, linestyle=linestyles[cur_file % len(linestyles)])
+                        label=label, #marker=markers[cur_file % len(markers)],
+                        markersize=2, linewidth=1)#, linestyle=linestyles[cur_file % len(linestyles)])
                 cur_file += 1
             sp.legend(numpoints=1, loc='best')
     fig.tight_layout()
     fig.savefig(output)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Plots precision/recall curves')

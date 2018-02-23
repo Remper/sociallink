@@ -40,3 +40,28 @@ def precision_recall_curve(expected, predicted, scores):
 
     # Return result
     return (p, r, scores)
+
+
+def draw_f1_lines(ax, rrange=(0, 1), prange=(0, 1)):
+    for f in np.linspace(0.1, .9, 9):
+        # estimate p, r curve for points with F1 = f
+        alpha = np.linspace(f / (2 - f), (2 - f) / f, 100)
+        p = f * (alpha + 1) / 2
+        r = p / alpha
+
+        # estimate coeffs of P = pa * R + pb for diagonal
+        pa = (prange[1] - prange[0]) / (rrange[1] - rrange[0])
+        pb = prange[0] - rrange[0] * pa
+
+        # estimate coeffs of aR^2 + bR + c = 0
+        a = 2 * pa
+        b = 2 * pb - f * (pa + 1)
+        c = -f * pb
+
+        # estimate location where to put text
+        rt = 1 / (2 * a) * (-b + (b ** 2 - 4 * a * c) ** .5)
+        pt = pa * rt + pb
+
+        # plot lines and labels
+        ax.plot(r, p, "#d8d8d8")
+        ax.text(rt, pt, "$F_1 = %.1f$" % f, color="#bbbbbb")

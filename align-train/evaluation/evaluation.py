@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from evaluation.common import precision_recall_curve
+from evaluation.common import precision_recall_curve, draw_f1_lines
 
 _module = sys.modules['__main__'].__file__
 _logger = logging.getLogger(_module)
@@ -202,32 +202,11 @@ def entity_table (candidates, min_improvement):
 
 def precision_recall_plot(data, expected_col, predicted_cols, score_cols, labels, rrange=(0, 1), prange=(0, 1), legendloc="best", title=None, ax=None, f1lines=True):
     
-    if (not ax):
+    if not ax:
         ax = plt.subplot2grid((1, 1), (0, 0))
     
-    if (f1lines):
-        for f in np.linspace(0.1, .9, 9):
-            # estimate p, r curve for points with F1 = f
-            alpha = np.linspace(f / (2 - f), (2 - f) / f, 100)
-            p = f * (alpha + 1) / 2
-            r = p / alpha
-                    
-            # estimate coeffs of P = pa * R + pb for diagonal
-            pa = (prange[1] - prange[0]) / (rrange[1] - rrange[0]) 
-            pb = prange[0] - rrange[0] * pa
-            
-            # estimate coeffs of aR^2 + bR + c = 0
-            a = 2 * pa
-            b = 2 * pb - f * (pa + 1)
-            c = -f * pb
-            
-            # estimate location where to put text
-            rt = 1 / (2*a) * (-b + (b ** 2 - 4 * a * c) ** .5)
-            pt = pa * rt + pb
-            
-            # plot lines and labels
-            ax.plot(r, p, "#e8e8e8")
-            ax.text(rt, pt, "$F_1 = %.1f$" % f, color="#aaaaaa")
+    if f1lines:
+        draw_f1_lines(ax, rrange, prange)
         
     for i in range(0, len(labels)):
         label = labels[i]
