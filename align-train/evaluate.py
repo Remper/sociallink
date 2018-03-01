@@ -20,7 +20,7 @@ def present(workdir, file):
 
 def main(workdir):
     print("Performing checks")
-    [present(workdir, file) for file in ["test.csv", "models", "test.joint.feat.json"]]
+    [present(workdir, file) for file in ["test.csv", "models", "evaluation.json"]]
 
     evaluation_dir = path.join(workdir, "evaluation")
     if not path.exists(evaluation_dir):
@@ -47,19 +47,15 @@ def main(workdir):
 
     print("\nDeserialising test set")
     timestamp = time.time()
-    test_set = []
-    with open(path.join(workdir, "test.joint.feat.json"), 'r') as reader:
-        for line in reader:
-            sample = json.loads(line.rstrip())
-            test_set.append(sample)
-
-            if len(test_set) % 4000 == 0:
-                print(" ", "%d samples (%.2fs)" % (len(test_set), (time.time() - timestamp)))
+    test_set = json.load(open(path.join(workdir, "evaluation.json"), 'r'))
+    for sample in test_set:
+        del sample["resource"]
     print("Done in %.2fs, loaded %d samples" % (time.time() - timestamp, len(test_set)))
 
     print("\nEvaluation:")
     for model_name in sorted(models.keys()):
         print("Evaluating model %s" % model_name)
+        debug_writer = open(path.join(evaluation_dir, model_name + ".dump"), 'w')
         model_location = path.join(models[model_name], "model")
         model = restore_definition(model_location)
         model.restore_from_file(model_location)
@@ -78,9 +74,8 @@ def main(workdir):
             correct_id = -1
             second_best = -1.0
             sample_features = None
-            for candidate in sample["samples"]:
+            for features in sample["features"]:
                 candidate_id += 1
-                features = candidate["features"]
                 if sample_features is None:
                     sample_features = dict()
                     for subspace in features:
@@ -88,17 +83,26 @@ def main(workdir):
                 for subspace in features:
                     sample_features[subspace].append(np.array(features[subspace]))
 
-                is_current_correct = candidate["label"] == 1
+                is_current_correct = sample["entry"]["twitterId"].casefold() == sample["candidates"][candidate_id]["screenName"].casefold()
                 if is_current_correct:
                     if correct_id >= 0:
                         print(" ", "Duplicate correct candidate found")
                     else:
                         correct_id = candidate_id
 
-            if len(sample["samples"]) > 0:
+            debug_writer.write("Entry: %s\n" % sample["entry"]["resourceId"])
+            debug_writer.write("Query: -\n")
+            if len(sample["features"]) > 0:
                 for subspace in sample_features:
                     sample_features[subspace] = np.vstack(sample_features[subspace])
-                sample_scores = model.predict(features=sample_features)[::, 1]
+                sample_scores = model.predict(features=sample_features)
+                for i in range(sample_scores.shape[0]):
+                    debug_writer.write("%.6f\t%.6f\t%d\t%d\t%s\t%s\n" % (sample_scores[i][0], sample_scores[i][1],
+                                                                       int(correct_id == i), int(i == 0),
+                                                                       sample["entry"]["twitterId"],
+                                                                       sample["candidates"][i]["screenName"]))
+
+                sample_scores = sample_scores[::, 1]
                 top_2 = np.argsort(sample_scores)[-2::][::-1].tolist()
 
                 predicted_id = top_2[0]
@@ -106,18 +110,6 @@ def main(workdir):
 
                 if len(top_2) > 1:
                     second_best = sample_scores[top_2[1]]
-
-            '''for candidate_id in range(candidate_id):
-                cur_score = model.predict(features=features)
-                        cur_score = cur_score[0][1]
-                        if cur_score > highest_score:
-                            second_best = highest_score
-                        highest_score = cur_score
-                        predicted_id = candidate_id
-                        continue
-
-                        if cur_score > second_best:
-                            second_best = cur_score'''
 
             if highest_score - second_best < 0.4:
                 predicted_id = -1
@@ -129,6 +121,7 @@ def main(workdir):
             if counter % check_interval == 0:
                 print(" ", "%d samples processed (%.2fs)" % (counter, (time.time() - timestamp)))
 
+        debug_writer.close()
         p, r, s = precision_recall_curve(expected, predicted, scores)
 
         with open(path.join(evaluation_dir, model_name+".txt"), 'w') as writer:

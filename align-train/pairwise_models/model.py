@@ -26,7 +26,9 @@ class Model:
         self._graph = self._definition()
         if self._saver is None:
             raise NotImplementedError("Definition wasn't properly implemented: missing saver")
-        self._session = tf.Session(graph=self._graph)
+
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.49)
+        self._session = tf.Session(graph=self._graph, config=tf.ConfigProto(gpu_options=gpu_options))
 
     def train(self, train_prod, eval_prod=None):
         raise NotImplementedError("Training function has to be defined")

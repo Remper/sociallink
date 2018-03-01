@@ -585,27 +585,31 @@ public class Evaluate {
             return;
         }
 
+        if (configuration.dbConnection == null || configuration.dbUser == null || configuration.dbPassword == null) {
+            logger.error("DB credentials are not specified");
+            return;
+        }
+
         logger.info(String.format("Options %s", gson.toJson(configuration)));
 
         QueryAssemblyStrategy qaStrategy = new AllNamesStrategy();//QueryAssemblyStrategyFactory.get(configuration.strategy);
 
         Endpoint endpoint = new Endpoint(configuration.endpoint);
         Evaluate evaluate;
-        if (configuration.dbConnection != null && configuration.dbUser != null && configuration.dbPassword != null) {
-            DataSource source = DBUtils.createHikariDataSource(configuration.dbConnection, configuration.dbUser, configuration.dbPassword);
-            evaluate = new Evaluate(new FillFromIndex(
-                    endpoint,
-                    qaStrategy,
-                    source));
-            if (configuration.lsa != null) {
-                logger.info("LSA specified. Enabling PAI18 strategy");
-                evaluate.setScoreStrategy(new PAI18Strategy(source, configuration.lsa));
-            } else {
-                logger.info("LSA is not specified. Falling back to the default strategy");
-            }
+
+        DataSource source = DBUtils.createHikariDataSource(configuration.dbConnection, configuration.dbUser, configuration.dbPassword);
+        if (configuration.credentials == null) {
+            evaluate = new Evaluate(new FillFromIndex(endpoint, qaStrategy, source));
         } else {
             evaluate = new Evaluate(endpoint);
-            evaluate.setQAStrategy(qaStrategy);
+            evaluate.setQAStrategy(new StrictStrategy());
+        }
+
+        if (configuration.lsa != null) {
+            logger.info("LSA specified. Enabling PAI18 strategy");
+            evaluate.setScoreStrategy(new PAI18Strategy(source, configuration.lsa));
+        } else {
+            logger.info("LSA is not specified. Falling back to the default strategy");
         }
 
         FileProvider files = new FileProvider(configuration.workdir);
@@ -764,8 +768,8 @@ public class Evaluate {
             watch.reset().start();
             evaluate.dumpFeatures(resolvedTrainingSet, files.train.scaled);
             evaluate.dumpFeatures(resolvedTestSet, files.test.scaled);
-            evaluate.dumpJointFeatures(resolvedTrainingSet, files.train.scaled);
-            evaluate.dumpJointFeatures(resolvedTestSet, files.test.scaled);
+            //evaluate.dumpJointFeatures(resolvedTrainingSet, files.train.scaled);
+            //evaluate.dumpJointFeatures(resolvedTestSet, files.test.scaled);
             logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
 
             logger.info("Dumping full experimental setting to JSON");
