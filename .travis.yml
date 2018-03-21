@@ -1,7 +1,7 @@
 language: java
 jdk: oraclejdk8
 script: 
-  - cd align && mvn install -q
+  - mvn install -q
 deploy:
   - provider: releases
     api_key:
