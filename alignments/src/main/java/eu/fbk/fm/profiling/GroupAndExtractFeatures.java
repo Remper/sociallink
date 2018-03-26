@@ -142,6 +142,16 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
             features.add(new Features.FeatureSet<>(user.getKey(), "social_graph", vector, 0L));
         }
 
+        try {
+            Files
+                .asCharSink(new File(outputPath, "social_graph.dict"), Charsets.UTF_8)
+                .writeLines(
+                    sgMapping.entrySet().stream()
+                        .map(entry -> entry.getKey() + "\t" + entry.getValue())
+                );
+        } catch (IOException e) {
+            LOGGER.error("Error happened while dumping dictionary for extractor social_graph", e);
+        }
         dumpFeatures(features, "social_graph", outputPath);
     }
 
@@ -203,12 +213,13 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
         // Statistics counters
         AtomicInteger withTimestamp = new AtomicInteger();
         AtomicInteger withoutTimestamp = new AtomicInteger();
-        AtomicInteger processedUsers = new AtomicInteger();
+        AtomicInteger processedTweets = new AtomicInteger();
 
         // Extracted features
         Extractor[] extractors = new Extractor[]{
-                new TextExtractor(this.lsa, this.uids),
-                new MentionedTextExtractor(this.lsa, this.uids)
+            new TextExtractor(this.lsa, this.uids),
+            new MentionedTextExtractor(this.lsa, this.uids),
+            new TextExtractor.TextExtractorLSA(this.lsa, this.uids)
         };
         HashMap<Extractor, Features> features = new HashMap<>();
         for (Extractor extractor : extractors) {
@@ -228,6 +239,10 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
                     }
                 })).async()
                 .runForeach(tweet -> {
+                    int processed = processedTweets.incrementAndGet();
+                    if (processed % 100000 == 0) {
+                        LOGGER.info(String.format("Processed %d tweets", processed));
+                    }
                     for (Extractor extractor : extractors) {
                         Features feature = features.get(extractor);
                         extractor.extract(tweet, feature);

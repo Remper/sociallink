@@ -17,6 +17,7 @@ public class MentionedTextExtractor extends TextExtractor {
         super(lsa, uids);
     }
 
+    @Override
     public void extract(JsonObject tweet, Features features, Long inheritedTimestamp) {
         receivedTweets.incrementAndGet();
         LinkedList<Features.TempFeatureSet> results = new LinkedList<>();
@@ -41,6 +42,7 @@ public class MentionedTextExtractor extends TextExtractor {
         }
     }
 
+    @Override
     public String getId() {
         return "mentioned_text_extractor";
     }

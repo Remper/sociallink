@@ -26,6 +26,28 @@ public class TextExtractor implements Extractor<BOW, Vector>, JsonObjectProcesso
         this.uids = ImmutableSet.<String>builder().addAll(uids).build();
     }
 
+    public static class TextExtractorLSA extends TextExtractor {
+
+        public TextExtractorLSA(LSM lsa, List<String> uids) {
+            super(lsa, uids);
+        }
+
+        @Override
+        public Features.FeatureSet<Vector> fin(Features.TempFeatureSet<BOW> f1) {
+            return new Features.FeatureSet<>(
+                f1.getName(),
+                this.getId(),
+                lsa.mapPseudoDocument(lsa.mapDocument(f1.getFeatures())),
+                f1.getTimestamp()
+            );
+        }
+
+        @Override
+        public String getId() {
+            return super.getId() + "_lsa";
+        }
+    }
+
     public void extract(JsonObject tweet, Features features) {
         extract(tweet, features, 0L);
     }
