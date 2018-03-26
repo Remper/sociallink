@@ -9,10 +9,15 @@ import com.google.gson.JsonObject;
 import eu.fbk.fm.alignments.index.BuildUserLSA;
 import eu.fbk.fm.alignments.utils.flink.GzipTextOutputFormat;
 import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
+import eu.fbk.fm.alignments.utils.flink.TextInputFormat;
 import eu.fbk.utils.core.CommandLine;
 import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.api.java.Utils;
+import org.apache.flink.api.java.io.TextOutputFormat;
+import org.apache.flink.api.java.operators.DataSource;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.util.Collector;
@@ -44,10 +49,16 @@ public class FilterUserData {
         final Configuration parameters = new Configuration();
         parameters.setBoolean("recursive.file.enumeration", true);
 
-        env
-            .readTextFile(inputPath).withParameters(parameters)
+        final DataSet<String> text = new DataSource<>(
+                env,
+                new TextInputFormat(new Path(inputPath)),
+                BasicTypeInfo.STRING_TYPE_INFO,
+                Utils.getCallLocationName()
+        ).withParameters(parameters);
+
+        text
             .flatMap(new Deserializer(uids))
-            .output(new GzipTextOutputFormat<>(new Path(outputPath)));
+            .output(new TextOutputFormat<>(new Path(outputPath)));
 
         env.execute();
     }
@@ -77,7 +88,9 @@ public class FilterUserData {
                 return true;
             }
 
-            //Check if one of the mentions is in the list
+            return false;
+
+            /*//Check if one of the mentions is in the list
             JsonArray rawMentions = entities.getAsJsonArray("user_mentions");
             for (JsonElement rawMention : rawMentions) {
                 String mentionName = get(rawMention.getAsJsonObject(), String.class, "screen_name");
@@ -93,7 +106,7 @@ public class FilterUserData {
             }
 
             //No match was found
-            return false;
+            return false;*/
         }
 
         @Override

@@ -7,11 +7,11 @@
     <parent>
         <groupId>eu.fbk.fm</groupId>
         <artifactId>sociallink</artifactId>
-        <version>2.0-SNAPSHOT</version>
+        <version>2.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>alignments</artifactId>
-    <version>2.0-SNAPSHOT</version>
+    <version>2.1-SNAPSHOT</version>
 
     <organization>
         <name>Fondazione Bruno Kessler</name>
@@ -35,6 +35,13 @@
     </developers>
 
     <dependencies>
+        <!-- Akka streams -->
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-stream_2.11</artifactId>
+            <version>${akka-version}</version>
+        </dependency>
+
         <!-- Flink -->
         <dependency>
             <groupId>org.apache.flink</groupId>
@@ -265,6 +272,7 @@
         <fbk-utils-version>3.1.1</fbk-utils-version>
         <flink-version>1.4.2</flink-version>
         <rdf4j-version>2.2.1</rdf4j-version>
+        <akka-version>2.5.11</akka-version>
     </properties>
 
     <build>
@@ -312,6 +320,34 @@
                 <configuration>
                     <mainClass>eu.fbk.ict.fm.smt.Application</mainClass>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.4.3</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>allinone</shadedClassifierName>
+                            <artifactSet>
+                                <includes>
+                                    <include>*:*</include>
+                                </includes>
+                            </artifactSet>
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>reference.conf</resource>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
