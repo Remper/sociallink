@@ -20,7 +20,7 @@ public class Features {
         this.addFeatureSet(type, name, features, 0L, producer);
     }
 
-    public <T> void addFeatureSet(TempFeatureSet.Type type, String name, T features, Long timestamp, Extractor<T, ?> producer) {
+    public synchronized <T> void addFeatureSet(TempFeatureSet.Type type, String name, T features, Long timestamp, Extractor<T, ?> producer) {
         TempFeatureSet<T> newFeature = new TempFeatureSet<>(type, name, features, timestamp, producer);
         TempFeatureSet<T> oldFeature = this.features.get(name);
         this.features.put(name, newFeature.merge(oldFeature));

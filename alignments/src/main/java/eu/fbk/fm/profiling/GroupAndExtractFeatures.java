@@ -2,23 +2,29 @@ package eu.fbk.fm.profiling;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
+import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.stream.*;
 import akka.stream.javadsl.*;
 import akka.util.ByteString;
 import com.google.common.base.Charsets;
+import com.google.common.base.Function;
 import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import eu.fbk.fm.alignments.index.db.Tables;
 import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
 import eu.fbk.fm.profiling.extractors.Extractor;
 import eu.fbk.fm.profiling.extractors.Features;
 import eu.fbk.fm.profiling.extractors.LSA.LSM;
+import eu.fbk.fm.profiling.extractors.MentionedTextExtractor;
 import eu.fbk.fm.profiling.extractors.TextExtractor;
 import eu.fbk.utils.core.CommandLine;
+import eu.fbk.utils.math.SparseVector;
 import eu.fbk.utils.math.Vector;
 import eu.fbk.utils.mylibsvm.svm_node;
+import org.jooq.Record2;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import org.slf4j.Logger;
@@ -29,6 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static eu.fbk.fm.alignments.index.db.tables.UserSg.USER_SG;
@@ -45,6 +52,7 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
     private static final String DB_PASSWORD = "db-password";
     private static final String RESULTS_PATH = "results-path";
     private static final String LIST_PATH = "list";
+    private static final String UID_LIST_PATH = "uid-list";
     private static final String TWEETS_PATH = "tweets-path";
     private static final String LSA_PATH = "lsa-path";
     private static final Gson GSON = new Gson();
@@ -97,13 +105,44 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
         }
     }
 
-    public void extractSocialGraph(String outputPath) {
-        /*for (String uid : uids) {
-            DSL.using(source, SQLDialect.POSTGRES)
-                    .select(USER_SG.fields())
+    public void extractSocialGraph(Map<String, Long> uidMapping, String outputPath) {
+        HashMap<Long, Integer> sgMapping = new HashMap<>();
+        List<Features.FeatureSet> features = new LinkedList<>();
+        int counter = 0;
+        for (Map.Entry<String, Long> user : uidMapping.entrySet()) {
+            Record2<Long[], Float[]> userVectorRaw =
+                DSL.using(source, SQLDialect.POSTGRES)
+                    .select(USER_SG.FOLLOWEES, USER_SG.WEIGHTS)
                     .from(USER_SG)
-                    .where(USER_SG.UID.eq());
-        }*/
+                    .where(USER_SG.UID.eq(user.getValue()))
+                    .fetchOne();
+
+            counter++;
+            if (counter % 4000 == 0) {
+                LOGGER.info("  [social_graph] processed "+counter+" users, added "+features.size());
+            }
+
+            if (userVectorRaw == null) {
+                //LOGGER.warn(String.format("User %s (%d) hasn't been found", user.getKey(), user.getValue()));
+                continue;
+            }
+
+            SparseVector vector = new SparseVector();
+            for (int i = 0; i < userVectorRaw.value1().length; i++) {
+                Long curId = userVectorRaw.value1()[i];
+                Float curWeight = userVectorRaw.value2()[i];
+
+                if (!sgMapping.containsKey(curId)) {
+                    sgMapping.put(curId, sgMapping.size());
+                }
+                int remappedId = sgMapping.get(curId);
+
+                vector.set(remappedId, curWeight);
+            }
+            features.add(new Features.FeatureSet<>(user.getKey(), "social_graph", vector, 0L));
+        }
+
+        dumpFeatures(features, "social_graph", outputPath);
     }
 
     public void start(String inputPath, String outputPath) {
@@ -167,7 +206,10 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
         AtomicInteger processedUsers = new AtomicInteger();
 
         // Extracted features
-        Extractor[] extractors = new Extractor[]{new TextExtractor(this.lsa, this.uids)};
+        Extractor[] extractors = new Extractor[]{
+                new TextExtractor(this.lsa, this.uids),
+                new MentionedTextExtractor(this.lsa, this.uids)
+        };
         HashMap<Extractor, Features> features = new HashMap<>();
         for (Extractor extractor : extractors) {
             features.put(extractor, new Features());
@@ -209,21 +251,25 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
 
     private void dumpExtractors(String outputPath, HashMap<Extractor, Features> features) {
         for (Extractor extractor : features.keySet()) {
-            try {
-                Collection<Features.FeatureSet> feature = features.get(extractor).getFeatures();
-                LOGGER.info(String.format("Users for extractor %s: %d", extractor.getId(), feature.size()));
-                LOGGER.info("  "+extractor.statsString());
+            Collection<Features.FeatureSet> feature = features.get(extractor).getFeatures();
+            LOGGER.info(String.format("Users for extractor %s: %d", extractor.getId(), feature.size()));
+            LOGGER.info("  "+extractor.statsString());
 
-                Files
-                    .asCharSink(new File(outputPath, extractor.getId()+".svm"), Charsets.UTF_8)
-                    .writeLines(
-                        feature
-                            .stream()
-                            .map(user -> user.name + " " + svm_node.toString(((Vector) user.features).toSvmNodeArray()))
-                    );
-            } catch (IOException e) {
-                LOGGER.error("Error happened while dumping users for extractor "+extractor.getId(), e);
-            }
+            dumpFeatures(feature, extractor.getId(), outputPath);
+        }
+    }
+
+    private void dumpFeatures(Collection<Features.FeatureSet> features, String extractorId, String outputPath) {
+        try {
+            Files
+                .asCharSink(new File(outputPath, extractorId+".svm"), Charsets.UTF_8)
+                .writeLines(
+                    features
+                        .stream()
+                        .map(user -> user.name + " " + svm_node.toString(((Vector) user.features).toSvmNodeArray()))
+                );
+        } catch (IOException e) {
+            LOGGER.error("Error happened while dumping users for extractor "+extractorId, e);
         }
     }
 
@@ -237,6 +283,9 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
                         CommandLine.Type.STRING, true, false, true)
                 .withOption(null, DB_PASSWORD,
                         "password for the database", "PASSWORD",
+                        CommandLine.Type.STRING, true, false, true)
+                .withOption(null, UID_LIST_PATH,
+                        "file with screen_name -> uid mapping", "FILE",
                         CommandLine.Type.STRING, true, false, true)
                 .withOption("t", TWEETS_PATH,
                         "specifies the directory from which to get a stream of tweets", "DIRECTORY",
@@ -267,6 +316,8 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
             //noinspection ConstantConditions
             final String listPath = cmd.getOptionValue(LIST_PATH, String.class);
             //noinspection ConstantConditions
+            final String uidListPath = cmd.getOptionValue(UID_LIST_PATH, String.class);
+            //noinspection ConstantConditions
             final String tweetsPath = cmd.getOptionValue(TWEETS_PATH, String.class);
             //noinspection ConstantConditions
             final String lsaPath = cmd.getOptionValue(LSA_PATH, String.class);
@@ -283,9 +334,23 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
                     .collect(Collectors.toList());
             LOGGER.info(String.format("Loaded %d uids", uids.size()));
 
+            Map<String, Long> uidMapping = new HashMap<>();
+            Files.asCharSource(new File(uidListPath), Charsets.UTF_8)
+                    .readLines().stream()
+                    .map(line -> line.split("\t"))
+                    .forEach(line -> {
+                        if (line.length < 2) {
+                            LOGGER.error("Faulty line: "+line[0]);
+                            return;
+                        }
+                        uidMapping.put(line[0].toLowerCase(), Long.valueOf(line[1]));
+                    });
+            LOGGER.info(String.format("Loaded %d uid mappings", uidMapping.size()));
+
             DataSource source = DBUtils.createPGDataSource(dbConnection, dbUser, dbPassword);
 
             GroupAndExtractFeatures extractor = new GroupAndExtractFeatures(source, lsaPath, uids);
+            extractor.extractSocialGraph(uidMapping, resultsPath);
             extractor.start(tweetsPath, resultsPath);
         } catch (final Throwable ex) {
             // Handle exception
