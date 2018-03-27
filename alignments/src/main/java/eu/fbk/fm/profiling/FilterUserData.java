@@ -85,12 +85,11 @@ public class FilterUserData {
             //Check if the author is in the list
             final String username = get(userObject, String.class, "screen_name");
             if (Arrays.stream(uids).anyMatch(username::equalsIgnoreCase)) {
-                return true;
+                //We have already extracted that earlier
+                return false;
             }
 
-            return false;
-
-            /*//Check if one of the mentions is in the list
+            //Check if one of the mentions is in the list
             JsonArray rawMentions = entities.getAsJsonArray("user_mentions");
             for (JsonElement rawMention : rawMentions) {
                 String mentionName = get(rawMention.getAsJsonObject(), String.class, "screen_name");
@@ -106,7 +105,7 @@ public class FilterUserData {
             }
 
             //No match was found
-            return false;*/
+            return false;
         }
 
         @Override

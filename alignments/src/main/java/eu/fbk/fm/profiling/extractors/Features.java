@@ -11,7 +11,7 @@ public class Features {
     }
 
     public Collection<FeatureSet> getFeatures() {
-        return features.values().stream()
+        return features.values().parallelStream()
                 .map(TempFeatureSet::fin)
                 .collect(Collectors.toList());
     }

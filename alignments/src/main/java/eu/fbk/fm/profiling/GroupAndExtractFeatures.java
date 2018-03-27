@@ -9,17 +9,15 @@ import akka.stream.javadsl.*;
 import akka.util.ByteString;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import eu.fbk.fm.alignments.index.db.Tables;
 import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
-import eu.fbk.fm.profiling.extractors.Extractor;
-import eu.fbk.fm.profiling.extractors.Features;
+import eu.fbk.fm.profiling.extractors.*;
 import eu.fbk.fm.profiling.extractors.LSA.LSM;
-import eu.fbk.fm.profiling.extractors.MentionedTextExtractor;
-import eu.fbk.fm.profiling.extractors.TextExtractor;
 import eu.fbk.utils.core.CommandLine;
 import eu.fbk.utils.math.SparseVector;
 import eu.fbk.utils.math.Vector;
@@ -58,10 +56,10 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
     private static final Gson GSON = new Gson();
 
     private final DataSource source;
-    private final List<String> uids;
+    private final ImmutableSet<String> uids;
     private final LSM lsa;
 
-    public GroupAndExtractFeatures(DataSource source, String lsaPath, List<String> uids) throws IOException {
+    public GroupAndExtractFeatures(DataSource source, String lsaPath, ImmutableSet<String> uids) throws IOException {
         this.source = source;
         this.uids = uids;
         this.lsa = new LSM(lsaPath+"/X", 100, true);
@@ -216,10 +214,12 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
         AtomicInteger processedTweets = new AtomicInteger();
 
         // Extracted features
+        HashtagExtractor hashtagExtractor = new HashtagExtractor(this.uids);
         Extractor[] extractors = new Extractor[]{
             new TextExtractor(this.lsa, this.uids),
             new MentionedTextExtractor(this.lsa, this.uids),
-            new TextExtractor.TextExtractorLSA(this.lsa, this.uids)
+            new TextExtractor.TextExtractorLSA(this.lsa, this.uids),
+            hashtagExtractor
         };
         HashMap<Extractor, Features> features = new HashMap<>();
         for (Extractor extractor : extractors) {
@@ -260,8 +260,22 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
                     }
                     LOGGER.info(String.format("Processed %d tweets", withoutTimestamp.get() + withTimestamp.get()));
                     dumpExtractors(outputPath, features);
+                    dumpHashtagExtractorToFile(outputPath, hashtagExtractor);
+
                     system.terminate();
                 });
+    }
+
+    private void dumpHashtagExtractorToFile(String outputPath, HashtagExtractor extractor) {
+        try {
+            Files
+                .asCharSink(new File(outputPath, extractor.getId()+".dict"), Charsets.UTF_8)
+                .writeLines(
+                    extractor.getDictionary().map(HashtagExtractor.DictTerm::toString)
+                );
+        } catch (IOException e) {
+            LOGGER.error("Error happened while dumping dictionary for extractor social_graph", e);
+        }
     }
 
     private void dumpExtractors(String outputPath, HashMap<Extractor, Features> features) {
@@ -343,10 +357,12 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
                 resultsPath = tweetsPath;
             }
 
-            List<String> uids = Files.asCharSource(new File(listPath), Charsets.UTF_8)
+            ImmutableSet<String> uids = ImmutableSet.<String>builder().addAll(
+                Files.asCharSource(new File(listPath), Charsets.UTF_8)
                     .readLines().stream()
                     .map(line -> line.split(",")[1].toLowerCase())
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toList())
+            ).build();
             LOGGER.info(String.format("Loaded %d uids", uids.size()));
 
             Map<String, Long> uidMapping = new HashMap<>();
@@ -365,7 +381,7 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
             DataSource source = DBUtils.createPGDataSource(dbConnection, dbUser, dbPassword);
 
             GroupAndExtractFeatures extractor = new GroupAndExtractFeatures(source, lsaPath, uids);
-            extractor.extractSocialGraph(uidMapping, resultsPath);
+            //extractor.extractSocialGraph(uidMapping, resultsPath);
             extractor.start(tweetsPath, resultsPath);
         } catch (final Throwable ex) {
             // Handle exception

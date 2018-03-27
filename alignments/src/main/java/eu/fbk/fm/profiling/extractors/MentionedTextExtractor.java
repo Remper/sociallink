@@ -1,5 +1,6 @@
 package eu.fbk.fm.profiling.extractors;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -7,13 +8,12 @@ import eu.fbk.fm.profiling.extractors.LSA.BOW;
 import eu.fbk.fm.profiling.extractors.LSA.LSM;
 
 import java.util.LinkedList;
-import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static eu.fbk.fm.profiling.extractors.Features.TempFeatureSet.Type.AVG;
 
 public class MentionedTextExtractor extends TextExtractor {
-    public MentionedTextExtractor(LSM lsa, List<String> uids) {
+    public MentionedTextExtractor(LSM lsa, ImmutableSet<String> uids) {
         super(lsa, uids);
     }
 

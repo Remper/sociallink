@@ -21,14 +21,14 @@ public class TextExtractor implements Extractor<BOW, Vector>, JsonObjectProcesso
     protected final AtomicInteger receivedTweets = new AtomicInteger();
     protected final AtomicInteger addedSamples = new AtomicInteger();
 
-    public TextExtractor(LSM lsa, List<String> uids) {
+    public TextExtractor(LSM lsa, ImmutableSet<String> uids) {
         this.lsa = lsa;
-        this.uids = ImmutableSet.<String>builder().addAll(uids).build();
+        this.uids = uids;
     }
 
     public static class TextExtractorLSA extends TextExtractor {
 
-        public TextExtractorLSA(LSM lsa, List<String> uids) {
+        public TextExtractorLSA(LSM lsa, ImmutableSet<String> uids) {
             super(lsa, uids);
         }
 
