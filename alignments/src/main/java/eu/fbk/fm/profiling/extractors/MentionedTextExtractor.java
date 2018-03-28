@@ -6,6 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import eu.fbk.fm.profiling.extractors.LSA.BOW;
 import eu.fbk.fm.profiling.extractors.LSA.LSM;
+import eu.fbk.utils.math.Vector;
 
 import java.util.LinkedList;
 
@@ -15,6 +16,28 @@ import static eu.fbk.fm.profiling.extractors.Features.TempFeatureSet.Type.AVG;
 public class MentionedTextExtractor extends TextExtractor {
     public MentionedTextExtractor(LSM lsa, ImmutableSet<String> uids) {
         super(lsa, uids);
+    }
+
+    public static class MentionedTextExtractorLSA extends MentionedTextExtractor {
+
+        public MentionedTextExtractorLSA(LSM lsa, ImmutableSet<String> uids) {
+            super(lsa, uids);
+        }
+
+        @Override
+        public Features.FeatureSet<Vector> fin(Features.TempFeatureSet<BOW> f1) {
+            return new Features.FeatureSet<>(
+                f1.getName(),
+                this.getId(),
+                lsa.mapPseudoDocument(lsa.mapDocument(f1.getFeatures())),
+                f1.getTimestamp()
+            );
+        }
+
+        @Override
+        public String getId() {
+            return super.getId() + "_lsa";
+        }
     }
 
     @Override

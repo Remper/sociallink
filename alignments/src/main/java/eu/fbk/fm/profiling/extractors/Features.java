@@ -16,14 +16,26 @@ public class Features {
                 .collect(Collectors.toList());
     }
 
+    public int getSize() {
+        return features.size();
+    }
+
     public <T> void addFeatureSet(TempFeatureSet.Type type, String name, T features, Extractor<T, ?> producer) {
         this.addFeatureSet(type, name, features, 0L, producer);
     }
 
-    public synchronized <T> void addFeatureSet(TempFeatureSet.Type type, String name, T features, Long timestamp, Extractor<T, ?> producer) {
+    public <T> void addFeatureSet(TempFeatureSet.Type type, String name, T features, Long timestamp, Extractor<T, ?> producer) {
         TempFeatureSet<T> newFeature = new TempFeatureSet<>(type, name, features, timestamp, producer);
+        synchronized (this) {
+            if (!this.features.containsKey(name)) {
+                this.features.put(name, newFeature);
+            }
+        }
         TempFeatureSet<T> oldFeature = this.features.get(name);
-        this.features.put(name, newFeature.merge(oldFeature));
+        TempFeatureSet<T> mergedFeature = oldFeature.merge(newFeature);
+        if (mergedFeature != oldFeature) {
+            throw new RuntimeException("MAX is not supported yet for performance reasons");
+        }
     }
 
     public static class FeatureSet<T> {
@@ -70,9 +82,9 @@ public class Features {
 
             if (set.getType() == Type.MAX) {
                 if (set.getTimestamp() > timestamp) {
-                    return set.clone();
+                    return set;
                 } else {
-                    return this.clone();
+                    return this;
                 }
             }
 

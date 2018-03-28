@@ -85,18 +85,17 @@ public class FilterUserData {
             //Check if the author is in the list
             final String username = get(userObject, String.class, "screen_name");
             if (Arrays.stream(uids).anyMatch(username::equalsIgnoreCase)) {
-                //We have already extracted that earlier
-                return false;
+                return true;
             }
 
             //Check if one of the mentions is in the list
-            JsonArray rawMentions = entities.getAsJsonArray("user_mentions");
+            /*JsonArray rawMentions = entities.getAsJsonArray("user_mentions");
             for (JsonElement rawMention : rawMentions) {
                 String mentionName = get(rawMention.getAsJsonObject(), String.class, "screen_name");
                 if (Arrays.stream(uids).anyMatch(mentionName::equalsIgnoreCase)) {
                     return true;
                 }
-            }
+            }*/
 
             //Check if the author of the original tweet is in the list
             final String originalAuthor = get(object, String.class, "retweeted_status", "user", "screen_name");

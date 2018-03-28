@@ -2,18 +2,15 @@ package eu.fbk.fm.profiling;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
-import akka.japi.Pair;
-import akka.japi.pf.PFBuilder;
+import akka.japi.function.Procedure;
 import akka.stream.*;
 import akka.stream.javadsl.*;
 import akka.util.ByteString;
 import com.google.common.base.Charsets;
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import eu.fbk.fm.alignments.index.db.Tables;
 import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
 import eu.fbk.fm.profiling.extractors.*;
@@ -33,7 +30,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static eu.fbk.fm.alignments.index.db.tables.UserSg.USER_SG;
@@ -154,6 +150,7 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
     }
 
     public void start(String inputPath, String outputPath) {
+        final int factor = 5;
         LinkedList<File> files = new LinkedList<>();
         for (File file : new File(inputPath).listFiles()) {
             if (file.getName().startsWith(".") || file.isDirectory()) {
@@ -176,6 +173,25 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
                         .delimiter(ByteString.fromString(System.lineSeparator()), Integer.MAX_VALUE, FramingTruncation.ALLOW)
                         .map(ByteString::utf8String);
 
+        Flow<String, JsonObject, NotUsed> deserialize =
+                Flow.fromGraph(GraphDSL.create(b -> {
+                    final UniformFanInShape<JsonObject, JsonObject> mergeDeserialization =
+                            b.add(Merge.create(factor));
+                    final UniformFanOutShape<String, String> dispatchDeserialization =
+                            b.add(Balance.create(factor));
+                    final Flow<String, JsonObject, NotUsed> deserializator =
+                            Flow.of(String.class).map(tweet -> GSON.fromJson(tweet, JsonObject.class));
+
+                    for (int i=0; i<factor; i++) {
+
+                        b.from(dispatchDeserialization.out(i))
+                            .via(b.add(deserializator.async()))
+                            .toInlet(mergeDeserialization.in(i));
+                    }
+
+                    return FlowShape.of(dispatchDeserialization.in(), mergeDeserialization.out());
+                }));
+
         Flow<File, JsonObject, NotUsed> tweets =
                 Flow.of(File.class)
                         .flatMapMerge(files.size(), file -> FileIO
@@ -184,8 +200,8 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
                                 //        .gunzip(4096)
                                 //        .recoverWithRetries(1, new PFBuilder<Throwable, Source<ByteString, NotUsed>>().matchAny(ex -> Source.single(ByteString.empty())).build())
                                 //).async()
-                                .via(lineSplit).async())
-                        .map(tweet -> GSON.fromJson(tweet, JsonObject.class)).async();
+                                .via(lineSplit).async()).async()
+                        .via(deserialize).async();
 
         Flow<JsonObject, IdTimedUser, NotUsed> userObjects =
                 Flow.of(JsonObject.class)
@@ -218,6 +234,7 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
         Extractor[] extractors = new Extractor[]{
             new TextExtractor(this.lsa, this.uids),
             new MentionedTextExtractor(this.lsa, this.uids),
+            new MentionedTextExtractor.MentionedTextExtractorLSA(this.lsa, this.uids),
             new TextExtractor.TextExtractorLSA(this.lsa, this.uids),
             hashtagExtractor
         };
@@ -225,45 +242,85 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
         for (Extractor extractor : extractors) {
             features.put(extractor, new Features());
         }
+        LOGGER.info(String.format("Initialised %d extractors", extractors.length));
+
+        Flow<JsonObject, Boolean, NotUsed> featureExtractor =
+            Flow.fromGraph(GraphDSL.create(b -> {
+                final UniformFanInShape<Boolean, Boolean> mergeExtractor =
+                        b.add(Merge.create(extractors.length*factor));
+                final UniformFanOutShape<JsonObject, JsonObject> dispatchExtractors =
+                        b.add(Broadcast.create(extractors.length));
+                final List<UniformFanOutShape<JsonObject, JsonObject>> dispatchByFactor = new ArrayList<>(extractors.length);
+                for (Extractor extractor : extractors) {
+                    dispatchByFactor.add(b.add(Balance.create(factor)));
+                }
+
+                for (int i=0; i<extractors.length; i++) {
+                    final int index = i;
+                    final Features feature = features.get(extractors[index]);
+                    final Flow<JsonObject, Boolean, NotUsed> extractor = Flow.of(JsonObject.class)
+                        .map(tweet -> {
+                            extractors[index].extract(tweet, feature);
+                            return true;
+                        });
+
+                    b.from(dispatchExtractors.out(i))
+                        .toInlet(dispatchByFactor.get(i).in());
+
+                    for (int j=0; j<factor; j++) {
+                        b.from(dispatchByFactor.get(i).out(j))
+                            .via(b.add(extractor.async()))
+                            .toInlet(mergeExtractor.in(i*factor+j));
+                    }
+                }
+
+                return FlowShape.of(dispatchExtractors.in(), mergeExtractor.out());
+            }));
 
         Source
-                .from(files)
-                .alsoTo(Sink.foreach(file -> LOGGER.info("File found: " + file.toString())))
-                .via(tweets)
-                .alsoTo(Sink.foreach(tweet -> {
-                    Long timestamp = get(tweet, Long.class, "timestamp_ms");
-                    int with = timestamp != null ? withTimestamp.incrementAndGet() : withTimestamp.get();
-                    int without = timestamp != null ? withoutTimestamp.get() : withoutTimestamp.incrementAndGet();
-                    if ((with + without) % 50000 == 0) {
-                        LOGGER.info(String.format("With ts: %4dk Without ts: %4dk", with / 1000, without / 1000));
+            .from(files)
+            .alsoTo(Sink.foreach(file -> LOGGER.info("File found: " + file.toString())))
+            .via(tweets)
+            .alsoTo(Sink.foreach(tweet -> {
+                Long timestamp = get(tweet, Long.class, "timestamp_ms");
+                int with = timestamp != null ? withTimestamp.incrementAndGet() : withTimestamp.get();
+                int without = timestamp != null ? withoutTimestamp.get() : withoutTimestamp.incrementAndGet();
+                if ((with + without) % 50000 == 0) {
+                    int withOutput = with / 1000;
+                    String withSymbol = "k";
+                    if (with > 1000000) {
+                        withOutput = with / 1000000;
+                        withSymbol = "m";
                     }
-                })).async()
-                .runForeach(tweet -> {
-                    int processed = processedTweets.incrementAndGet();
-                    if (processed % 100000 == 0) {
-                        LOGGER.info(String.format("Processed %d tweets", processed));
+                    LOGGER.info(String.format("With ts: %4d%s Without ts: %4dk", withOutput, withSymbol, without / 1000));
+                }
+            })).async()
+            .via(featureExtractor).async()
+            .runForeach(res -> {
+                int processed = processedTweets.incrementAndGet();
+                if (processed % (400000*extractors.length) == 0) {
+                    LOGGER.info(String.format("Processed %.1fm tweets by %d extractors", ((float) processed / extractors.length) / 1000000, extractors.length));
+                    for (Map.Entry<Extractor, Features> entry : features.entrySet()) {
+                        LOGGER.info(String.format("  [%s] dict size: %d", entry.getKey().getId(), entry.getValue().getSize()));
                     }
-                    for (Extractor extractor : extractors) {
-                        Features feature = features.get(extractor);
-                        extractor.extract(tweet, feature);
-                    }
-                }, materializer)
-                /*.via(userObjects)
-                .via(filterUsers)
-                .via(pickLatestUserObject)
-                .alsoTo(Sink.foreach(file -> processedUsers.incrementAndGet())).async()
-                .via(serializeForOutput)
-                .runWith(FileIO.toPath(new File(outputPath, "users.json").toPath()), materializer)*/
-                .whenComplete((ioResult, throwable) -> {
-                    if (throwable != null) {
-                        LOGGER.error("Something happened during the execution", throwable);
-                    }
-                    LOGGER.info(String.format("Processed %d tweets", withoutTimestamp.get() + withTimestamp.get()));
-                    dumpExtractors(outputPath, features);
-                    dumpHashtagExtractorToFile(outputPath, hashtagExtractor);
+                }
+            }, materializer)
+            /*.via(userObjects)
+            .via(filterUsers)
+            .via(pickLatestUserObject)
+            .alsoTo(Sink.foreach(file -> processedUsers.incrementAndGet())).async()
+            .via(serializeForOutput)
+            .runWith(FileIO.toPath(new File(outputPath, "users.json").toPath()), materializer)*/
+            .whenComplete((ioResult, throwable) -> {
+                if (throwable != null) {
+                    LOGGER.error("Something happened during the execution", throwable);
+                }
+                LOGGER.info(String.format("Processed %d tweets", withoutTimestamp.get() + withTimestamp.get()));
+                dumpExtractors(outputPath, features);
+                dumpHashtagExtractorToFile(outputPath, hashtagExtractor);
 
-                    system.terminate();
-                });
+                system.terminate();
+            });
     }
 
     private void dumpHashtagExtractorToFile(String outputPath, HashtagExtractor extractor) {

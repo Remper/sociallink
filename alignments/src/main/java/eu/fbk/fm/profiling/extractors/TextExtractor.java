@@ -78,8 +78,10 @@ public class TextExtractor implements Extractor<BOW, Vector>, JsonObjectProcesso
     }
 
     public Features.TempFeatureSet<BOW> merge(Features.TempFeatureSet<BOW> f1, Features.TempFeatureSet<BOW> f2) {
-        Features.TempFeatureSet<BOW> result = f1.clone();
-        result.getFeatures().add(f2.getFeatures());
+        Features.TempFeatureSet<BOW> result = f1;
+        synchronized (result) {
+            result.getFeatures().add(f2.getFeatures());
+        }
 
         return result;
     }
