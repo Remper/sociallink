@@ -26,16 +26,20 @@ public class SocialGraphEmbeddings extends EmbeddingsProvider {
 
     @Override
     public double[] _getFeatures(User user, DBpediaResource resource) {
-        Record2<Long[], Float[]> userVectorRaw = context
-                .select(USER_SG.FOLLOWEES, USER_SG.WEIGHTS)
-                .from(USER_SG)
-                .where(USER_SG.UID.eq(user.getId()))
-                .fetchOne();
+        Record2<Long[], Float[]> userVectorRaw = getUserVectorFromDb(user.getId());
 
         if (userVectorRaw == null) {
             return predict((Serializable[]) new Long[0]);
         }
 
         return predict((Serializable[]) userVectorRaw.value1(), userVectorRaw.value2());
+    }
+
+    public Record2<Long[], Float[]> getUserVectorFromDb(long id) {
+        return context
+                .select(USER_SG.FOLLOWEES, USER_SG.WEIGHTS)
+                .from(USER_SG)
+                .where(USER_SG.UID.eq(id))
+                .fetchOne();
     }
 }

@@ -11,23 +11,25 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import eu.fbk.fm.alignments.scorer.embeddings.SocialGraphEmbeddings;
 import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
 import eu.fbk.fm.profiling.extractors.*;
 import eu.fbk.fm.profiling.extractors.LSA.LSM;
 import eu.fbk.utils.core.CommandLine;
+import eu.fbk.utils.math.DenseVector;
 import eu.fbk.utils.math.SparseVector;
 import eu.fbk.utils.math.Vector;
 import eu.fbk.utils.mylibsvm.svm_node;
 import org.jooq.Record2;
-import org.jooq.SQLDialect;
-import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
+import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -99,27 +101,44 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
         }
     }
 
+    private DenseVector doubleToDense(double[] source) {
+        DenseVector result = new DenseVector(source.length);
+        for (int i = 0; i < source.length; i++) {
+            result.set(i, (float) source[i]);
+        }
+        return result;
+    }
+
     public void extractSocialGraph(Map<String, Long> uidMapping, String outputPath) {
         HashMap<Long, Integer> sgMapping = new HashMap<>();
-        List<Features.FeatureSet> features = new LinkedList<>();
+        List<Features.FeatureSet> featuresSparse = new LinkedList<>();
+        List<Features.FeatureSet> featuresDense = new LinkedList<>();
         int counter = 0;
+        SocialGraphEmbeddings embeddings;
+        try {
+            embeddings = new SocialGraphEmbeddings(source, "sg300");
+        } catch (URISyntaxException e) {
+            LOGGER.error("Error while instantiating user embeddings object", e);
+            return;
+        }
         for (Map.Entry<String, Long> user : uidMapping.entrySet()) {
-            Record2<Long[], Float[]> userVectorRaw =
-                DSL.using(source, SQLDialect.POSTGRES)
-                    .select(USER_SG.FOLLOWEES, USER_SG.WEIGHTS)
-                    .from(USER_SG)
-                    .where(USER_SG.UID.eq(user.getValue()))
-                    .fetchOne();
+            Record2<Long[], Float[]> userVectorRaw = embeddings.getUserVectorFromDb(user.getValue());
 
             counter++;
             if (counter % 4000 == 0) {
-                LOGGER.info("  [social_graph] processed "+counter+" users, added "+features.size());
+                LOGGER.info(String.format(
+                        "  [social_graph] processed %d users, sparse: %d, dense: %d",
+                        counter, featuresSparse.size(), featuresDense.size()));
             }
 
             if (userVectorRaw == null) {
-                //LOGGER.warn(String.format("User %s (%d) hasn't been found", user.getKey(), user.getValue()));
+                double[] emb = embeddings.predict((Serializable[]) new Long[0]);
+                featuresDense.add(new Features.FeatureSet<>(user.getKey(), "social_graph", doubleToDense(emb), 0L));
                 continue;
             }
+
+            double[] emb = embeddings.predict((Serializable[]) userVectorRaw.value1(), userVectorRaw.value2());
+            featuresDense.add(new Features.FeatureSet<>(user.getKey(), "social_graph", doubleToDense(emb), 0L));
 
             SparseVector vector = new SparseVector();
             for (int i = 0; i < userVectorRaw.value1().length; i++) {
@@ -133,7 +152,7 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
 
                 vector.set(remappedId, curWeight);
             }
-            features.add(new Features.FeatureSet<>(user.getKey(), "social_graph", vector, 0L));
+            featuresSparse.add(new Features.FeatureSet<>(user.getKey(), "social_graph", vector, 0L));
         }
 
         try {
@@ -146,7 +165,8 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
         } catch (IOException e) {
             LOGGER.error("Error happened while dumping dictionary for extractor social_graph", e);
         }
-        dumpFeatures(features, "social_graph", outputPath);
+        dumpFeatures(featuresSparse, "social_graph", outputPath);
+        dumpFeatures(featuresDense, "social_graph_emb", outputPath);
     }
 
     public void start(String inputPath, String outputPath) {
@@ -288,13 +308,13 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
                 int with = timestamp != null ? withTimestamp.incrementAndGet() : withTimestamp.get();
                 int without = timestamp != null ? withoutTimestamp.get() : withoutTimestamp.incrementAndGet();
                 if ((with + without) % 50000 == 0) {
-                    int withOutput = with / 1000;
+                    float withOutput = (float) with / 1000;
                     String withSymbol = "k";
                     if (with > 1000000) {
-                        withOutput = with / 1000000;
+                        withOutput = (float) with / 1000000;
                         withSymbol = "m";
                     }
-                    LOGGER.info(String.format("With ts: %4d%s Without ts: %4dk", withOutput, withSymbol, without / 1000));
+                    LOGGER.info(String.format("With ts: %4.2f%s Without ts: %4dk", withOutput, withSymbol, without / 1000));
                 }
             })).async()
             .via(featureExtractor).async()
@@ -343,8 +363,11 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
     private void dumpProfileExtractorToFile(String outputPath, ProfileExtractor extractor) {
         try {
             Files
-                    .asCharSink(new File(outputPath, extractor.getId()+".lang.dict"), Charsets.UTF_8)
-                    .writeLines(extractor.getDictionary());
+                .asCharSink(new File(outputPath, extractor.getId()+".lang.dict"), Charsets.UTF_8)
+                .writeLines(extractor.getLanguages());
+            Files
+                .asCharSink(new File(outputPath, extractor.getId()+".domain.dict"), Charsets.UTF_8)
+                .writeLines(extractor.getDomains());
         } catch (IOException e) {
             LOGGER.error("Error happened while dumping dictionary for extractor "+extractor.getId(), e);
         }

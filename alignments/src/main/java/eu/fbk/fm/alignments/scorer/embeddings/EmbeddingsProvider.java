@@ -73,11 +73,11 @@ public abstract class EmbeddingsProvider implements FeatureVectorProvider, JsonO
         url = new URIBuilder().setScheme("http").setHost(host).setPort(port).setPath("/transform/"+embName).build();
     }
 
-    protected double[] predict(Serializable[] features) {
+    public double[] predict(Serializable[] features) {
         return predict(features, null);
     }
 
-    protected double[] predict(Serializable[] features, Float[] weights) {
+    public double[] predict(Serializable[] features, Float[] weights) {
         Gson gson = new GsonBuilder().create();
         double[] result = null;
         CloseableHttpResponse response = null;

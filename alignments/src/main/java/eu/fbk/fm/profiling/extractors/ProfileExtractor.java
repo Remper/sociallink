@@ -11,7 +11,10 @@ import eu.fbk.utils.math.Vector;
 
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -24,11 +27,15 @@ public class ProfileExtractor implements Extractor<DenseVector, DenseVector>, Js
     protected final AtomicInteger receivedTweets = new AtomicInteger();
     protected final AtomicInteger addedProfiles = new AtomicInteger();
     protected final HashMap<String, Integer> languages;
+    protected final HashMap<String, Integer> domains;
+
+    private static final Pattern DOMAIN_PATTERN = Pattern.compile("^(https?://)?([\\p{L}0-9]+\\.)+([\\p{L}]+)(/.*)?$");
 
     public ProfileExtractor(LSM lsa, ImmutableSet<String> uids) {
         this.uids = uids;
         this.lsa = lsa;
         this.languages = new HashMap<>();
+        this.domains = new HashMap<>();
     }
 
     public void extract(JsonObject tweet, Features features) {
@@ -54,6 +61,7 @@ public class ProfileExtractor implements Extractor<DenseVector, DenseVector>, Js
         if (this.uids.contains(author)) {
             float[] vector = new float[]{
                 (float) registerLanguage(user),
+                (float) registerDomain(user),
                 getIntFeature(user, "followers_count"),
                 getIntFeature(user, "friends_count"),
                 getIntFeature(user, "listed_count"),
@@ -67,7 +75,7 @@ public class ProfileExtractor implements Extractor<DenseVector, DenseVector>, Js
                 getBoolFeature(user, "default_profile"),
                 getBoolFeature(user, "default_profile_image")
             };
-            DenseVector textVector = getTextualFeature(user, "text");
+            DenseVector textVector = getTextualFeature(user, "description");
             DenseVector result = new DenseVector(vector.length + textVector.size());
             for (int i = 0; i < vector.length; i++) {
                 result.set(i, vector[i]);
@@ -86,21 +94,40 @@ public class ProfileExtractor implements Extractor<DenseVector, DenseVector>, Js
         }
     }
 
+    private int registerDomain(JsonObject user) {
+        String url = get(user, String.class, "url");
+        String domain = "none";
+        if (url != null) {
+            url = url.toLowerCase();
+            Matcher m = DOMAIN_PATTERN.matcher(url);
+            if (m.matches()) {
+                domain = m.group(3);
+            } else {
+                domain = "none";
+            }
+        }
+        return registerNominalValue(domain, domains);
+    }
+
     private int registerLanguage(JsonObject user) {
         String language = get(user, String.class, "lang");
         if (language == null) {
             language = "none";
         }
-        if (languages.containsKey(language)) {
-            return languages.get(language);
+        return registerNominalValue(language, languages);
+    }
+
+    private int registerNominalValue(String value, Map<String, Integer> dictionary) {
+        if (dictionary.containsKey(value)) {
+            return dictionary.get(value);
         }
 
         synchronized (this) {
-            if (!languages.containsKey(language)) {
-                languages.put(language, languages.size());
+            if (!dictionary.containsKey(value)) {
+                dictionary.put(value, dictionary.size());
             }
         }
-        return languages.get(language);
+        return dictionary.get(value);
     }
 
     private DenseVector getTextualFeature(JsonObject user, String property) {
@@ -144,10 +171,17 @@ public class ProfileExtractor implements Extractor<DenseVector, DenseVector>, Js
     @Override
     public Features.FeatureSet<DenseVector> fin(Features.TempFeatureSet<DenseVector> f1) {
         DenseVector f1vec = f1.getFeatures();
-        DenseVector result = new DenseVector(languages.size()+f1vec.size()-1);
-        result.set((int) f1.getFeatures().get(0), 1.0f);
-        for (int i = 1; i < f1vec.size(); i++) {
-            result.set(i + languages.size() - 1, f1vec.get(i));
+        float[] nominalFeatures = concat(
+            nominalToArray((int) f1.getFeatures().get(0), languages),
+            nominalToArray((int) f1.getFeatures().get(1), domains)
+        );
+        final int offset = 2;
+        DenseVector result = new DenseVector(nominalFeatures.length+f1vec.size()-offset);
+        for (int i = 0; i < nominalFeatures.length; i++) {
+            result.set(i, nominalFeatures[i]);
+        }
+        for (int i = offset; i < f1vec.size(); i++) {
+            result.set(i + nominalFeatures.length - offset, f1vec.get(i));
         }
 
         return new Features.FeatureSet<>(
@@ -158,8 +192,37 @@ public class ProfileExtractor implements Extractor<DenseVector, DenseVector>, Js
         );
     }
 
-    public Stream<String> getDictionary() {
-        return languages.keySet().stream().map(lang -> String.format("%d\t%s", languages.get(lang), lang));
+    private float[] nominalToArray(int index, Map<String, Integer> dictionary) {
+        float[] result = new float[dictionary.size()];
+        result[index] = 1.0f;
+        return result;
+    }
+
+    private float[] concat(final float[]... arrays) {
+        int size = 0;
+        for (float[] array : arrays) {
+            size += array.length;
+        }
+        float[] result = new float[size];
+        int offset = 0;
+        for (float[] array : arrays) {
+            for (float value : array) {
+                result[offset++] = value;
+            }
+        }
+        return result;
+    }
+
+    private Stream<String> getDictionary(Map<String, Integer> dictionary) {
+        return dictionary.keySet().stream().map(lang -> String.format("%d\t%s", dictionary.get(lang), lang));
+    }
+
+    public Stream<String> getLanguages() {
+        return getDictionary(languages);
+    }
+
+    public Stream<String> getDomains() {
+        return getDictionary(domains);
     }
 
     @Override
