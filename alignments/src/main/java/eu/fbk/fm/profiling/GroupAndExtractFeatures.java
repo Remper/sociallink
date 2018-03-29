@@ -231,12 +231,14 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
 
         // Extracted features
         HashtagExtractor hashtagExtractor = new HashtagExtractor(this.uids);
+        ProfileExtractor profileExtractor = new ProfileExtractor(this.lsa, this.uids);
         Extractor[] extractors = new Extractor[]{
             new TextExtractor(this.lsa, this.uids),
             new MentionedTextExtractor(this.lsa, this.uids),
             new MentionedTextExtractor.MentionedTextExtractorLSA(this.lsa, this.uids),
             new TextExtractor.TextExtractorLSA(this.lsa, this.uids),
-            hashtagExtractor
+            hashtagExtractor,
+            profileExtractor
         };
         HashMap<Extractor, Features> features = new HashMap<>();
         for (Extractor extractor : extractors) {
@@ -317,7 +319,10 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
                 }
                 LOGGER.info(String.format("Processed %d tweets", withoutTimestamp.get() + withTimestamp.get()));
                 dumpExtractors(outputPath, features);
+                LOGGER.info("Dumping hashtag dictionary");
                 dumpHashtagExtractorToFile(outputPath, hashtagExtractor);
+                LOGGER.info("Dumping profile dictionary");
+                dumpProfileExtractorToFile(outputPath, profileExtractor);
 
                 system.terminate();
             });
@@ -331,7 +336,17 @@ public class GroupAndExtractFeatures implements JsonObjectProcessor {
                     extractor.getDictionary().map(HashtagExtractor.DictTerm::toString)
                 );
         } catch (IOException e) {
-            LOGGER.error("Error happened while dumping dictionary for extractor social_graph", e);
+            LOGGER.error("Error happened while dumping dictionary for extractor "+extractor.getId(), e);
+        }
+    }
+
+    private void dumpProfileExtractorToFile(String outputPath, ProfileExtractor extractor) {
+        try {
+            Files
+                    .asCharSink(new File(outputPath, extractor.getId()+".lang.dict"), Charsets.UTF_8)
+                    .writeLines(extractor.getDictionary());
+        } catch (IOException e) {
+            LOGGER.error("Error happened while dumping dictionary for extractor "+extractor.getId(), e);
         }
     }
 

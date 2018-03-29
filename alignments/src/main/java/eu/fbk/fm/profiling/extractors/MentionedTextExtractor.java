@@ -60,6 +60,7 @@ public class MentionedTextExtractor extends TextExtractor {
             final String mentionName = get(rawMention.getAsJsonObject(), String.class, "screen_name").toLowerCase();
             if (this.uids.contains(mentionName)) {
                 final BOW bow = new BOW(text);
+                addedSamples.incrementAndGet();
                 features.addFeatureSet(AVG, mentionName, bow, timestamp, this);
             }
         }

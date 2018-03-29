@@ -34,7 +34,7 @@ public class Features {
         TempFeatureSet<T> oldFeature = this.features.get(name);
         TempFeatureSet<T> mergedFeature = oldFeature.merge(newFeature);
         if (mergedFeature != oldFeature) {
-            throw new RuntimeException("MAX is not supported yet for performance reasons");
+            throw new RuntimeException("Consistency issue: by convention the first parameter should always be chosen");
         }
     }
 
@@ -57,8 +57,8 @@ public class Features {
         public enum Type{MAX, AVG}
 
         private final String name;
-        private final T features;
-        private final Long timestamp;
+        private T features;
+        private Long timestamp;
         private final Type type;
         private final Extractor<T, ?> producer;
 
@@ -101,6 +101,14 @@ public class Features {
 
         public Long getTimestamp() {
             return timestamp;
+        }
+
+        public void setFeatures(T features) {
+            this.features = features;
+        }
+
+        public void setTimestamp(Long timestamp) {
+            this.timestamp = timestamp;
         }
 
         public Type getType() {

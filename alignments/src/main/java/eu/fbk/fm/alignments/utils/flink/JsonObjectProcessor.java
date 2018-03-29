@@ -24,6 +24,8 @@ public interface JsonObjectProcessor {
             return (T) result.getAsString();
         } else if (clazz == Integer.class) {
             return (T) (Integer) result.getAsInt();
+        } else if (clazz == Boolean.class) {
+            return (T) (Boolean) result.getAsBoolean();
         } else {
             throw new UnsupportedOperationException(clazz.getName());
         }
