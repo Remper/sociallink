@@ -23,6 +23,7 @@ import static eu.fbk.fm.profiling.extractors.Features.TempFeatureSet.Type.AVG;
 public class HashtagExtractor implements Extractor<BOW, Vector>, JsonObjectProcessor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HashtagExtractor.class);
+    private static final int CUTOFF_FREQUENCY = 3;
 
     protected final HashMap<String, Integer> dictionary;
     protected final HashMap<String, AtomicInteger> idf;
@@ -140,6 +141,9 @@ public class HashtagExtractor implements Extractor<BOW, Vector>, JsonObjectProce
         SparseVector result = new SparseVector();
 
         for (String term : features.termSet()) {
+            if (this.idf.get(term).get() < CUTOFF_FREQUENCY) {
+                continue;
+            }
             float tfidf = (float) (features.tf(term) * idfPrecomputed.get(term));
             result.add(dictionary.get(term), tfidf);
         }
@@ -161,7 +165,9 @@ public class HashtagExtractor implements Extractor<BOW, Vector>, JsonObjectProce
     }
 
     public Stream<DictTerm> getDictionary() {
-        return dictionary.keySet().stream().map(term -> new DictTerm(term, dictionary.get(term), idfPrecomputed.get(term), idf.get(term).get()));
+        return dictionary.keySet().stream()
+                .filter(term -> idf.get(term).get() >= CUTOFF_FREQUENCY)
+                .map(term -> new DictTerm(term, dictionary.get(term), idfPrecomputed.get(term), idf.get(term).get()));
     }
 
     public static class DictTerm {
