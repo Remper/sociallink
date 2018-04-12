@@ -6,3 +6,4 @@ smt-ui/node_modules
 smt-ui/typings
 __pycache__
 target
+dependency-reduced-pom.xml

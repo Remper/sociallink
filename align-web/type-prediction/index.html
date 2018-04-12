@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Entity Type Prediction Combining Linked Open Data and Social Media</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="../css/fontawesome-all.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+    <style>
+        span.mono {
+            color: #555;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body class="show-cover">
+<div class="container" style="margin-top: 100px">
+    <div class="row">
+        <div class="col-sm">
+            <h2>Entity Type Prediction Combining Linked Open Data and Social Media</h2>
+            <p>Yaroslav Nechaev (<a style="font-size: 0.8rem" href="https://twitter.com/BSearcher"><i class="fab fa-twitter" aria-hidden="true"></i></a>),
+                Francesco Corcoglioniti (<a style="font-size: 0.8rem" href="https://twitter.com/fracorco"><i class="fab fa-twitter" aria-hidden="true"></i></a>),
+                and Claudio Giuliano (<a style="font-size: 0.8rem" href="https://twitter.com/clagiuliano"><i class="fab fa-twitter" aria-hidden="true"></i></a>)</p>
+        </div>
+    </div>
+    <div class="row" style="margin-top: 20px">
+        <div class="col-sm">
+            <h3>Abstract</h3>
+
+            <p style="text-align: justify">
+                Linked Open Data (LOD) and social media often contain the representations of the same real-world
+                entities, such as persons and organizations. These representations are increasingly interlinked,
+                making it possible to combine and leverage both LOD and social media data in prediction problems,
+                complementing their relative strengths: while LOD knowledge is highly structured but also scarce
+                and obsolete for some entities, social media data provide real-time updates and increased coverage,
+                albeit being mostly unstructured.
+            </p><p style="text-align: justify">
+                In this paper, we investigate the feasibility of using social media data to perform type prediction
+                for entities in LOD. We discuss how to gather training data for such task, and how to build
+                a domain-general vector representation of entities based on social media data.
+                Our experiments on several type prediction tasks using DBpedia and Twitter data show the effectiveness
+                of this representation, both alone or combined with RDF embedding features, and suggests its potential
+                for ontology population.
+            </p>
+        </div>
+    </div>
+    <div class="row" style="margin-top: 20px">
+        <div class="col-sm-12">
+            <div class="row">
+                <div class="col-sm-12">
+                    <h3>Supplementary Material</h3>
+
+                    <h6 style="margin-top: 15px">Complete experimental results</h6>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-7">
+                    <i class="fal fa-file-pdf" style="font-size:0.7em;" aria-hidden="true"></i>
+                    <a href="data/class_scores.pdf" style="font-family: monospace">class_scores.pdf</a>
+                    <span data-text="size" style="font-size:0.6em; color:#AAA">44.7KB</span>
+                    &nbsp;&nbsp;&nbsp;&nbsp;
+                    <i class="fal fa-file-alt" style="font-size:0.7em;" aria-hidden="true"></i>
+                    <a href="data/class_scores.tsv" style="font-family: monospace">class_scores.tsv</a>
+                    <span data-text="size" style="font-size:0.6em; color:#AAA">27.0KB</span>
+                    <p style="font-size: 0.8em; text-align: justify">
+                        These files list the types (i.e., predicted classes) for the 8 type prediction tasks considered in
+                        the submission, both as PDF table and as TSV file. For each class, the files report the number of
+                        samples with that class in the ground truth, and class-wise precision (P), recall (R), and F1 scores
+                        obtained by the reference "Social" approach. Confidence intervals computed with
+                        the boostrap (percentile) method are also reported.
+                        <br />
+                        Derived from <span class="mono">eval-scores.zip</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-7">
+                    <i class="fal fa-file-pdf" style="font-size:0.7em;" aria-hidden="true"></i>
+                    <a href="data/avg_scores.pdf" style="font-family: monospace">avg_scores.pdf</a>
+                    <span data-text="size" style="font-size:0.6em; color:#AAA">64.1KB</span>
+                    &nbsp;&nbsp;&nbsp;&nbsp;
+                    <i class="fal fa-file-alt" style="font-size:0.7em;" aria-hidden="true"></i>
+                    <a href="data/avg_scores.tsv" style="font-family: monospace">avg_scores.tsv</a>
+                    <span data-text="size" style="font-size:0.6em; color:#AAA">8.8KB</span>
+                    <p style="font-size: 0.8em; text-align: justify">
+                        These files contain the average performances for each prediction approach on the 8 type prediction
+                        tasks considered in the submission, reported both as PDF table and as TSV file. For each &lt;task, approach&gt;
+                        pair, the files report macro- (across types) and micro-averaged precision (P), recall (R) and F1 scores.
+                        Also reported are confidence intervals computed with the boostrap (percentile) method and statistical
+                        significance of score differences with respect to the reference "Social" approach
+                        (significantly better/worse scores marked respectively with '+'/'-').
+                        <br />
+                        Derived from <span class="mono">eval-scores.zip</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-7">
+                    <h6 style="margin-top: 15px">Experimental code and data</h6>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-7">
+                    <i class="fal fa-file-archive" style="font-size:0.7em;" aria-hidden="true"></i>
+                    <a href="data/eval-all.zip" style="font-family: monospace">eval-all.zip</a>
+                    <span data-text="size" style="font-size:0.6em; color:#AAA">748.4MB</span>
+                    &nbsp;&nbsp;&nbsp;&nbsp;
+                    <i class="fal fa-file-archive" style="font-size:0.7em;" aria-hidden="true"></i>
+                    <a href="data/eval-scores.zip" style="font-family: monospace">eval-scores.zip</a>
+                    <span data-text="size" style="font-size:0.6em; color:#AAA">4.6MB</span>
+                    <p style="font-size: 0.8em; text-align: justify">
+                        These files contain the code and (all or only score-related) data for the experiments reported in
+                        the submission, to allow "partial" reproducibility of results -- "partial" as Twitter terms of use
+                        do not allow us to provide also the source Twitter stream data from which social features were derived.
+                    </p>
+                    <p style="font-size: 0.8em; text-align: justify">
+                        The files contain a python script "eval.py" and its associated configuration "eval.json" that
+                        implement the evaluation workflow depicted in the following figure.
+                    </p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-7" style="margin-bottom: 15px;">
+                    <img src="data/schema.svg" style="max-width: 100%; height: auto;" onerror="this.onerror=null; this.src='data/schema.png'">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-7">
+                    <p style="font-size: 0.8em; text-align: justify">
+                        The starting point consists in the ground truth &lt;entity, profile, type&gt; data contained in
+                        folder <span class="mono">/groundtruth</span> (file groundtruth.tsv.gz), and in the RDF and social
+                        features families contained in folder <span class="mono">/features</span> (~760MB data overall),
+                        each family consisting of a ".svm.gz" file where each line is a feature vector in libsvm/svm-light
+                        format, and a ".ids.gz" file with the profile names corresponding to those vectors. Based on this
+                        data and the configuration "eval.json", the first "setup" step performed by script "eval.py" consists
+                        in producing a set of libsvm &lt;label, feature vector&gt; files in folder
+                        <span class="mono">/libsvm</span>, each file referring to a &lt;task, approach&gt; combination
+                        (~5.4GB data overall). The next step consists in training SVM models (with optimal hyperparameters)
+                        and testing them on ground truth data according to the nested cross-validation (CV) scheme described
+                        in the submission. Each &lt;task, approach&gt; nested-CV process is run in a separate process, with
+                        all the approaches of a task run in parallel to speed up computing. The partial results of these
+                        processes, consisting of predictions, optimal hyperparameters, and log files, are collected in folder
+                        <span class="mono">/partials</span>. The final step implemented by "eval.py" consist in reading those
+                        partial files and producing a number of TSV and PDF report, that is: TSV files with merged predictions
+                        and hyperparameter settings; TSV and PDF file with class-wise prediction scores; TSV and PDF file with
+                        average micro- and macro-averaged scores; precision/recall plot.
+                    </p>
+                    <p style="font-size: 0.8em; text-align: justify">
+                        For all steps implemented by "eval.py", if an output file is already present it is not recomputed,
+                        so results can be preserved among runs and the script execution may be halted and resumed without
+                        losing intermediate results computed so far.
+
+                        The difference between the two files "eval-all.zip" and "eval-scores.zip" is that the first
+                        and larger one contains all the code and data (with entities and user profiles anonymized),
+                        while the latter and smaller file contains the TSV file with predictions instead of ground truth
+                        and feature files, and thus permit to perform only the "report generation" step in the figure.
+                        Therefore, if interested in executing the whole pipeline please download "eval-all.zip", whereas
+                        download "eval-scores.zip" if interested only in producing the reports based on the predictions
+                        we already computed. In both cases, to run "eval.py" you need: <br />
+                    </p>
+
+                    <ul style="font-size: 0.8em;">
+                        <li>8GB free RAM</li>
+                        <li>7GB free disk space</li>
+                        <li>a Linux / Mac OS X / Unix-like environment (the script performs some file/process manipulations calling sh)</li>
+                        <li>python 3 with numpy, pandas, scikit learn, and matplotlib</li>
+                        <li>"pigz" utility available on PATH (to speed up reading/writing gzip files)</li>
+                        <li>pdflatex available on PATH (for generating the PDF reports)</li>
+                    </ul>
+
+                    <p style="font-size: 0.8em; text-align: justify">
+                        The execution of the whole pipeline via "eval.py" takes ~7 hours using a 10-core CPU machine (Xeon E5-2630).
+                    </p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-7">
+                    <i class="fal fa-file-archive" style="font-size:0.7em;" aria-hidden="true"></i>
+                    <a href="data/groundtruth.zip" style="font-family: monospace">groundtruth.zip</a>
+                    <span data-text="size" style="font-size:0.6em; color:#AAA">1.0MB</span>
+                    <p style="font-size: 0.8em; text-align: justify">
+                        This file contains a Bash script "groundtruth.sh" and an DBpedia-Twitter alignment file
+                        "alignments.tql.gz" that can be used to extract ground truth data out of DBpedia 2016-04
+                        (instructions contained in the script). It requires setting up a local Virtuoso instance
+                        populated with DBpedia 2016-04 data, as well as install RDFpro locally and making it available on PATH.
+                        Even if you are not going to execute this script, inside you may find the actual SPARQL queries
+                        we used for extracting ground truth data from DBpedia for the 8 tasks. These queries document the
+                        kinds of aggregation and cleanup that we performed to derive the ground truth.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+
+    $(document).ready(function() {
+
+    });
+</script>
+</body>
+</html>
