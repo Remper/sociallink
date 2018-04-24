@@ -2,7 +2,6 @@ package eu.fbk.fm.profiling;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
-import akka.japi.function.Procedure;
 import akka.stream.*;
 import akka.stream.javadsl.*;
 import akka.util.ByteString;
