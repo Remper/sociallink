@@ -6,6 +6,7 @@ import eu.fbk.fm.alignments.index.utils.Deserializer;
 import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
 import eu.fbk.fm.alignments.utils.flink.RobustTsvOutputFormat;
 import eu.fbk.fm.alignments.utils.flink.TextInputFormat;
+import eu.fbk.fm.vectorize.preprocessing.ExpandTweet;
 import eu.fbk.fm.vectorize.preprocessing.text.TextExtractor;
 import eu.fbk.utils.core.CommandLine;
 import org.apache.flink.api.common.functions.FlatMapFunction;
@@ -16,8 +17,7 @@ import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.Utils;
 import org.apache.flink.api.java.operators.DataSource;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.tuple.*;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.util.Collector;
@@ -34,6 +34,7 @@ public class ExtractEmojisSeq2Seq {
     private static final String OUTPUT_PATH = "output-path";
 
     public static final String EMOJI_DATASET = "emoji_dataset.tsv.gz";
+    public static final String EMOJI_USER_DICTIONARY = "emoji_user_dictionary.tsv.gz";
     public static final String[] COMPOSITE_EMOJIS = {":)", ";)"};
 
     private static final Gson GSON = new Gson();
@@ -57,22 +58,80 @@ public class ExtractEmojisSeq2Seq {
         final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
         //Deserialize and convert
-        DataSet<Tuple2<String, String>> dataset =
+        DataSet<Tuple3<JsonObject, String, String>> dataset =
             getInput(env, input)
                 .flatMap(new Deserializer())
+                .flatMap(new ExpandTweet())
                 .filter(new LanguageFilter("en"))
-                .flatMap(new TextExtractor(true))
-                .flatMap(new EmojiExtractor());
+                .flatMap(new TweetProcessor());
 
         dataset
+            .map(new ExpandUser())
             .output(new RobustTsvOutputFormat<>(new Path(output, EMOJI_DATASET), true)).setParallelism(1);
+
+        dataset
+            .map(new ExtractUser())
+            .distinct(1)
+            .output(new RobustTsvOutputFormat<>(new Path(output, EMOJI_USER_DICTIONARY), true)).setParallelism(1);
+
 
         env.execute();
     }
 
-    private static class EmojiExtractor implements FlatMapFunction<String, Tuple2<String, String>>, JsonObjectProcessor {
+    private static class TweetProcessor implements FlatMapFunction<JsonObject, Tuple3<JsonObject, String, String>>, JsonObjectProcessor {
+
+        private static final long serialVersionUID = 1L;
+        private static final TextExtractor textExtractor = new TextExtractor(true);
+        private static final EmojiExtractor emojiExtractor = new EmojiExtractor();
+
         @Override
-        public void flatMap(String text, Collector<Tuple2<String, String>> out) throws Exception {
+        public void flatMap(JsonObject value, Collector<Tuple3<JsonObject, String, String>> out) throws Exception {
+            JsonObject user = get(value, JsonObject.class, "user");
+            Tuple2<String, String> emoji = emojiExtractor.map(textExtractor.map(value));
+
+            if (user != null && emoji.f0.length() > 0 && emoji.f1.length() > 0) {
+                out.collect(new Tuple3<>(user, emoji.f0, emoji.f1));
+            }
+        }
+    }
+
+    private static class ExtractUser implements MapFunction<Tuple3<JsonObject, String, String>, Tuple3<String, Long, String>>, JsonObjectProcessor {
+
+        private static final long serialVersionUID = 1L;
+        private static final Gson GSON = new Gson();
+
+        @Override
+        public Tuple3<String, Long, String> map(Tuple3<JsonObject, String, String> tweet) throws Exception {
+            String author = get(tweet.f0, String.class, "screen_name");
+            Long authorId = get(tweet.f0, Long.class, "id");
+            if (author == null || authorId == null) {
+                throw new Exception("Incorrect user object: "+tweet.f0.toString());
+            }
+            return new Tuple3<>(author, authorId, GSON.toJson(tweet.f0));
+        }
+    }
+
+    private static class ExpandUser implements MapFunction<Tuple3<JsonObject, String, String>, Tuple4<String, Long, String, String>>, JsonObjectProcessor {
+
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public Tuple4<String, Long, String, String> map(Tuple3<JsonObject, String, String> tweet) throws Exception {
+            String author = get(tweet.f0, String.class, "screen_name");
+            Long authorId = get(tweet.f0, Long.class, "id");
+            if (author == null || authorId == null) {
+                throw new Exception("Incorrect user object: "+tweet.f0.toString());
+            }
+            return new Tuple4<>(author, authorId, tweet.f1, tweet.f2);
+        }
+    }
+
+    private static class EmojiExtractor implements MapFunction<String, Tuple2<String, String>>, JsonObjectProcessor {
+
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public Tuple2<String, String> map(String text) throws Exception {
             StringBuilder rawtext = new StringBuilder();
             StringBuilder emoji = new StringBuilder();
             text.codePoints().forEach(value -> {
@@ -95,10 +154,7 @@ public class ExtractEmojisSeq2Seq {
                 rawtext.appendCodePoint(value);
             });
 
-            if (emoji.length() == 0) {
-                return;
-            }
-            out.collect(new Tuple2<>(rawtext.toString(), emoji.toString()));
+            return new Tuple2<>(rawtext.toString(), emoji.toString());
         }
     }
 

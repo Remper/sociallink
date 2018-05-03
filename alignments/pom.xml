@@ -36,6 +36,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.tensorflow</groupId>
+            <artifactId>proto</artifactId>
+            <version>1.8.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.mapdb</groupId>
             <artifactId>mapdb</artifactId>
             <version>3.0.5</version>
@@ -47,12 +53,12 @@
             </exclusions>
         </dependency>
 
-        <!-- Akka streams -->
+        <!-- Akka streams
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-stream_2.11</artifactId>
             <version>${akka-version}</version>
-        </dependency>
+        </dependency>-->
 
         <!-- Flink -->
         <dependency>

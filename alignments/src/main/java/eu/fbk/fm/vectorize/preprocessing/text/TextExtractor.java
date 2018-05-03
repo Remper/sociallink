@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
 import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.util.Collector;
 
 import java.util.Comparator;
@@ -14,7 +15,7 @@ import java.util.function.Function;
 /**
  * A flat map piece of pipeline that extracts and tokenizes text from tweets
  */
-public class TextExtractor implements FlatMapFunction<JsonObject, String>, JsonObjectProcessor {
+public class TextExtractor implements FlatMapFunction<JsonObject, String>, MapFunction<JsonObject, String>, JsonObjectProcessor {
 
     private static final long serialVersionUID = 1L;
 
@@ -26,16 +27,21 @@ public class TextExtractor implements FlatMapFunction<JsonObject, String>, JsonO
 
     @Override
     public void flatMap(JsonObject status, Collector<String> out) {
-        out.collect(process(status));
+        out.collect(map(status));
 
         //Check if the author of the original tweet is in the list
         final JsonObject retweet = get(status, JsonObject.class, "retweeted_status");
         if (retweet != null ) {
-            out.collect(process(retweet));
+            out.collect(map(retweet));
         }
     }
 
-    private String process(JsonObject status) {
+    @Override
+    public String map(JsonObject status) {
+        return process(status);
+    }
+
+    protected String process(JsonObject status) {
         // Get the original text
         final String originalText = get(status, String.class, "text");
 

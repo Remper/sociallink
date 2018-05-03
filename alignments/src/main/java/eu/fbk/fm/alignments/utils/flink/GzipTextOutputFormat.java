@@ -24,6 +24,11 @@ public class GzipTextOutputFormat<T> extends TextOutputFormat<T> {
         this.stream = new GZIPWrappedStream(this.stream, 4096, false);
     }
 
+    @Override
+    protected String getDirectoryFileName(int taskNumber) {
+        return Integer.toString(taskNumber + 1)+".gz";
+    }
+
     public static class GZIPWrappedStream extends FSDataOutputStream {
 
         private GZIPOutputStream stream;

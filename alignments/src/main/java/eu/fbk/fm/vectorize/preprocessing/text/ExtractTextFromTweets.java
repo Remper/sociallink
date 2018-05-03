@@ -6,6 +6,7 @@ import eu.fbk.fm.alignments.utils.flink.RobustTsvOutputFormat;
 import eu.fbk.fm.alignments.utils.flink.TextInputFormat;
 import eu.fbk.utils.core.CommandLine;
 import org.apache.flink.api.common.functions.FilterFunction;
+import org.apache.flink.api.common.operators.Order;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.java.DataSet;
@@ -17,6 +18,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.flink.api.common.operators.Order.DESCENDING;
 
 /**
  * A Flink pipeline that extracts all text from tweets one sentence per line to be fed to embedding learning approach
@@ -55,12 +58,18 @@ public class ExtractTextFromTweets {
 
         //Count tokens
         TypeHint freqTuple = new TypeHint<Tuple2<String, Integer>>(){};
-        tweets.flatMap((value, out) -> {
-                for (String token : value.split("\\s+")) {
-                    out.collect(new Tuple2<>(token, 1));
-                }
-            })
-            .returns(freqTuple).groupBy(0).sum(1)
+        DataSet<Tuple2<String, Integer>> freqDict =
+            tweets.flatMap((value, out) -> {
+                    for (String token : value.split("\\s+")) {
+                        out.collect(new Tuple2<>(token, 1));
+                    }
+                })
+                .returns(freqTuple)
+                .groupBy(0).sum(1)
+                .filter((FilterFunction<Tuple2<String, Integer>>) value -> value.f1 > 5)
+                .sortPartition(1, DESCENDING).setParallelism(1);
+
+        freqDict
             .output(new RobustTsvOutputFormat<>(new Path(output, "dict.tsv.gz"), true)).setParallelism(1);
 
         tweets
