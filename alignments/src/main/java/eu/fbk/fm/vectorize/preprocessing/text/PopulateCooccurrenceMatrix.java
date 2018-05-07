@@ -105,7 +105,8 @@ public class PopulateCooccurrenceMatrix {
                 for (int offset = 1; offset < windowEnd; offset++) {
                     int rightId = sentence.get(i+offset);
                     float count = 1.0f / offset;
-                    out.collect(new CoocTuple(min(leftId, rightId), max(leftId, rightId), count));
+                    out.collect(new CoocTuple(leftId, rightId, count));
+                    out.collect(new CoocTuple(rightId, leftId, count));
                 }
 
                 out.collect(new CoocTuple(leftId, leftId, 1.0f));
@@ -145,12 +146,15 @@ public class PopulateCooccurrenceMatrix {
 
         private String workPath;
         private int shardNumber;
+        private int shardSize;
 
         @Override
         public void open(Configuration parameters) throws Exception {
             workPath = parameters.getString(WORK_PATH, "");
             shardNumber = parameters.getInteger(SHARD_NUMBER, 0);
-            Preconditions.checkArgument(shardNumber > 0, "The amount of shard should be more than zero");
+            shardSize = parameters.getInteger(SHARD_SIZE, 0);
+            Preconditions.checkArgument(shardNumber > 0, "The amount of shards should be more than zero");
+            Preconditions.checkArgument(shardSize > 0, "The size of the shard should be more than zero");
         }
 
         @Override
@@ -163,7 +167,14 @@ public class PopulateCooccurrenceMatrix {
             List<Float> localValues = new LinkedList<>();
 
             int shardRow = -1, shardCol = -1;
+            ArrayList<CoocTuple> tempCoocs = new ArrayList<>();
             for (CoocTuple cooc : coocs) {
+                tempCoocs.add(new CoocTuple(
+                    cooc.left() / shardNumber,
+                    cooc.right() / shardNumber,
+                    cooc.value()
+                ));
+
                 int currentShardRow = cooc.left() % shardNumber;
                 int currentShardCol = cooc.right() % shardNumber;
                 if (shardRow == -1) {
@@ -176,33 +187,31 @@ public class PopulateCooccurrenceMatrix {
                         currentShardRow, shardRow, currentShardCol, shardCol
                     ));
                 }
-
-                globalIndicesRow.add((long) cooc.left());
-                globalIndicesCol.add((long) cooc.right());
-                localIndicesRow.add((long) cooc.left() / shardNumber);
-                localIndicesCol.add((long) cooc.right() / shardNumber);
-                localValues.add(cooc.value());
-
-                //If it is a diagonal shard – we should double-issue the values
-                if (shardCol == shardRow && !cooc.left().equals(cooc.right())) {
-                    globalIndicesRow.add((long) cooc.right());
-                    globalIndicesCol.add((long) cooc.left());
-                    localIndicesRow.add((long) cooc.right() / shardNumber);
-                    localIndicesCol.add((long) cooc.left() / shardNumber);
-                    localValues.add(cooc.value());
+            }
+            tempCoocs.sort((o1, o2) -> {
+                int left = o1.left().compareTo(o2.left());
+                if (left == 0) {
+                    return o1.right().compareTo(o2.right());
                 }
+                return left;
+            });
+
+            // Populating global indices (just all the global indices that are valid for this shard)
+            for (int i = 0; i < shardSize; i++) {
+                globalIndicesRow.add((long) shardRow + i * shardNumber);
+                globalIndicesCol.add((long) shardCol + i * shardNumber);
+            }
+
+            for (CoocTuple cooc : tempCoocs) {
+                localIndicesRow.add((long) cooc.left());
+                localIndicesCol.add((long) cooc.right());
+                localValues.add(cooc.value());
             }
 
             FileOutputStream fwdStream = getStream(shardRow, shardCol);
             example(globalIndicesRow, globalIndicesCol, localIndicesRow, localIndicesCol, localValues).writeTo(fwdStream);
             fwdStream.close();
 
-            //if it is not a diagonal shard, we just write the same stuff to an opposite shard
-            if (shardRow != shardCol) {
-                FileOutputStream bwdStream = getStream(shardCol, shardRow);
-                example(globalIndicesCol, globalIndicesRow, localIndicesCol, localIndicesRow, localValues).writeTo(bwdStream);
-                bwdStream.close();
-            }
             out.collect(new Tuple1<>((long) localValues.size()));
         }
 
@@ -307,7 +316,7 @@ public class PopulateCooccurrenceMatrix {
             .groupBy(new HashPartitioner(numShards))
             .reduceGroup(new CoocWriter()).withParameters(parameters)
             .sum(0)
-            .collect().forEach(value -> LOGGER.info("Completed parallel pipeline with a number of written cooccurences: "+value.f0));
+            .output(new TextOutputFormat<>(new Path(workPath, "coocs.log"))).setParallelism(1);
 
         //Dumping row and column vocabularies
         Path shardsPath = new Path(workPath, "shards");
