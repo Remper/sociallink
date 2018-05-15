@@ -43,7 +43,6 @@ public class PopulateCooccurrenceMatrix {
     private static final String VOCABULARY_SIZE = "vocabulary-size";
     private static final String SHARD_SIZE = "shard-size";
     private static final String SHARD_NUMBER = "shard-number";
-    private static final String MIN_FREQ = "shard-number";
 
     private static final int DEFAULT_WINDOW_SIZE = 10;
     private static final int DEFAULT_VOCABULARY_SIZE = 4000000;

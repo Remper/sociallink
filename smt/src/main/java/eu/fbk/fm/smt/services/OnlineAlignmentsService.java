@@ -12,7 +12,6 @@ import eu.fbk.fm.alignments.scorer.text.SimilarityScorer;
 import eu.fbk.fm.smt.model.Score;
 import eu.fbk.fm.smt.model.ScoreBundle;
 import eu.fbk.utils.math.Scaler;
-import org.jvnet.hk2.annotations.Service;
 import twitter4j.User;
 
 import javax.inject.Inject;
@@ -26,7 +25,7 @@ import java.util.List;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-@Service @Singleton
+@Singleton
 public class OnlineAlignmentsService {
     @Inject
     private TwitterService twitter;

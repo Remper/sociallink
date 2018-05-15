@@ -12,7 +12,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.logging.log4j.core.util.IOUtils;
-import org.jvnet.hk2.annotations.Service;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -32,7 +31,6 @@ import java.util.List;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-@Service
 @Singleton
 public class WikimachineService {
     private String endpoint;

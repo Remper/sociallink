@@ -2,7 +2,6 @@ package eu.fbk.fm.smt.util;
 
 import com.google.gson.Gson;
 import eu.fbk.fm.alignments.utils.DBUtils;
-import org.glassfish.hk2.api.Factory;
 import org.jooq.ConnectionProvider;
 import org.jooq.impl.DataSourceConnectionProvider;
 import org.slf4j.Logger;
@@ -13,6 +12,7 @@ import javax.inject.Singleton;
 import javax.sql.DataSource;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.util.function.Supplier;
 
 /**
  * Provides SQL connection to services
@@ -20,7 +20,7 @@ import java.io.FileReader;
  * @author Yaroslav Nechaev (remper@me.com)
  */
 @Singleton
-public class ConnectionFactory implements Factory<ConnectionProvider> {
+public class ConnectionFactory implements Supplier<ConnectionProvider> {
     private static final Logger logger = LoggerFactory.getLogger(ConnectionFactory.class);
 
     private DataSourceConnectionProvider provider;
@@ -31,12 +31,8 @@ public class ConnectionFactory implements Factory<ConnectionProvider> {
     }
 
     @Override
-    public ConnectionProvider provide() {
+    public ConnectionProvider get() {
         return provider;
-    }
-
-    @Override
-    public void dispose(ConnectionProvider instance) {
     }
 
     public static class Credentials {

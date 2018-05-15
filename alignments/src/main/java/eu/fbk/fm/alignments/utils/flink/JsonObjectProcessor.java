@@ -5,7 +5,7 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
 /**
- * Trait that add helper function for better processing of JsonObjects
+ * Trait that provides a helper function for shorthand processing of JsonObjects
  */
 public interface JsonObjectProcessor {
     @SuppressWarnings("unchecked")
@@ -20,6 +20,8 @@ public interface JsonObjectProcessor {
             return clazz.cast(result);
         } else if (clazz == Long.class) {
             return (T) (Long) result.getAsLong();
+        } else if (clazz == Float.class) {
+            return (T) (Float) result.getAsFloat();
         } else if (clazz == String.class) {
             return (T) result.getAsString();
         } else if (clazz == Integer.class) {

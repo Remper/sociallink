@@ -7,7 +7,6 @@ import eu.fbk.fm.alignments.index.db.tables.records.AlignmentsRecord;
 import eu.fbk.fm.alignments.index.db.tables.records.UserObjectsRecord;
 import org.jooq.*;
 import org.jooq.impl.DSL;
-import org.jvnet.hk2.annotations.Service;
 import twitter4j.TwitterException;
 import twitter4j.TwitterObjectFactory;
 import twitter4j.User;
@@ -21,7 +20,6 @@ import java.util.stream.Collectors;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-@Service
 public class AlignmentsService {
 
     @Inject

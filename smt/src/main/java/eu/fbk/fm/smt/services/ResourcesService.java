@@ -5,7 +5,6 @@ import eu.fbk.utils.data.dataset.Binary;
 import eu.fbk.utils.data.dataset.CSVDataset;
 import eu.fbk.utils.data.dataset.Dataset;
 import eu.fbk.utils.data.dataset.bow.FeatureMapping;
-import org.jvnet.hk2.annotations.Service;
 
 import javax.inject.Singleton;
 
@@ -14,7 +13,6 @@ import javax.inject.Singleton;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-@Service
 @Singleton
 public class ResourcesService {
   public static final String NAMES_WIKIDATA = "gender.names.wikidata.clean";

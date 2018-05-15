@@ -6,7 +6,6 @@ import eu.fbk.utils.analysis.stemmer.Stemmer;
 import eu.fbk.utils.analysis.stemmer.StemmerFactory;
 import eu.fbk.utils.analysis.stemmer.StemmerNotFoundException;
 import eu.fbk.utils.lsa.LSM;
-import org.jvnet.hk2.annotations.Service;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -18,7 +17,7 @@ import java.io.IOException;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-@Service @Singleton
+@Singleton
 public class MLService {
     private boolean turnOffStemmer = true;
     private VectorProvider bowProvider = null;

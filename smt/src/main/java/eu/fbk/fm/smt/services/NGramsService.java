@@ -9,7 +9,6 @@ import eu.fbk.utils.data.dataset.bow.FeatureMapping;
 import eu.fbk.utils.data.dataset.bow.FeatureMappingInterface;
 import eu.fbk.utils.data.dataset.bow.NGramMapping;
 import org.apache.commons.cli.*;
-import org.jvnet.hk2.annotations.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +27,6 @@ import java.util.stream.Collectors;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-@Service
 @Singleton
 public class NGramsService implements FeatureMappingInterface {
     private final static Logger logger = LoggerFactory.getLogger(NGramsService.class);

@@ -2,7 +2,6 @@ package eu.fbk.fm.smt.services;
 
 import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
-import org.jvnet.hk2.annotations.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +21,7 @@ import java.util.List;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-@Service @Singleton
+@Singleton
 public class KBAccessService {
     private static final Logger logger = LoggerFactory.getLogger(KBAccessService.class);
     private static final int CACHE_SIZE = 10000;
