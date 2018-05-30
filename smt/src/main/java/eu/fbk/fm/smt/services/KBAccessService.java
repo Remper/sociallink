@@ -5,6 +5,7 @@ import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -21,7 +22,7 @@ import java.util.List;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-@Singleton
+@ApplicationScoped
 public class KBAccessService {
     private static final Logger logger = LoggerFactory.getLogger(KBAccessService.class);
     private static final int CACHE_SIZE = 10000;

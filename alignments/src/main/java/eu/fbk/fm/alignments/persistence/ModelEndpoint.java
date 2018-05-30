@@ -24,9 +24,9 @@ import java.util.Map;
 public class ModelEndpoint {
     private static final Logger logger = Logger.getLogger(ModelEndpoint.class.getName());
 
-    private String host = "localhost";
-    private int port = 5000;
-    private URI url;
+    protected String host = "localhost";
+    protected int port = 5000;
+    protected URI url;
     private CloseableHttpClient client = HttpClients.createDefault();
 
     public ModelEndpoint(String host, int port) throws URISyntaxException {
@@ -39,7 +39,7 @@ public class ModelEndpoint {
         init();
     }
 
-    public void init() throws URISyntaxException {
+    protected void init() throws URISyntaxException {
         url = new URIBuilder().setScheme("http").setHost(host).setPort(port).setPath("/predict").build();
     }
 
@@ -71,5 +71,19 @@ public class ModelEndpoint {
             return new double[0];
         }
         return result;
+    }
+
+    public static class ProductionModelEndpoint extends ModelEndpoint {
+
+        public ProductionModelEndpoint(String host, int port) throws URISyntaxException {
+            super(host, port);
+        }
+
+        public ProductionModelEndpoint() throws URISyntaxException { super(); }
+
+        @Override
+        protected void init() throws URISyntaxException {
+            url = new URIBuilder().setScheme("http").setHost(host).setPort(port).setPath("/predict/scaled").build();
+        }
     }
 }

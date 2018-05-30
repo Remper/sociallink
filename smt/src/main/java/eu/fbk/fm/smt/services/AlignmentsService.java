@@ -11,6 +11,7 @@ import twitter4j.TwitterException;
 import twitter4j.TwitterObjectFactory;
 import twitter4j.User;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
+@ApplicationScoped
 public class AlignmentsService {
 
     @Inject

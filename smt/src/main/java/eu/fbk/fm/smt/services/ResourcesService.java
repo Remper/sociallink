@@ -6,6 +6,7 @@ import eu.fbk.utils.data.dataset.CSVDataset;
 import eu.fbk.utils.data.dataset.Dataset;
 import eu.fbk.utils.data.dataset.bow.FeatureMapping;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Singleton;
 
 /**
@@ -13,7 +14,7 @@ import javax.inject.Singleton;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-@Singleton
+@ApplicationScoped
 public class ResourcesService {
   public static final String NAMES_WIKIDATA = "gender.names.wikidata.clean";
   public static final String NAMES_FACEBOOK = "gender.names.facebook";

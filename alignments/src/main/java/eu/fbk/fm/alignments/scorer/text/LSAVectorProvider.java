@@ -2,9 +2,12 @@ package eu.fbk.fm.alignments.scorer.text;
 
 import eu.fbk.utils.lsa.BOW;
 import eu.fbk.utils.lsa.LSM;
+import eu.fbk.utils.math.DenseVector;
+import eu.fbk.utils.math.SparseVector;
 import eu.fbk.utils.math.Vector;
 
 import java.util.HashMap;
+import java.util.Iterator;
 
 /**
  * Provides LSA-based vector representation of the document
@@ -21,7 +24,6 @@ public class LSAVectorProvider implements VectorProvider {
 
     protected Vector toBOW(String text) {
         BOW bow = new BOW(text);
-        debug("bow", bow.termSet());
         return lsa.mapDocument(bow);
     }
 
@@ -39,7 +41,46 @@ public class LSAVectorProvider implements VectorProvider {
         return new BOWVectorProvider(lsa);
     }
 
-    protected void debug(String key, Object value) { }
+    /**
+     * LSA+BOW model
+     */
+    public static class LSABOWVectorProvider extends LSAVectorProvider {
+
+        public LSABOWVectorProvider(LSM lsa) {
+            super(lsa);
+        }
+
+        @Override
+        public Vector toVector(String text) {
+            Vector bowVector = toBOW(text);
+            //Merging with LSA vector first to have a correct and consistent merging
+            return merge(lsa.mapPseudoDocument(bowVector), bowVector);
+        }
+
+        private Vector merge(Vector first, Vector second) {
+            Vector m = new SparseVector();
+
+            Iterator<Integer> it1 = first.nonZeroElements();
+            int i;
+            while (it1.hasNext()) {
+                i = it1.next();
+                m.add(i, first.get(i));
+            }
+
+            Iterator<Integer> it2 = second.nonZeroElements();
+            while (it2.hasNext()) {
+                i = it2.next();
+                m.add(i + first.size(), second.get(i));
+            }
+
+            return m;
+        }
+
+        @Override
+        public String toString() {
+            return "bow+lsa";
+        }
+    }
 
     /**
      * LSA also contains it's own BOW model
@@ -51,63 +92,13 @@ public class LSAVectorProvider implements VectorProvider {
         }
 
         @Override
-        public DebuggableVectorProvider debug() {
-            return new DebugBOW(lsa);
-        }
-
-        @Override
         public Vector toVector(String text) {
             return toBOW(text);
         }
 
         @Override
         public String toString() {
-            return "bow_claudio";
-        }
-    }
-
-    @Override
-    public DebuggableVectorProvider debug() {
-        return new Debug(lsa);
-    }
-
-    public static class Debug extends LSAVectorProvider implements DebuggableVectorProvider {
-        HashMap<String, Object> debug = new HashMap<>();
-
-        public Debug(LSM lsa) {
-            super(lsa);
-        }
-
-        @Override
-        protected void debug(String key, Object value) {
-            debug.put(key, value);
-        }
-
-        @Override
-        public Object dump() {
-            HashMap<String, Object> debug = this.debug;
-            this.debug = new HashMap<>();
-            return debug;
-        }
-    }
-
-    public static class DebugBOW extends BOWVectorProvider implements DebuggableVectorProvider {
-        HashMap<String, Object> debug = new HashMap<>();
-
-        public DebugBOW(LSM lsa) {
-            super(lsa);
-        }
-
-        @Override
-        protected void debug(String key, Object value) {
-            debug.put(key, value);
-        }
-
-        @Override
-        public Object dump() {
-            HashMap<String, Object> debug = this.debug;
-            this.debug = new HashMap<>();
-            return debug;
+            return "bow";
         }
     }
 }

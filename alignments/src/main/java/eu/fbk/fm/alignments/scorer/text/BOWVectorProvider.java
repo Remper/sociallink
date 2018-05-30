@@ -48,11 +48,6 @@ public class BOWVectorProvider implements VectorProvider {
 
     protected void debug(String key, Object value) { }
 
-    @Override
-    public DebuggableVectorProvider debug() {
-        return new DebugBOW(extractor, mapping);
-    }
-
     public static class DebugBOW extends BOWVectorProvider implements DebuggableVectorProvider {
         HashMap<String, Object> debug = new HashMap<>();
 

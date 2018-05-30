@@ -12,6 +12,7 @@ import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -27,7 +28,7 @@ import java.util.stream.Collectors;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-@Singleton
+@ApplicationScoped
 public class NGramsService implements FeatureMappingInterface {
     private final static Logger logger = LoggerFactory.getLogger(NGramsService.class);
     private final static int BATCH_SIZE = 1000;

@@ -13,6 +13,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.logging.log4j.core.util.IOUtils;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -31,7 +32,7 @@ import java.util.List;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-@Singleton
+@ApplicationScoped
 public class WikimachineService {
     private String endpoint;
     private CloseableHttpClient client = null;

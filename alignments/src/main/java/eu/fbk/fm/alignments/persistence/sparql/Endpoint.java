@@ -33,7 +33,7 @@ import java.util.Map;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-public class Endpoint {
+public class Endpoint implements ResourceEndpoint {
     private static final Logger logger = LoggerFactory.getLogger(Endpoint.class.getName());
     private static final String PROPERTIES_FOR_ENTITY = "" +
             "select " +

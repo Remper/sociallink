@@ -9,7 +9,6 @@ import eu.fbk.fm.smt.model.ScoreBundle;
 import eu.fbk.fm.smt.services.*;
 import eu.fbk.fm.smt.util.InvalidAttributeResponse;
 import eu.fbk.fm.smt.util.Response;
-import eu.fbk.fm.smt.services.*;
 import twitter4j.User;
 
 import javax.inject.Inject;
@@ -18,6 +17,7 @@ import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.function.BiFunction;
 
 /**
  * A proxy between thewikimachine endpoint and client app, enriching the data along the way
@@ -35,7 +35,7 @@ public class AnnotationController {
     AnnotationService annotationService;
 
     @Inject
-    OnlineAlignmentsService onlineAlignmentsService;
+    OnlineAlignmentsService onlineAlign;
 
     @Inject
     KBAccessService kbAccessService;
@@ -45,9 +45,6 @@ public class AnnotationController {
 
     @Inject
     MLService mlService;
-
-    //@Inject
-    //FacebookClient facebookClient;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -73,7 +70,7 @@ public class AnnotationController {
 
     private List<String> errorsForFinalStage(String token, String ner, String text) {
         List<String> errors = new LinkedList<>();
-        if (text.length() < 5 || (token != null && text.length() < token.length())) {
+        if (text == null || text.length() < 5 || (token != null && text.length() < token.length())) {
             errors.add("text");
         }
         if (token == null || token.length() < 5) {
@@ -90,55 +87,51 @@ public class AnnotationController {
         return errors;
     }
 
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("twitter")
-    public String annotateWithTwitter(@QueryParam("token") String token, @QueryParam("ner") String ner, @QueryParam("text") String text) {
+    private String processTwitterAnnotationWithComparator(String token, String ner, String text, BiFunction<DBpediaResource, List<User>, ScoreBundle[]> func) {
         List<String> errors = errorsForFinalStage(token, ner, text);
         if (errors.size() > 0) {
             return new InvalidAttributeResponse(errors).respond();
         }
 
         DBpediaResource resource = toResource(new Annotation(token, ner), text);
-        List<User> candidates = onlineAlignmentsService.populateCandidates(resource);
+        List<User> candidates = onlineAlign.populateCandidates(resource);
 
         SingleAnnotation response = new SingleAnnotation();
-        response.candidates = new HashMap<>();
+        response.dictionary = new HashMap<>();
         for (User candidate : candidates) {
-            response.candidates.put(candidate.getScreenName(), candidate);
+            response.dictionary.put(candidate.getScreenName(), candidate);
         }
         response.token = token;
-        response.nerClass = ner;
-        response.results = onlineAlignmentsService.compare(resource, candidates);
+        response.tokenClass = ner;
+        response.context = text;
+        response.results = func.apply(resource, candidates);
 
         return Response.success(response).respond();
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("twitter")
+    public String annotateWithTwitter(@QueryParam("token") String token, @QueryParam("ner") String ner, @QueryParam("text") String text) {
+        return processTwitterAnnotationWithComparator(token, ner, text, (resource, candidates) -> {
+            ScoreBundle[] simpleScorers = onlineAlign.compare(resource, candidates);
+            ScoreBundle socialLink = onlineAlign.performCSSocialLink(onlineAlign.performCASocialLink(resource));
+
+            ScoreBundle[] result = new ScoreBundle[simpleScorers.length+1];
+            result[0] = socialLink;
+            System.arraycopy(simpleScorers, 0, result, 1, simpleScorers.length);
+            return result;
+        });
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("twitter/simple")
     public String annotateWithTwitterSimple(@QueryParam("token") String token, @QueryParam("ner") String ner, @QueryParam("text") String text) {
-        List<String> errors = errorsForFinalStage(token, ner, text);
-        if (errors.size() > 0) {
-            return new InvalidAttributeResponse(errors).respond();
-        }
-
-        DBpediaResource resource = toResource(new Annotation(token, ner), text);
-        List<User> candidates = onlineAlignmentsService.populateCandidates(resource);
-        Iterator<User> candidatesIterator = candidates.iterator();
-        Iterator<Score> scores = onlineAlignmentsService.compareWithDefault(resource, candidates).iterator();
-        List<SimpleAnnotation> annotations = new LinkedList<>();
-
-        while (candidatesIterator.hasNext()) {
-            Score score = null;
-            if (scores.hasNext()) {
-                score = scores.next();
-            }
-            
-            annotations.add(new SimpleAnnotation(candidatesIterator.next(), score));
-        }
-
-        return Response.success(annotations).respond();
+        return processTwitterAnnotationWithComparator(
+            token, ner, text,
+            (resource, candidates) -> new ScoreBundle[]{onlineAlign.compareWithDefault(resource, candidates)}
+        );
     }
 
     @GET
@@ -168,42 +161,6 @@ public class AnnotationController {
         return Response.success(score).respond();
     }
 
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("facebook")
-    public String annotateWithFacebook(@QueryParam("token") String token, @QueryParam("ner") String ner, @QueryParam("text") String text) {
-        List<String> errors = errorsForFinalStage(token, ner, text);
-        if (errors.size() > 0) {
-            return new InvalidAttributeResponse(errors).respond();
-        }
-        return "";
-    }
-
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    public String annotatePipeline(@QueryParam("text") String text) throws IOException, URISyntaxException {
-        List<CoreLabel> labels = annotationService.annotate(text).get(CoreAnnotations.TokensAnnotation.class);
-        if (labels.size() == 0) {
-            return new InvalidAttributeResponse("text").respond();
-        }
-
-        AnnotationResponse response = new AnnotationResponse();
-        response.annotations = new LinkedList<>();
-        response.users = new HashSet<>();
-        Annotation last = null;
-        for (CoreLabel label : labels) {
-            if (last != null && isAllowedType(label.ner()) && last.nerClass.equals(label.ner())) {
-                last.token += " " + label.word();
-            } else {
-                processAlignment(last, response.users, text);
-                last = new Annotation(label.word(), label.ner());
-                response.annotations.add(last);
-            }
-        }
-        processAlignment(last, response.users, text);
-        return Response.success(response).respond();
-    }
-
     private boolean isAllowedType(String type) {
         for (String trueType : allowedTypes) {
             if (trueType.equals(type)) {
@@ -211,20 +168,6 @@ public class AnnotationController {
             }
         }
         return false;
-    }
-
-    private void processAlignment(Annotation annotation, Set<User> users, String text) {
-        if (annotation == null || !isAllowedType(annotation.nerClass)) {
-            return;
-        }
-
-        DBpediaResource tokenResource = toResource(annotation, text);
-        List<User> candidates = onlineAlignmentsService.populateCandidates(tokenResource);
-        users.addAll(candidates);
-        Alignment alignment = new Alignment();
-        alignment.candidates = onlineAlignmentsService.produceAlignment(tokenResource, candidates);
-        alignment.query = onlineAlignmentsService.getQuery(tokenResource);
-        annotation.alignment = alignment;
     }
 
     private static DBpediaResource toResource(Annotation annotation, String text) {
@@ -271,10 +214,11 @@ public class AnnotationController {
     }
 
     private static class SingleAnnotation {
-        public Map<String, User> candidates;
+        public String context;
         public String token;
-        public String nerClass;
+        public String tokenClass;
         public ScoreBundle[] results;
+        public Map<String, User> dictionary;
     }
 
     private static class Alignment {

@@ -9,7 +9,6 @@ import eu.fbk.utils.math.Vector;
  */
 public interface VectorProvider {
     Vector toVector(String text);
-    DebuggableVectorProvider debug();
 
     interface DebuggableVectorProvider extends VectorProvider, Debuggable { }
 }

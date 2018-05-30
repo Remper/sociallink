@@ -73,7 +73,7 @@ public class ExtractTextFromTweets {
             .output(new RobustTsvOutputFormat<>(new Path(output, "dict.tsv.gz"), true)).setParallelism(1);
 
         tweets
-            .output(new GzipTextOutputFormat<>(new Path(output, "tweet_text"))).setParallelism(4);
+            .output(new GzipTextOutputFormat<>(new Path(output, "tweet_text")));
 
 
         env.execute();

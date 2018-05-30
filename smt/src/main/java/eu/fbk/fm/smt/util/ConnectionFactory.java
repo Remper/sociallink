@@ -7,6 +7,7 @@ import org.jooq.impl.DataSourceConnectionProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
@@ -31,6 +32,7 @@ public class ConnectionFactory implements Supplier<ConnectionProvider> {
     }
 
     @Override
+    @Produces
     public ConnectionProvider get() {
         return provider;
     }
@@ -41,6 +43,6 @@ public class ConnectionFactory implements Supplier<ConnectionProvider> {
 
     public static DataSource getConf(String file) throws FileNotFoundException {
         Credentials credentials = new Gson().fromJson(new FileReader(file), Credentials.class);
-        return DBUtils.createPGDataSource(credentials.url, credentials.user, credentials.pass);
+        return DBUtils.createHikariDataSource(credentials.url, credentials.user, credentials.pass);
     }
 }

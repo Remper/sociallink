@@ -2,6 +2,7 @@ package eu.fbk.fm.smt.services;
 
 import twitter4j.*;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.*;
 
@@ -10,6 +11,7 @@ import java.util.*;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
+@ApplicationScoped
 public class TwitterService {
     private final List<TwitterInstance> twitter;
 
@@ -82,7 +84,7 @@ public class TwitterService {
 
             RateLimitStatus status = getLimitStatus(method);
             if (status == null) {
-                return MAX_VALUE; //Never
+                return 0; //Never
             }
             return status.getRemaining() > 0 ? 0 : Math.max(status.getResetTimeInSeconds() - curTime, 0);
         }

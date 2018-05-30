@@ -3,6 +3,7 @@ package eu.fbk.fm.smt.services;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Properties;
@@ -12,7 +13,7 @@ import java.util.Properties;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-@Singleton
+@ApplicationScoped
 public class AnnotationService {
     private StanfordCoreNLP pipeline;
 

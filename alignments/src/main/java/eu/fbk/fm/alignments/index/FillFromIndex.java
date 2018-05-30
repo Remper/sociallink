@@ -6,6 +6,7 @@ import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.evaluation.DatasetEntry;
 import eu.fbk.fm.alignments.index.db.tables.UserIndex;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
+import eu.fbk.fm.alignments.persistence.sparql.ResourceEndpoint;
 import eu.fbk.fm.alignments.query.QueryAssemblyStrategy;
 import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
 import eu.fbk.fm.alignments.scorer.FullyResolvedEntry;
@@ -44,7 +45,7 @@ public class FillFromIndex implements AutoCloseable {
 
     private final DataSource source;
     private final QueryAssemblyStrategy qaStrategy;
-    private final Endpoint endpoint;
+    private final ResourceEndpoint endpoint;
 
     private int timeout = 30;
     private boolean verbose = true;
@@ -54,13 +55,13 @@ public class FillFromIndex implements AutoCloseable {
     private AtomicInteger slow = new AtomicInteger(0);
     private AtomicInteger errors = new AtomicInteger(0);
 
-    public FillFromIndex(Endpoint endpoint, QueryAssemblyStrategy qaStrategy, DataSource source) {
+    public FillFromIndex(ResourceEndpoint endpoint, QueryAssemblyStrategy qaStrategy, DataSource source) {
         this.qaStrategy = qaStrategy;
         this.endpoint = endpoint;
         this.source = source;
     }
 
-    public FillFromIndex(Endpoint endpoint, QueryAssemblyStrategy qaStrategy, String connString, String connUser, String connPassword) throws IOException {
+    public FillFromIndex(ResourceEndpoint endpoint, QueryAssemblyStrategy qaStrategy, String connString, String connUser, String connPassword) throws IOException {
         this(endpoint, qaStrategy, DBUtils.createPGDataSource(connString, connUser, connPassword));
     }
 

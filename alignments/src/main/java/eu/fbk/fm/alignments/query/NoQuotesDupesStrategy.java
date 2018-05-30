@@ -4,6 +4,7 @@ import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.utils.core.strings.LevenshteinDistance;
 
 import java.util.Arrays;
+import java.util.Comparator;
 
 /**
  * Strategy with a good amount of candidates that tries to include as many names as possible
@@ -19,7 +20,7 @@ public class NoQuotesDupesStrategy implements QueryAssemblyStrategy {
         boolean contains = false;
         int appended = 0;
         String cleanId = resource.getCleanResourceId();
-        Arrays.sort(names, (o1, o2) -> Integer.compare(o1.length(), o2.length()));
+        Arrays.sort(names, Comparator.comparingInt(String::length));
         for (String name : names) {
             if (cleanId.equals(name) || new LevenshteinDistance().apply(name.trim(), cleanId.trim()) <= 1) {
                 contains = true;

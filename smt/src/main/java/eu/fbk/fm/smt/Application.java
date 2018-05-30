@@ -4,20 +4,15 @@ import com.google.gson.Gson;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
 import eu.fbk.fm.smt.filters.CORSResponseFilter;
 import eu.fbk.fm.smt.filters.EncodingResponseFilter;
-import eu.fbk.fm.smt.services.*;
 import eu.fbk.fm.smt.util.ConnectionFactory;
 import eu.fbk.fm.smt.util.TwitterCredentials;
-import eu.fbk.fm.smt.util.TwitterFactory;
-import eu.fbk.utils.math.Scaler;
-import org.apache.commons.cli.*;
+import eu.fbk.utils.core.CommandLine;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
-import org.glassfish.jersey.internal.inject.AbstractBinder;
 import org.glassfish.jersey.server.ResourceConfig;
-import org.jooq.ConnectionProvider;
-import twitter4j.Twitter;
 
-import javax.inject.Singleton;
+import javax.enterprise.inject.Produces;
+import javax.inject.Named;
 import javax.sql.DataSource;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
@@ -33,13 +28,19 @@ import java.net.URISyntaxException;
  * @author Yaroslav Nechaev (remper@me.com)
  */
 public class Application {
+    @Produces
     private static TwitterCredentials[] credentials;
+    @Produces
     private static DataSource alignments;
+    @Produces @Named("SPARQLEndpoint")
     private static String sparqlLocation;
+    @Produces @Named("WikimachineEndpoint")
     private static String wikimachineEndpoint;
-    private static String ngramsEndpoint;
+    @Produces @Named("NgramsEndpoint")
+    private static String embeddingsEndpoint;
+    @Produces @Named("lsaFilename")
     private static String lsaFilename;
-    private static Scaler scaler;
+    @Produces
     private static ModelEndpoint modelEndpoint;
 
     public static void main(String[] args) throws URISyntaxException, FileNotFoundException {
@@ -48,17 +49,16 @@ public class Application {
             return;
         }
         Gson gson = new Gson();
-        ngramsEndpoint = config.ngramsEndpoint;
+        embeddingsEndpoint = config.embeddingsEndpoint;
         wikimachineEndpoint = config.wikimachineEndpoint;
         alignments = ConnectionFactory.getConf(config.connection);
         credentials = TwitterCredentials.credentialsFromFile(new File(config.credentials));
-        scaler = gson.fromJson(new FileReader(new File(config.scaler)), Scaler.class);
-        modelEndpoint = new ModelEndpoint(config.modelEndpoint, 5000);
+        modelEndpoint = new ModelEndpoint.ProductionModelEndpoint(config.modelEndpoint, 5000);
         lsaFilename = config.lsaFilename;
         sparqlLocation = config.sparqlEndpoint;
 
         final ResourceConfig rc = new ResourceConfig().packages(Application.class.getPackage().getName());
-        rc.register(new Binder());
+        //rc.register(new Binder());
         rc.register(new CORSResponseFilter());
         rc.register(new EncodingResponseFilter());
         rc.register(new GenericExceptionMapper());
@@ -70,32 +70,6 @@ public class Application {
             Thread.currentThread().join();
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
-        }
-    }
-
-    public static class Binder extends AbstractBinder {
-
-        @Override
-        protected void configure() {
-            bind(credentials).to(TwitterCredentials[].class);
-            bind(alignments).to(DataSource.class);
-            bind(sparqlLocation).named("SPARQLEndpoint").to(String.class);
-            bind(ngramsEndpoint).named("NgramsEndpoint").to(String.class);
-            bind(wikimachineEndpoint).named("WikimachineEndpoint").to(String.class);
-            bind(lsaFilename).named("lsaFilename").to(String.class);
-            bind(scaler).to(Scaler.class);
-            bind(modelEndpoint).to(ModelEndpoint.class);
-            bindFactory(TwitterFactory.class).to(Twitter[].class);
-            bindFactory(ConnectionFactory.class).to(ConnectionProvider.class).in(Singleton.class);
-            bind(AlignmentsService.class).to(AlignmentsService.class);
-            bind(TwitterService.class).to(TwitterService.class);
-            bind(KBAccessService.class).to(KBAccessService.class).in(Singleton.class);
-            bind(WikimachineService.class).to(WikimachineService.class).in(Singleton.class);
-            bind(AnnotationService.class).to(AnnotationService.class).in(Singleton.class);
-            bind(MLService.class).to(MLService.class).in(Singleton.class);
-            bind(ResourcesService.class).to(ResourcesService.class).in(Singleton.class);
-            bind(NGramsService.class).to(NGramsService.class).in(Singleton.class);
-            bind(OnlineAlignmentsService.class).to(OnlineAlignmentsService.class).in(Singleton.class);
         }
     }
 
@@ -177,94 +151,76 @@ public class Application {
     }
 
     public static class Configuration {
-        public Integer port;
+        public Integer port = 5241;
         public String connection;
         public String credentials;
-        public String scaler;
-        public String ngramsEndpoint = "redis://localhost:6379";
+        public String embeddingsEndpoint = "redis://localhost:6379";
         public String wikimachineEndpoint = "http://ml.apnetwork.it/annotate";
         public String modelEndpoint = "localhost";
         public String sparqlEndpoint = "https://api.futuro.media/dbpedia/sparql";
         public String lsaFilename;
     }
 
-    public static Configuration loadConfiguration(String[] args) {
-        Options options = new Options();
-        options.addOption(
-                Option.builder("p").desc("Port")
-                        .required().hasArg().argName("port").longOpt("port").build()
-        );
-        options.addOption(
-                Option.builder("c").desc("Twitter credentials")
-                        .required().hasArg().argName("file").longOpt("credentials").build()
-        );
-        options.addOption(
-                Option.builder().desc("Serialized connection to the database")
-                        .required().hasArg().argName("db").longOpt("db").build()
-        );
-        options.addOption(
-                Option.builder().desc("NGrams endpoint")
-                        .hasArg().argName("uri").longOpt("ngrams").build()
-        );
-        options.addOption(
-                Option.builder().desc("Model endpoint")
-                        .hasArg().argName("uri").longOpt("model").build()
-        );
-        options.addOption(
-                Option.builder().desc("Scaler serialisation")
-                        .required().hasArg().argName("file").longOpt("scaler").build()
-        );
-        options.addOption(
-                Option.builder().desc("LSA root filename")
-                        .required().hasArg().argName("file").longOpt("lsa").build()
-        );
-        options.addOption(
-                Option.builder().desc("SPARQL endpoint")
-                        .hasArg().argName("uri").longOpt("sparql").build()
-        );
+    private static final String PORT_PARAM = "port";
+    private static final String TWITTER_CREDENTIALS_PARAM = "credentials";
+    private static final String DB_PARAM = "db";
+    private static final String EMBEDDINGS_PARAM = "embeddings";
+    private static final String MODEL_PARAM = "model";
+    private static final String LSA_PARAM = "lsa";
+    private static final String SPARQL_PARAM = "sparql";
 
-        CommandLineParser parser = new DefaultParser();
-        CommandLine line;
 
+
+    private static CommandLine.Parser provideParameterList() {
+        return CommandLine.parser()
+                .withOption("p", PORT_PARAM,
+                        "Port on which to instantiate the application", "INT",
+                        CommandLine.Type.STRING, true, false, false)
+                .withOption("c", TWITTER_CREDENTIALS_PARAM,
+                        "JSON file with Twitter credentials", "JSON",
+                        CommandLine.Type.STRING, true, false, true)
+                .withOption(null, DB_PARAM,
+                        "SocialLink Database credentials", "JSON",
+                        CommandLine.Type.STRING, true, false, true)
+                .withOption(null, EMBEDDINGS_PARAM,
+                        "URI of embeddings endpoint", "URI",
+                        CommandLine.Type.STRING, true, false, false)
+                .withOption(null, MODEL_PARAM,
+                        "URI of SocialLink model endpoint", "URI",
+                        CommandLine.Type.STRING, true, false, false)
+                .withOption(null, LSA_PARAM,
+                        "LSA root filename", "DIRECTORY+PREFIX",
+                        CommandLine.Type.STRING, true, false, true)
+                .withOption(null, SPARQL_PARAM,
+                        "URI of the SPARQL endpoint", "URI",
+                        CommandLine.Type.STRING, true, false, false);
+    }
+
+    private static Configuration loadConfiguration(String[] args) {
         try {
-            // parse the command line arguments
-            line = parser.parse(options, args);
+            // Parse command line
+            final CommandLine cmd = provideParameterList().parse(args);
 
             Configuration config = new Configuration();
-            config.port = Integer.valueOf(line.getOptionValue("port"));
-            config.connection = line.getOptionValue("db");
-            config.credentials = line.getOptionValue("credentials");
-            config.scaler = line.getOptionValue("scaler");
-            config.lsaFilename = line.getOptionValue("lsa");
-            if (line.hasOption("model")) {
-                config.modelEndpoint = line.getOptionValue("model");
+            config.port = cmd.getOptionValue(PORT_PARAM, Integer.class);
+            config.connection = cmd.getOptionValue(DB_PARAM, String.class);
+            config.credentials = cmd.getOptionValue(TWITTER_CREDENTIALS_PARAM, String.class);
+            config.lsaFilename = cmd.getOptionValue(LSA_PARAM, String.class);
+            if (cmd.hasOption(MODEL_PARAM)) {
+                config.modelEndpoint = cmd.getOptionValue(MODEL_PARAM, String.class);
             }
-            if (line.hasOption("ngrams")) {
-                config.ngramsEndpoint = line.getOptionValue("ngrams");
+            if (cmd.hasOption(EMBEDDINGS_PARAM)) {
+                config.embeddingsEndpoint = cmd.getOptionValue(EMBEDDINGS_PARAM, String.class);
             }
-            if (line.hasOption("sparql")) {
-                config.sparqlEndpoint = line.getOptionValue("sparql");
+            if (cmd.hasOption(SPARQL_PARAM)) {
+                config.sparqlEndpoint = cmd.getOptionValue(SPARQL_PARAM, String.class);
             }
             return config;
-        } catch (ParseException exp) {
-            // oops, something went wrong
-            System.out.println(String.join(", ", args));
-            System.err.println("Parsing failed: " + exp.getMessage() + "\n");
-            printHelp(options);
+        } catch (final Throwable ex) {
+            // Handle exception
+            CommandLine.fail(ex);
             System.exit(1);
         }
         return null;
-    }
-
-    private static void printHelp(Options options) {
-        HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp(
-                200,
-                "java -Dfile.encoding=UTF-8 "+Application.class.getName(),
-                "\n",
-                options,
-                "\n",
-                true
-        );
     }
 }

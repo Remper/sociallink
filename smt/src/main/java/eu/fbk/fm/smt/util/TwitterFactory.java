@@ -3,6 +3,7 @@ package eu.fbk.fm.smt.util;
 import twitter4j.Twitter;
 import twitter4j.conf.ConfigurationBuilder;
 
+import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 import java.util.function.Supplier;
 
@@ -30,6 +31,7 @@ public class TwitterFactory implements Supplier<Twitter[]> {
         ).getInstance();
     }
 
+    @Produces
     @Override
     public Twitter[] get() {
         Twitter[] instances = new Twitter[credentials.length];

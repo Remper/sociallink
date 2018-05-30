@@ -21,4 +21,8 @@ public class ScoreBundle {
         this.type = type;
         this.scores = new LinkedList<>();
     }
+
+    public void prepare() {
+        scores.sort((o1, o2) -> Double.compare(o2.score, o1.score));
+    }
 }
