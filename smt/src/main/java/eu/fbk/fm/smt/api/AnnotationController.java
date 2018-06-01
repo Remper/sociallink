@@ -4,6 +4,7 @@ import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
 import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.scorer.TextScorer;
+import eu.fbk.fm.smt.model.CandidatesBundle;
 import eu.fbk.fm.smt.model.Score;
 import eu.fbk.fm.smt.model.ScoreBundle;
 import eu.fbk.fm.smt.services.*;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 /**
  * A proxy between thewikimachine endpoint and client app, enriching the data along the way
@@ -87,41 +89,53 @@ public class AnnotationController {
         return errors;
     }
 
-    private String processTwitterAnnotationWithComparator(String token, String ner, String text, BiFunction<DBpediaResource, List<User>, ScoreBundle[]> func) {
+    private String processTwitterAnnotationWithComparator(String token, String ner, String text, BiFunction<DBpediaResource, List<User>, List<ScoreBundle>> func) {
         List<String> errors = errorsForFinalStage(token, ner, text);
         if (errors.size() > 0) {
             return new InvalidAttributeResponse(errors).respond();
         }
 
         DBpediaResource resource = toResource(new Annotation(token, ner), text);
-        List<User> candidates = onlineAlign.populateCandidates(resource);
-
         SingleAnnotation response = new SingleAnnotation();
         response.dictionary = new HashMap<>();
-        for (User candidate : candidates) {
-            response.dictionary.put(candidate.getScreenName(), candidate);
-        }
         response.token = token;
         response.tokenClass = ner;
         response.context = text;
-        response.results = func.apply(resource, candidates);
+
+        List<CandidatesBundle.Resolved> candidates = getCandidates(resource);
+        response.caResults = candidates.stream().map(cand -> cand.bundle).collect(Collectors.toList());
+        response.csResults = func.apply(resource, mergeCAApproaches(candidates.stream().map(cand -> cand.dictionary).collect(Collectors.toList())));
 
         return Response.success(response).respond();
+    }
+
+    public List<User> mergeCAApproaches(Iterable<Map<String, User>> approaches) {
+        HashMap<String, User> users = new HashMap<>();
+        for (Map<String, User> approach : approaches) {
+            users.putAll(approach);
+        }
+
+        return new LinkedList<>(users.values());
+    }
+
+    public List<CandidatesBundle.Resolved> getCandidates(DBpediaResource resource) {
+        return new LinkedList<CandidatesBundle.Resolved>(){{
+            add(onlineAlign.performCALive(resource));
+            add(onlineAlign.performCASocialLink(resource));
+        }};
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("twitter")
     public String annotateWithTwitter(@QueryParam("token") String token, @QueryParam("ner") String ner, @QueryParam("text") String text) {
-        return processTwitterAnnotationWithComparator(token, ner, text, (resource, candidates) -> {
-            ScoreBundle[] simpleScorers = onlineAlign.compare(resource, candidates);
-            ScoreBundle socialLink = onlineAlign.performCSSocialLink(onlineAlign.performCASocialLink(resource));
-
-            ScoreBundle[] result = new ScoreBundle[simpleScorers.length+1];
-            result[0] = socialLink;
-            System.arraycopy(simpleScorers, 0, result, 1, simpleScorers.length);
-            return result;
-        });
+        return processTwitterAnnotationWithComparator(
+            token, ner, text,
+            (resource, candidates) -> new LinkedList<ScoreBundle>() {{
+                add(onlineAlign.performCSSocialLink(resource, candidates));
+                addAll(onlineAlign.compare(resource, candidates));
+            }}
+        );
     }
 
     @GET
@@ -130,7 +144,9 @@ public class AnnotationController {
     public String annotateWithTwitterSimple(@QueryParam("token") String token, @QueryParam("ner") String ner, @QueryParam("text") String text) {
         return processTwitterAnnotationWithComparator(
             token, ner, text,
-            (resource, candidates) -> new ScoreBundle[]{onlineAlign.compareWithDefault(resource, candidates)}
+            (resource, candidates) -> new LinkedList<ScoreBundle>() {{
+                add(onlineAlign.compareWithDefault(resource, candidates));
+            }}
         );
     }
 
@@ -217,7 +233,8 @@ public class AnnotationController {
         public String context;
         public String token;
         public String tokenClass;
-        public ScoreBundle[] results;
+        public List<CandidatesBundle> caResults;
+        public List<ScoreBundle> csResults;
         public Map<String, User> dictionary;
     }
 

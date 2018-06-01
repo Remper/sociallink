@@ -12,6 +12,9 @@ public class FakeEndpoint implements ResourceEndpoint {
 
     @Override
     public DBpediaResource getResourceById(String resourceId) {
+        if (!pool.containsKey(resourceId)) {
+            throw new RuntimeException("Resource should be registered before being requested");
+        }
         return pool.get(resourceId);
     }
 

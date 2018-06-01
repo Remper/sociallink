@@ -12,6 +12,7 @@ import eu.fbk.fm.alignments.scorer.PAI18Strategy;
 import eu.fbk.fm.alignments.scorer.ScoringStrategy;
 import eu.fbk.fm.alignments.scorer.TextScorer;
 import eu.fbk.fm.alignments.scorer.text.SimilarityScorer;
+import eu.fbk.fm.smt.model.CandidatesBundle;
 import eu.fbk.fm.smt.model.Score;
 import eu.fbk.fm.smt.model.ScoreBundle;
 import twitter4j.User;
@@ -23,6 +24,7 @@ import javax.sql.DataSource;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Runs the entire alignment pipeline
@@ -68,11 +70,28 @@ public class OnlineAlignmentsService {
         }
     }
 
-    public String getQuery(DBpediaResource resource) {
-        return qaStrategy.getQuery(resource);
+    public List<ScoreBundle> compare(DBpediaResource resource, List<User> candidates) {
+        List<ScoreBundle> result = new LinkedList<>();
+        SimilarityScorer[] scorers = null;
+        try {
+            scorers = mlService.getScorers();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (scorers == null || scorers.length == 0) {
+            return result;
+        }
+
+        for (SimilarityScorer scorer : scorers) {
+            result.add(new ScoreBundle(
+                scorer.toString(),
+                match(resource, candidates, scorer, true)
+            ));
+        }
+        return result;
     }
 
-    public synchronized List<User> populateCandidates(DBpediaResource resource) {
+    public CandidatesBundle.Resolved performCALive(DBpediaResource resource) {
         if (qaStrategy == null) {
             init();
         }
@@ -82,53 +101,28 @@ public class OnlineAlignmentsService {
             users = twitter.searchUsers(qaStrategy.getQuery(resource));
         } catch (TwitterService.RateLimitException e) {
             e.printStackTrace();
-            return new LinkedList<>();
+            users = new LinkedList<>();
         }
-        return users;
+
+        CandidatesBundle.Resolved result = CandidatesBundle.resolved("live");
+        users.forEach(result::addUser);
+        return result;
     }
 
-    public ScoreBundle[] compare(DBpediaResource resource, List<User> candidates) {
-        SimilarityScorer[] scorers = null;
-        try {
-            scorers = mlService.getScorers();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        if (scorers == null || scorers.length == 0) {
-            return new ScoreBundle[0];
-        }
-
-        ScoreBundle[] bundles = new ScoreBundle[scorers.length];
-        int order = 0;
-        for (SimilarityScorer scorer : scorers) {
-            bundles[order] = new ScoreBundle(
-                scorer.toString(),
-                match(resource, candidates, scorer, true)
-            );
-            order++;
-        }
-        return bundles;
-    }
-
-    public FullyResolvedEntry performCASocialLink(DBpediaResource resource) {
+    public CandidatesBundle.Resolved performCASocialLink(DBpediaResource resource) {
         init();
-        fakeResourceEndpoint.register(resource);
-        FullyResolvedEntry entry = new FullyResolvedEntry(resource);
-        index.fill(entry);
-        fakeResourceEndpoint.release(resource.getIdentifier());
+        List<User> users = index.queryCandidates(resource);
 
-        return entry;
+        CandidatesBundle.Resolved result = CandidatesBundle.resolved("index");
+        users.forEach(result::addUser);
+        return result;
     }
 
-    public ScoreBundle performCSSocialLink(FullyResolvedEntry entry) {
+    public ScoreBundle performCSSocialLink(DBpediaResource resource, List<User> candidates) {
         ScoreBundle result = new ScoreBundle("sociallink");
-        scoringStrategy.fillScore(entry);
-
-        int[] i = new int[1];
-        entry.features.forEach(features -> {
-            double[] prediction = endpoint.predict(features);
-            result.scores.add(new Score(entry.candidates.get(i[0]).getScreenName(), prediction[1]));
-            i[0]++;
+        candidates.forEach(user -> {
+            double[] prediction = endpoint.predict(scoringStrategy.getScore(user, resource));
+            result.scores.add(new Score(user.getScreenName(), prediction[1]));
         });
         result.prepare();
 

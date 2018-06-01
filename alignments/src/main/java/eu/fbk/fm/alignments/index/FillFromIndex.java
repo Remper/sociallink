@@ -78,17 +78,12 @@ public class FillFromIndex implements AutoCloseable {
         return String.format("[Query: %s Entity: %s]", query, resourceId);
     }
 
-    /**
-     * @param entry
-     */
-    public void fill(FullyResolvedEntry entry) {
-        entry.candidates = new LinkedList<>();
-        entry.resource = endpoint.getResourceById(entry.entry.resourceId);
-
-        String query = qaStrategy.getQuery(entry.resource);
+    public List<User> queryCandidates(DBpediaResource resource) {
+        List<User> result = new LinkedList<>();
+        String query = qaStrategy.getQuery(resource);
         if (query.length() < 4) {
-            LOGGER.error("Query is less than 3 symbols. Ignoring. "+logAppendix(entry, query));
-            return;
+            LOGGER.error("Query is less than 3 symbols. Ignoring. "+logAppendix(resource.getIdentifier(), query));
+            return result;
         }
 
         Stopwatch watch = Stopwatch.createStarted();
@@ -98,14 +93,14 @@ public class FillFromIndex implements AutoCloseable {
                 .select(USER_OBJECTS.OBJECT)
                 .from(
                     select(USER_INDEX.UID, sum(USER_INDEX.FREQ))
-                    .from(USER_INDEX)
-                    .where(
+                        .from(USER_INDEX)
+                        .where(
                             "to_tsquery({0}) @@ to_tsvector('english_fullname', USER_INDEX.FULLNAME)",
-                            qaStrategy.getQuery(entry.resource)
-                    )
-                    .groupBy(USER_INDEX.UID)
-                    .orderBy(sum(USER_INDEX.FREQ).desc())
-                    .limit(CANDIDATES_THRESHOLD).asTable("a")
+                            query
+                        )
+                        .groupBy(USER_INDEX.UID)
+                        .orderBy(sum(USER_INDEX.FREQ).desc())
+                        .limit(CANDIDATES_THRESHOLD).asTable("a")
                 )
                 .leftJoin(USER_OBJECTS)
                 .on(indexAlias.UID.eq(USER_OBJECTS.UID))
@@ -117,14 +112,14 @@ public class FillFromIndex implements AutoCloseable {
                         return;
                     }
                     try {
-                        entry.candidates.add(TwitterObjectFactory.createUser(rawObject.toString()));
+                        result.add(TwitterObjectFactory.createUser(rawObject.toString()));
                     } catch (TwitterException e) {
                         LOGGER.error("Error while deserializing user object", e);
                     }
                 });
             watch.stop();
         } catch (Exception e) {
-            LOGGER.error("Error while requesting candidates. "+logAppendix(entry, query));
+            LOGGER.error("Error while requesting candidates. "+logAppendix(resource.getIdentifier(), query));
             if (!exceptionPrinted) {
                 exceptionPrinted = true;
                 e.printStackTrace();
@@ -132,12 +127,22 @@ public class FillFromIndex implements AutoCloseable {
         }
         long elapsed = watch.elapsed(TimeUnit.SECONDS);
         if (verbose && elapsed > 10) {
-            LOGGER.info("Slow ("+elapsed+"s) query. "+logAppendix(entry, query));
+            LOGGER.info("Slow ("+elapsed+"s) query. "+logAppendix(resource.getIdentifier(), query));
         }
-        if (verbose && entry.candidates.size() == 0 && noCandidates < 100) {
+        if (verbose && result.size() == 0 && noCandidates < 100) {
             noCandidates++;
-            LOGGER.warn("No candidates. "+logAppendix(entry, query));
+            LOGGER.warn("No candidates. "+logAppendix(resource.getIdentifier(), query));
         }
+
+        return result;
+    }
+
+    /**
+     * @param entry
+     */
+    public void fill(FullyResolvedEntry entry) {
+        entry.resource = endpoint.getResourceById(entry.entry.resourceId);
+        entry.candidates = queryCandidates(entry.resource);
     }
 
     private synchronized void initWatch() {
