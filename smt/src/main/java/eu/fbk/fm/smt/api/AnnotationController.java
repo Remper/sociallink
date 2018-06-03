@@ -20,6 +20,7 @@ import java.net.URISyntaxException;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * A proxy between thewikimachine endpoint and client app, enriching the data along the way
@@ -97,25 +98,19 @@ public class AnnotationController {
 
         DBpediaResource resource = toResource(new Annotation(token, ner), text);
         SingleAnnotation response = new SingleAnnotation();
-        response.dictionary = new HashMap<>();
         response.token = token;
         response.tokenClass = ner;
         response.context = text;
 
         List<CandidatesBundle.Resolved> candidates = getCandidates(resource);
+        Stream<Map<String, User>> candStream = candidates.stream().map(cand -> cand.dictionary);
+        response.dictionary = new HashMap<>();
+        candStream.forEach(cand -> response.dictionary.putAll(cand));
+
         response.caResults = candidates.stream().map(cand -> cand.bundle).collect(Collectors.toList());
-        response.csResults = func.apply(resource, mergeCAApproaches(candidates.stream().map(cand -> cand.dictionary).collect(Collectors.toList())));
+        response.csResults = func.apply(resource, new LinkedList<>(response.dictionary.values()));
 
         return Response.success(response).respond();
-    }
-
-    public List<User> mergeCAApproaches(Iterable<Map<String, User>> approaches) {
-        HashMap<String, User> users = new HashMap<>();
-        for (Map<String, User> approach : approaches) {
-            users.putAll(approach);
-        }
-
-        return new LinkedList<>(users.values());
     }
 
     public List<CandidatesBundle.Resolved> getCandidates(DBpediaResource resource) {

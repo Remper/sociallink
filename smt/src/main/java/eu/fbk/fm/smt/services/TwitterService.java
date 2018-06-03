@@ -5,9 +5,13 @@ import twitter4j.*;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Our Twitter tooling on top of the regular Twitter instance
+ *
+ * For CDI purposes it is ApplicationScoped to be the only point of authority when it comes to querying Twitter
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
@@ -82,50 +86,35 @@ public class TwitterService {
         public long readyIn(String method) {
             long curTime = new Date().getTime()/1000;
 
-            RateLimitStatus status = getLimitStatus(method);
+            RateLimitStatus status;
+            try {
+                status = getLimitStatus(method);
+            } catch (TwitterException e) {
+                return MAX_VALUE; //Never
+            }
             if (status == null) {
-                return 0; //Never
+                return 0; //No information — suggest trying
             }
             return status.getRemaining() > 0 ? 0 : Math.max(status.getResetTimeInSeconds() - curTime, 0);
         }
 
-        private RateLimitStatus getLimitStatus(String method) {
+        private RateLimitStatus getLimitStatus(String method) throws TwitterException {
             RateLimitStatus status = limits.get(method);
 
             if (status != null) {
                 return status;
             }
 
-            try {
-                limits.putAll(twitter.getRateLimitStatus());
-            } catch (TwitterException e) {
-                return null;
-            }
+            limits.putAll(twitter.getRateLimitStatus());
             return limits.get(method);
         }
 
         private List<User> searchUsers(String query) {
-            try {
-                ResponseList<User> users = twitter.users().searchUsers(query, 0);
-                limits.put(USERS_SEARCH, users.getRateLimitStatus());
-                return users;
-            } catch (TwitterException e) {
-                limits.put(USERS_SEARCH, e.getRateLimitStatus());
-            }
-
-            return new LinkedList<>();
+            return processListResult(limits, USERS_SEARCH, () -> twitter.users().searchUsers(query, 0));
         }
 
         private List<Status> getStatuses(Long uid) {
-            try {
-                ResponseList<Status> statuses = twitter.timelines().getUserTimeline(uid);
-                limits.put(USER_TIMELINE, statuses.getRateLimitStatus());
-                return statuses;
-            } catch (TwitterException e) {
-                limits.put(USER_TIMELINE, e.getRateLimitStatus());
-            }
-
-            return new LinkedList<>();
+            return processListResult(limits, USER_TIMELINE, () -> twitter.timelines().getUserTimeline(uid));
         }
 
         private List<User> getFriends(long uid) {
@@ -133,16 +122,27 @@ public class TwitterService {
         }
 
         private List<User> getFriends(long uid, int cursor) {
-            try {
-                PagableResponseList<User> friends = twitter.friendsFollowers().getFriendsList(uid, cursor, 200);
-                limits.put(FRIENDS_LIST, friends.getRateLimitStatus());
+            return processListResult(limits, FRIENDS_LIST, () -> twitter.friendsFollowers().getFriendsList(uid, cursor, 200));
+        }
 
-                return friends;
+        private static <T> List<T> processListResult(
+                Map<String, RateLimitStatus> limits,
+                String method,
+                TwitterSupplier<ResponseList<T>> supplier)
+        {
+            try {
+                ResponseList<T> statuses = supplier.get();
+                limits.put(method, statuses.getRateLimitStatus());
+                return statuses;
             } catch (TwitterException e) {
-                limits.put(FRIENDS_LIST, e.getRateLimitStatus());
+                limits.put(method, e.getRateLimitStatus());
             }
 
             return new LinkedList<>();
+        }
+
+        private interface TwitterSupplier<T> {
+            T get() throws TwitterException;
         }
     }
 
