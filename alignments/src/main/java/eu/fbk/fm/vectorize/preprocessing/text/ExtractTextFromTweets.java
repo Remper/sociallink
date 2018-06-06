@@ -39,10 +39,10 @@ public class ExtractTextFromTweets {
         parameters.setBoolean("recursive.file.enumeration", true);
 
         return new DataSource<>(
-                env,
-                new TextInputFormat(input),
-                BasicTypeInfo.STRING_TYPE_INFO,
-                Utils.getCallLocationName()
+            env,
+            new TextInputFormat(input),
+            BasicTypeInfo.STRING_TYPE_INFO,
+            Utils.getCallLocationName()
         ).withParameters(parameters);
     }
 

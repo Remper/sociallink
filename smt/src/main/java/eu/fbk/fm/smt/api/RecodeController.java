@@ -1,6 +1,6 @@
 package eu.fbk.fm.smt.api;
 
-import eu.fbk.fm.smt.services.TwitterService;
+import eu.fbk.fm.alignments.twitter.TwitterService;
 import eu.fbk.fm.smt.util.InvalidAttributeResponse;
 import eu.fbk.fm.smt.util.Response;
 import twitter4j.User;

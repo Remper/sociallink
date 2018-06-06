@@ -14,11 +14,13 @@ import twitter4j.User;
 
 import javax.inject.Inject;
 import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.UriInfo;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -103,9 +105,11 @@ public class AnnotationController {
         response.context = text;
 
         List<CandidatesBundle.Resolved> candidates = getCandidates(resource);
-        Stream<Map<String, User>> candStream = candidates.stream().map(cand -> cand.dictionary);
         response.dictionary = new HashMap<>();
-        candStream.forEach(cand -> response.dictionary.putAll(cand));
+        candidates.stream()
+                .flatMap(resolved -> resolved.dictionary.values().stream())
+                .map(user -> user.profile)
+                .forEach(cand -> response.dictionary.put(cand.getScreenName(), cand));
 
         response.caResults = candidates.stream().map(cand -> cand.bundle).collect(Collectors.toList());
         response.csResults = func.apply(resource, new LinkedList<>(response.dictionary.values()));
@@ -122,8 +126,8 @@ public class AnnotationController {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("twitter")
     public String annotateWithTwitter(@QueryParam("token") String token, @QueryParam("ner") String ner, @QueryParam("text") String text) {
+
         return processTwitterAnnotationWithComparator(
             token, ner, text,
             (resource, candidates) -> new LinkedList<ScoreBundle>() {{
@@ -133,9 +137,17 @@ public class AnnotationController {
         );
     }
 
+
+    @POST
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes("application/x-www-form-urlencoded")
+    public String annotateWithTwitterPost(@FormParam("token") String token, @FormParam("ner") String ner, @FormParam("text") String text) {
+        return annotateWithTwitter(token, ner, text);
+    }
+
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("twitter/simple")
+    @Path("simple")
     public String annotateWithTwitterSimple(@QueryParam("token") String token, @QueryParam("ner") String ner, @QueryParam("text") String text) {
         return processTwitterAnnotationWithComparator(
             token, ner, text,

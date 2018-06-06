@@ -214,17 +214,25 @@ public class SearchRunner implements Runnable {
             QueryAssemblyStrategy qaStrategy,
             ResultReceiver receiver
     ) throws TwitterException {
+        Twitter[] instances = createInstances(credentials);
         SearchRunner[] runners = new SearchRunner[credentials.length];
         for (int i = 0; i < credentials.length; i++) {
-            Twitter connection = new TwitterFactory(
-                    new ConfigurationBuilder()
-                            .setOAuthConsumerKey(credentials[i].consumerKey)
-                            .setOAuthConsumerSecret(credentials[i].consumerSecret)
-                            .setOAuthAccessToken(credentials[i].token)
-                            .setOAuthAccessTokenSecret(credentials[i].tokenSecret).build()
-            ).getInstance();
-            runners[i] = new SearchRunner(connection, qaStrategy, receiver);
+            runners[i] = new SearchRunner(instances[i], qaStrategy, receiver);
         }
         return runners;
+    }
+
+    public static Twitter[] createInstances(TwitterCredentials[] credentials) {
+        Twitter[] instances = new Twitter[credentials.length];
+        for (int i = 0; i < credentials.length; i++) {
+            instances[i] = new TwitterFactory(
+                new ConfigurationBuilder()
+                    .setOAuthConsumerKey(credentials[i].consumerKey)
+                    .setOAuthConsumerSecret(credentials[i].consumerSecret)
+                    .setOAuthAccessToken(credentials[i].token)
+                    .setOAuthAccessTokenSecret(credentials[i].tokenSecret).build()
+            ).getInstance();
+        }
+        return instances;
     }
 }

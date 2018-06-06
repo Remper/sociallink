@@ -1,5 +1,6 @@
 package eu.fbk.fm.smt.model;
 
+import eu.fbk.fm.alignments.scorer.UserData;
 import twitter4j.User;
 
 import java.util.*;
@@ -32,14 +33,14 @@ public class CandidatesBundle {
     }
 
     public static class Resolved {
-        public final Map<String, User> dictionary = new HashMap<>();
+        public final Map<String, UserData> dictionary = new HashMap<>();
         public final CandidatesBundle bundle;
 
         public Resolved(CandidatesBundle bundle) {
             this.bundle = bundle;
         }
 
-        public void addUser(User user) {
+        public void addUser(UserData user) {
             bundle.addCandidate(user.getScreenName());
             dictionary.put(user.getScreenName(), user);
         }

@@ -7,11 +7,12 @@ import eu.fbk.fm.alignments.persistence.sparql.FakeEndpoint;
 import eu.fbk.fm.alignments.query.QueryAssemblyStrategy;
 import eu.fbk.fm.alignments.query.QueryAssemblyStrategyFactory;
 import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
-import eu.fbk.fm.alignments.scorer.FullyResolvedEntry;
 import eu.fbk.fm.alignments.scorer.PAI18Strategy;
 import eu.fbk.fm.alignments.scorer.ScoringStrategy;
 import eu.fbk.fm.alignments.scorer.TextScorer;
+import eu.fbk.fm.alignments.scorer.UserData;
 import eu.fbk.fm.alignments.scorer.text.SimilarityScorer;
+import eu.fbk.fm.alignments.twitter.TwitterService;
 import eu.fbk.fm.smt.model.CandidatesBundle;
 import eu.fbk.fm.smt.model.Score;
 import eu.fbk.fm.smt.model.ScoreBundle;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Runs the entire alignment pipeline
@@ -105,7 +107,7 @@ public class OnlineAlignmentsService {
         }
 
         CandidatesBundle.Resolved result = CandidatesBundle.resolved("live");
-        users.forEach(result::addUser);
+        users.forEach(user -> result.addUser(new UserData(user)));
         return result;
     }
 
@@ -114,7 +116,7 @@ public class OnlineAlignmentsService {
         List<User> users = index.queryCandidates(resource);
 
         CandidatesBundle.Resolved result = CandidatesBundle.resolved("index");
-        users.forEach(result::addUser);
+        users.forEach(user -> result.addUser(new UserData(user)));
         return result;
     }
 

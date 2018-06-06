@@ -17,7 +17,7 @@ import java.util.Map;
 public class FullyResolvedEntry implements Serializable {
     public DatasetEntry entry;
     public DBpediaResource resource = null;
-    public List<User> candidates = null;
+    public List<UserData> candidates = null;
     public List<Map<String, double[]>> features = new LinkedList<>();
 
     public FullyResolvedEntry(DatasetEntry entry) {

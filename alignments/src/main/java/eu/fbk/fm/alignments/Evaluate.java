@@ -12,6 +12,7 @@ import eu.fbk.fm.alignments.scorer.*;
 import eu.fbk.fm.alignments.twitter.SearchRunner;
 import eu.fbk.fm.alignments.twitter.TwitterCredentials;
 import eu.fbk.fm.alignments.twitter.TwitterDeserializer;
+import eu.fbk.fm.alignments.twitter.TwitterService;
 import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.utils.math.Scaler;
 import org.apache.commons.cli.*;
@@ -33,6 +34,11 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -47,6 +53,7 @@ public class Evaluate {
 
     private Endpoint endpoint;
     private TwitterCredentials[] credentials = null;
+    private TwitterService service = null;
     private QueryAssemblyStrategy qaStrategy = QueryAssemblyStrategyFactory.def();
     private ScoringStrategy scoreStrategy = null;
     private Gson gson;
@@ -70,13 +77,59 @@ public class Evaluate {
     }
 
     public Collection<FullyResolvedEntry> resolveDataset(Dataset dataset) {
+        Collection<FullyResolvedEntry> result;
         if (index == null) {
             logger.info("Resolving dataset against Twitter");
-            return resolveDatasetViaTwitter(dataset);
+            result = resolveDatasetViaTwitter(dataset);
+        } else {
+            logger.info("Resolving dataset against db index");
+            result = resolveDatasetViaIndex(dataset);
         }
 
-        logger.info("Resolving dataset against db index");
-        return resolveDatasetViaIndex(dataset);
+        fillAdditionalData(result);
+
+        return result;
+    }
+
+    public void fillAdditionalData(Collection<FullyResolvedEntry> dataset) {
+        if (service == null) {
+            if (credentials == null) {
+                logger.info("Twitter credentials are not set, skipping additional queries");
+                return;
+            }
+            service = new TwitterService(SearchRunner.createInstances(credentials));
+        }
+
+        //Query additional data
+        Stream<UserData> candidateStream = dataset.parallelStream().flatMap(entry -> entry.candidates.stream());
+        long total = candidateStream.count();
+        AtomicLong processed = new AtomicLong();
+        Consumer<UserData> resolveStatuses = (entry -> {
+            boolean retry = true;
+            while (retry) {
+                try {
+                    entry.data.put("statuses", service.getStatuses(entry.getId()));
+                    retry = false;
+                } catch (TwitterService.RateLimitException limit) {
+                    try {
+                        logger.info(String.format("Limit reached, sleeping for %d seconds", limit.remaining));
+                        Thread.sleep(limit.remaining * 1000);
+                    } catch (InterruptedException e) { }
+                }
+            }
+
+            processed.incrementAndGet();
+        });
+
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
+        ScheduledFuture<?> progressCheck = executor.scheduleWithFixedDelay(() -> {
+            logger.info(String.format("[Twitter statuses] Progress: %5d/%5d", processed.get(), total));
+        }, 1, 30, TimeUnit.SECONDS);
+
+        dataset.parallelStream().flatMap(entry -> entry.candidates.stream()).forEach(resolveStatuses);
+
+        progressCheck.cancel(true);
+        executor.shutdownNow();
     }
 
     public Collection<FullyResolvedEntry> resolveDatasetViaIndex(Dataset dataset) {
@@ -122,7 +175,7 @@ public class Evaluate {
             entries.put(entry.resource, entry);
 
             if (++processed % 100 == 0) {
-                logger.info("Processed " + processed + " entries");
+                logger.info(String.format("Processed %5d entries", processed));
             }
         }
 
@@ -139,10 +192,10 @@ public class Evaluate {
             @Override
             public synchronized void processResult(List<User> candidates, DBpediaResource task) {
                 if (processed < 10) {
-                    logger.info("Query: " + qaStrategy.getQuery(task) + ". Candidates: " + candidates.size());
+                    logger.info(String.format("Query: %s. Candidates: %d", qaStrategy.getQuery(task), candidates.size()));
                     processed++;
                 }
-                entries.get(task).candidates = candidates;
+                entries.get(task).candidates = candidates.stream().map(UserData::new).collect(Collectors.toList());
             }
         };
         SearchRunner[] runners;
@@ -484,7 +537,7 @@ public class Evaluate {
         }
 
         int i = 0;
-        while (testSet.get(i).features.size() == 0) {
+        while (i < testSet.size() && testSet.get(i).features.size() == 0) {
             i++;
         }
         if (i == testSet.size()) {
@@ -598,12 +651,12 @@ public class Evaluate {
         Evaluate evaluate;
 
         DataSource source = DBUtils.createHikariDataSource(configuration.dbConnection, configuration.dbUser, configuration.dbPassword);
-        if (configuration.credentials == null) {
-            evaluate = new Evaluate(new FillFromIndex(endpoint, qaStrategy, source));
-        } else {
-            evaluate = new Evaluate(endpoint);
-            evaluate.setQAStrategy(new StrictStrategy());
-        }
+        //if (configuration.credentials == null) {
+        evaluate = new Evaluate(new FillFromIndex(endpoint, qaStrategy, source));
+        //} else {
+        //    evaluate = new Evaluate(endpoint);
+        //    evaluate.setQAStrategy(new StrictStrategy());
+        //}
 
         if (configuration.lsa != null) {
             logger.info("LSA specified. Enabling PAI18 strategy");

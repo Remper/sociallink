@@ -10,6 +10,7 @@ import eu.fbk.fm.alignments.persistence.sparql.ResourceEndpoint;
 import eu.fbk.fm.alignments.query.QueryAssemblyStrategy;
 import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
 import eu.fbk.fm.alignments.scorer.FullyResolvedEntry;
+import eu.fbk.fm.alignments.scorer.UserData;
 import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.utils.core.CommandLine;
 import org.jooq.SQLDialect;
@@ -26,6 +27,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static eu.fbk.fm.alignments.Evaluate.CANDIDATES_THRESHOLD;
 import static eu.fbk.fm.alignments.index.db.tables.UserIndex.USER_INDEX;
@@ -142,7 +144,7 @@ public class FillFromIndex implements AutoCloseable {
      */
     public void fill(FullyResolvedEntry entry) {
         entry.resource = endpoint.getResourceById(entry.entry.resourceId);
-        entry.candidates = queryCandidates(entry.resource);
+        entry.candidates = queryCandidates(entry.resource).stream().map(UserData::new).collect(Collectors.toList());
     }
 
     private synchronized void initWatch() {

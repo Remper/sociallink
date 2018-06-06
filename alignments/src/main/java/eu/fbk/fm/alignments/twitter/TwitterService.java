@@ -1,12 +1,12 @@
-package eu.fbk.fm.smt.services;
+package eu.fbk.fm.alignments.twitter;
 
+import eu.fbk.fm.alignments.Evaluate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import twitter4j.*;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import java.util.*;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Our Twitter tooling on top of the regular Twitter instance
@@ -15,8 +15,9 @@ import java.util.function.Supplier;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-@ApplicationScoped
 public class TwitterService {
+
+    private static final Logger logger = LoggerFactory.getLogger(Evaluate.class);
     private final List<TwitterInstance> twitter;
 
     public static final String USERS_SEARCH = "/users/search";
@@ -24,11 +25,11 @@ public class TwitterService {
     public static final String FRIENDS_LIST = "/friends/list";
     public static final int MAX_VALUE = 100500;
 
-    @Inject
+
     public TwitterService(Twitter[] twitter) {
         this.twitter = new LinkedList<>();
-        for (Twitter connection : twitter) {
-            this.twitter.add(new TwitterInstance(connection));
+        for (int i = 0; i < twitter.length; i++) {
+            this.twitter.add(new TwitterInstance(i, twitter[i]));
         }
     }
 
@@ -49,10 +50,11 @@ public class TwitterService {
         int minTime = MAX_VALUE;
         TwitterInstance minInstance = twitter.get(0);
 
+        List<TwitterInstance> ready = new ArrayList<>();
         for (TwitterInstance instance : this.twitter) {
             long readyIn = instance.readyIn(method);
             if (readyIn == 0) {
-                return instance;
+                ready.add(instance);
             }
 
             if (minTime > readyIn) {
@@ -61,7 +63,12 @@ public class TwitterService {
             }
         }
 
+        if (ready.size() > 0) {
+            return ready.get(new Random().nextInt(ready.size()));
+        }
+
         if (minTime < 10) {
+            logger.info(String.format("Limit is soon (%ds), sleeping for a little bit", minTime));
             try {
                 Thread.sleep((minTime + 5) * 1000);
             } catch (InterruptedException e) {
@@ -78,9 +85,16 @@ public class TwitterService {
     public static class TwitterInstance {
         private Map<String, RateLimitStatus> limits = new HashMap<>();
         public Twitter twitter;
+        public final int id;
+        public final AtomicInteger requests = new AtomicInteger(0);
+
+        public TwitterInstance(int id, Twitter twitter) {
+            this.id = id;
+            this.twitter = twitter;
+        }
 
         public TwitterInstance(Twitter twitter) {
-            this.twitter = twitter;
+            this(0, twitter);
         }
 
         public long readyIn(String method) {
@@ -99,21 +113,47 @@ public class TwitterService {
         }
 
         private RateLimitStatus getLimitStatus(String method) throws TwitterException {
-            RateLimitStatus status = limits.get(method);
-
-            if (status != null) {
-                return status;
+            if (!limits.containsKey(method)) {
+                synchronized (this) {
+                    if (!limits.containsKey(method)) {
+                        limits.putAll(twitter.getRateLimitStatus());
+                        if (!limits.containsKey(method)) {
+                            limits.put(method, new Available()); //No information — suggest trying
+                        }
+                    }
+                }
             }
-
-            limits.putAll(twitter.getRateLimitStatus());
             return limits.get(method);
         }
 
-        private List<User> searchUsers(String query) {
+        private static class Available implements RateLimitStatus {
+
+            @Override
+            public int getRemaining() {
+                return 1;
+            }
+
+            @Override
+            public int getLimit() {
+                return 180;
+            }
+
+            @Override
+            public int getResetTimeInSeconds() {
+                return 0;
+            }
+
+            @Override
+            public int getSecondsUntilReset() {
+                return 0;
+            }
+        }
+
+        private synchronized List<User> searchUsers(String query) {
             return processListResult(limits, USERS_SEARCH, () -> twitter.users().searchUsers(query, 0));
         }
 
-        private List<Status> getStatuses(Long uid) {
+        private synchronized List<Status> getStatuses(Long uid) {
             return processListResult(limits, USER_TIMELINE, () -> twitter.timelines().getUserTimeline(uid));
         }
 
@@ -121,15 +161,22 @@ public class TwitterService {
             return getFriends(uid, -1);
         }
 
-        private List<User> getFriends(long uid, int cursor) {
+        private synchronized List<User> getFriends(long uid, int cursor) {
             return processListResult(limits, FRIENDS_LIST, () -> twitter.friendsFollowers().getFriendsList(uid, cursor, 200));
         }
 
-        private static <T> List<T> processListResult(
+        private <T> List<T> processListResult(
                 Map<String, RateLimitStatus> limits,
                 String method,
                 TwitterSupplier<ResponseList<T>> supplier)
         {
+            int req = requests.incrementAndGet();
+            if (req % 500 == 0) {
+                logger.info(String.format("[Twitter instance %2d] Processed requests: %d, limit on latest method (%s): %d",
+                    id, req, method,
+                    Optional.ofNullable(limits.get(method)).map(RateLimitStatus::getRemaining).orElse(-1)
+                ));
+            }
             try {
                 ResponseList<T> statuses = supplier.get();
                 limits.put(method, statuses.getRateLimitStatus());
@@ -147,8 +194,11 @@ public class TwitterService {
     }
 
     public static class RateLimitException extends Exception {
+        public final int remaining;
+
         public RateLimitException(int remaining) {
             super("The API is out of capacity, please try again in "+remaining+" seconds");
+            this.remaining = remaining;
         }
     }
 }

@@ -2,16 +2,17 @@ package eu.fbk.fm.smt;
 
 import com.google.gson.Gson;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
+import eu.fbk.fm.alignments.twitter.TwitterCredentials;
 import eu.fbk.fm.smt.filters.CORSResponseFilter;
 import eu.fbk.fm.smt.filters.EncodingResponseFilter;
 import eu.fbk.fm.smt.util.ConnectionFactory;
-import eu.fbk.fm.smt.util.TwitterCredentials;
 import eu.fbk.utils.core.CommandLine;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import javax.enterprise.inject.Produces;
+import javax.inject.Inject;
 import javax.inject.Named;
 import javax.sql.DataSource;
 import javax.ws.rs.WebApplicationException;
