@@ -8,6 +8,8 @@ import twitter4j.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.Math.max;
+
 /**
  * Our Twitter tooling on top of the regular Twitter instance
  *
@@ -87,6 +89,7 @@ public class TwitterService {
         public Twitter twitter;
         public final int id;
         public final AtomicInteger requests = new AtomicInteger(0);
+        public final AtomicInteger autherrors = new AtomicInteger(0);
 
         public TwitterInstance(int id, Twitter twitter) {
             this.id = id;
@@ -109,7 +112,7 @@ public class TwitterService {
             if (status == null) {
                 return 0; //No information — suggest trying
             }
-            return status.getRemaining() > 0 ? 0 : Math.max(status.getResetTimeInSeconds() - curTime, 0);
+            return status.getRemaining() > 0 ? 0 : max(status.getResetTimeInSeconds() - curTime, 0);
         }
 
         private RateLimitStatus getLimitStatus(String method) throws TwitterException {
@@ -149,6 +152,35 @@ public class TwitterService {
             }
         }
 
+        private static class NotAvailable implements RateLimitStatus {
+
+            private long available;
+
+            public NotAvailable(int seconds) {
+                available = new Date().getTime() + 1000 * seconds;
+            }
+
+            @Override
+            public int getRemaining() {
+                return 0;
+            }
+
+            @Override
+            public int getLimit() {
+                return 180;
+            }
+
+            @Override
+            public int getResetTimeInSeconds() {
+                return (int) (available/1000);
+            }
+
+            @Override
+            public int getSecondsUntilReset() {
+                return max((int) ((available - new Date().getTime())/1000), 0);
+            }
+        }
+
         private synchronized List<User> searchUsers(String query) {
             return processListResult(limits, USERS_SEARCH, () -> twitter.users().searchUsers(query, 0));
         }
@@ -172,7 +204,7 @@ public class TwitterService {
         {
             int req = requests.incrementAndGet();
             if (req % 500 == 0) {
-                logger.info(String.format("[Twitter instance %2d] Processed requests: %d, limit on latest method (%s): %d",
+                logger.info(String.format("[Crawl instance %2d] Processed requests: %d, limit on latest method (%s): %d",
                     id, req, method,
                     Optional.ofNullable(limits.get(method)).map(RateLimitStatus::getRemaining).orElse(-1)
                 ));
@@ -182,10 +214,36 @@ public class TwitterService {
                 limits.put(method, statuses.getRateLimitStatus());
                 return statuses;
             } catch (TwitterException e) {
-                limits.put(method, e.getRateLimitStatus());
+                processException(method, e);
             }
 
             return new LinkedList<>();
+        }
+
+        private void relax() {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        private void processException(String method, TwitterException e) {
+            if (e.exceededRateLimitation()) {
+                limits.put(method, e.getRateLimitStatus());
+                return;
+            }
+            if (e.getMessage().contains("401:Authentication credentials")) {
+                int err = autherrors.incrementAndGet();
+                if (err % 100 == 0) {
+                    logger.warn(String.format("[Crawl instance %2d] 401 errors: %d, total requests: %d", id, err, requests.get()));
+                    relax();
+                }
+            } else if (!e.getMessage().contains("404:The URI requested is invalid")) {
+                logger.warn(String.format("[Crawl instance %2d] Unexpected rate limit exception: %s", id, e.getMessage()));
+                return;
+            }
+            limits.put(method, e.getRateLimitStatus());
         }
 
         private interface TwitterSupplier<T> {

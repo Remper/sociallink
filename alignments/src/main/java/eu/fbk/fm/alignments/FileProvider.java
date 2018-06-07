@@ -29,7 +29,7 @@ public class FileProvider {
         }
 
         gold = new File(coreDirectory, "gold.csv");
-        resolved = new File(coreDirectory, "resolved.json");
+        resolved = new File(coreDirectory, "resolved");
         scaler = new File(coreDirectory, "scaler.json");
         model = new File(coreDirectory, "model");
         test = new FileSet(coreDirectory, "test");

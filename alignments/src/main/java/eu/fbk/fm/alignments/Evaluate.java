@@ -36,10 +36,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Script that evaluates a particular alignments pipeline
@@ -50,6 +50,7 @@ public class Evaluate {
 
     private static final Logger logger = LoggerFactory.getLogger(Evaluate.class);
     public static final int CANDIDATES_THRESHOLD = 40;
+    public static final int RESOLVE_CHUNK_SIZE = 2000;
 
     private Endpoint endpoint;
     private TwitterCredentials[] credentials = null;
@@ -630,6 +631,20 @@ public class Evaluate {
         logger.info("Strategies check finished");
     }
 
+    public void resolveAndSaveDatasetChunk(Dataset dataset, int index, FileProvider files) {
+        Stopwatch watch = Stopwatch.createStarted();
+        logger.info("Resolving and dumping chunk with index " + index);
+        Collection<FullyResolvedEntry> entries = resolveDataset(dataset);
+        try {
+            Writer resolvedWriter = new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(new File(files.resolved, index + ".gz"))));
+            gson.toJson(entries, resolvedWriter);
+            IOUtils.closeQuietly(resolvedWriter);
+        } catch (IOException e) {
+            logger.error("Something bad happened while saving chunk, skipping chunk " + index, e);
+        }
+        logger.info(String.format("Chunk %d completed in %.2f seconds", index, (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
+    }
+
     public static void main(String[] args) throws Exception {
         Gson gson = TwitterDeserializer.getDefault().getBuilder().create();
 
@@ -684,26 +699,92 @@ public class Evaluate {
         Dataset goldStandardDataset = Dataset.fromFile(files.gold);
 
         //Resolving all the data needed for analysis
-        Collection<FullyResolvedEntry> resolveDataset;
-        if (!files.resolved.exists()) {
-            resolveDataset = new LinkedList<>();
+        int curLastIndex = -1;
+        int totalChunks = (int) Math.ceil((float) goldStandardDataset.size() / RESOLVE_CHUNK_SIZE);
+        if (files.resolved.exists()) {
+            File[] resolveChunks = files.resolved.listFiles();
+            if (resolveChunks == null) {
+                logger.error("Something wrong with the resolve directory");
+                return;
+            }
+
+            for (File file : resolveChunks) {
+                if (!file.getName().endsWith(".gz")) {
+                    continue;
+                }
+
+                int index = Integer.valueOf(file.getName().substring(0, file.getName().indexOf('.')));
+                if (index > curLastIndex) {
+                    curLastIndex = index;
+                }
+            }
+        } else {
+            if (!files.resolved.mkdir()) {
+                logger.error("Can't create directory for the resolved info");
+                return;
+            }
+        }
+        curLastIndex++;
+
+        if (curLastIndex < totalChunks) {
+            int toSkip = curLastIndex;
 
             if (configuration.credentials != null) {
                 evaluate.setCredentials(TwitterCredentials.credentialsFromFile(new File(configuration.credentials)));
             }
-            logger.info("Resolving all data from the dataset (" + goldStandardDataset.size() + " entries)");
+            logger.info(String.format(
+                "Resolving all data from the dataset (%d entries, skip chunks: %d, projected chunks: %d)",
+                goldStandardDataset.size(), toSkip, totalChunks
+            ));
             logger.info("Query strategy: " + evaluate.getQaStrategy().getClass().getSimpleName());
-            resolveDataset.addAll(evaluate.resolveDataset(goldStandardDataset));
-            FileWriter resolvedWriter = new FileWriter(files.resolved);
-            gson.toJson(resolveDataset.toArray(new FullyResolvedEntry[0]), resolvedWriter);
-            IOUtils.closeQuietly(resolvedWriter);
-        } else {
-            logger.info("Deserialising user data");
-            Stopwatch watch = Stopwatch.createStarted();
-            resolveDataset = new LinkedList<>();
-            Collections.addAll(resolveDataset, gson.fromJson(new FileReader(files.resolved), FullyResolvedEntry[].class));
-            logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
+
+            Dataset curDataset = new Dataset();
+            for (DatasetEntry entry : goldStandardDataset) {
+                curDataset.add(entry);
+                if (curDataset.size() > RESOLVE_CHUNK_SIZE) {
+                    if (toSkip == 0) {
+                        evaluate.resolveAndSaveDatasetChunk(curDataset, curLastIndex, files);
+                        curLastIndex++;
+                    } else {
+                        toSkip--;
+                    }
+                    curDataset = new Dataset();
+                }
+            }
+            if (curDataset.size() > 0) {
+                evaluate.resolveAndSaveDatasetChunk(curDataset, curLastIndex, files);
+            }
         }
+
+        // Deserializing the entire collection
+        final List<FullyResolvedEntry> resolveDataset = new LinkedList<>();
+        logger.info("Deserialising user data");
+        List<File> resolveChunks = Arrays.asList(Optional.ofNullable(files.resolved.listFiles()).orElse(new File[0]));
+        if (resolveChunks.size() == 0) {
+            logger.error("Can't deserialize user data");
+            return;
+        }
+        AtomicInteger chunksLeft = new AtomicInteger(resolveChunks.size());
+        resolveChunks.stream().parallel().forEach(file -> {
+            Stopwatch watch = Stopwatch.createStarted();
+            Reader reader;
+            try {
+                reader = new InputStreamReader(new GZIPInputStream(new FileInputStream(file)));
+            } catch (IOException e) {
+                throw new RuntimeException("Can't open file "+file);
+            }
+            FullyResolvedEntry[] entries =  gson.fromJson(reader, FullyResolvedEntry[].class);
+            synchronized (resolveDataset) {
+                Collections.addAll(resolveDataset, entries);
+            }
+            IOUtils.closeQuietly(reader);
+            logger.info(String.format(
+                    "Chunk %s in %.2f seconds (left %2d)",
+                    file.getName(),
+                    (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000),
+                    chunksLeft.decrementAndGet()
+            );
+        });
 
         strategiesCheck(resolveDataset);
 
@@ -718,7 +799,7 @@ public class Evaluate {
                 }
                 provider = new FileProvider(newWorkdir);
                 logger.info("Generating training/test sets for split"+i);
-                evaluate.produceTrainTestSets(goldStandardDataset, provider.train.plain, provider.test.plain, 0.8);
+                evaluate.produceTrainTestSets(goldStandardDataset, provider.train.plain, provider.test.plain, 0.9);
                 Files.createSymbolicLink(provider.resolved.toPath(), files.resolved.toPath());
                 Files.copy(files.gold.toPath(), provider.gold.toPath());
             }

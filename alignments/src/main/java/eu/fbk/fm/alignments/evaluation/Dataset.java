@@ -23,9 +23,6 @@ public class Dataset implements Iterable<DatasetEntry> {
     private List<DatasetEntry> entries = new LinkedList<>();
     private Map<String, DatasetEntry> mappedEntries = new HashMap<>();
 
-    private Dataset() {
-    }
-
     public List<DatasetEntry> getEntries() {
         return entries;
     }
