@@ -230,7 +230,10 @@ public class SearchRunner implements Runnable {
                     .setOAuthConsumerKey(credentials[i].consumerKey)
                     .setOAuthConsumerSecret(credentials[i].consumerSecret)
                     .setOAuthAccessToken(credentials[i].token)
-                    .setOAuthAccessTokenSecret(credentials[i].tokenSecret).build()
+                    .setOAuthAccessTokenSecret(credentials[i].tokenSecret)
+                    .setTweetModeExtended(true)
+                    .setJSONStoreEnabled(true)
+                    .build()
             ).getInstance();
         }
         return instances;

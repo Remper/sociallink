@@ -2,6 +2,7 @@ package eu.fbk.fm.alignments;
 
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import eu.fbk.fm.alignments.evaluation.*;
 import eu.fbk.fm.alignments.index.FillFromIndex;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
@@ -23,7 +24,9 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import twitter4j.Status;
 import twitter4j.TwitterException;
+import twitter4j.TwitterObjectFactory;
 import twitter4j.User;
 
 import javax.sql.DataSource;
@@ -48,6 +51,7 @@ import java.util.zip.GZIPOutputStream;
  */
 public class Evaluate {
 
+    private static final Gson GSON = TwitterDeserializer.getDefault().getBuilder().create();
     private static final Logger logger = LoggerFactory.getLogger(Evaluate.class);
     public static final int CANDIDATES_THRESHOLD = 40;
     public static final int RESOLVE_CHUNK_SIZE = 2000;
@@ -57,24 +61,17 @@ public class Evaluate {
     private TwitterService service = null;
     private QueryAssemblyStrategy qaStrategy = QueryAssemblyStrategyFactory.def();
     private ScoringStrategy scoreStrategy = null;
-    private Gson gson;
 
     private FillFromIndex index = null;
 
     public Evaluate(Endpoint endpoint) throws Exception {
         Objects.requireNonNull(endpoint);
         this.endpoint = endpoint;
-        init();
     }
 
     public Evaluate(FillFromIndex index) throws Exception {
         Objects.requireNonNull(index);
         this.index = index;
-        init();
-    }
-
-    public void init() {
-        this.gson = TwitterDeserializer.getDefault().getBuilder().create();
     }
 
     public Collection<FullyResolvedEntry> resolveDataset(Dataset dataset) {
@@ -92,6 +89,24 @@ public class Evaluate {
         return result;
     }
 
+    public static class StatusesProvider implements UserData.DataProvider<List<JsonObject>, TwitterService.RateLimitException> {
+
+        private TwitterService service;
+
+        public StatusesProvider(TwitterService service) {
+            this.service = service;
+        }
+
+        @Override
+        public List<JsonObject> provide(User profile) throws TwitterService.RateLimitException {
+            List<Status> statuses = service.getStatuses(profile.getId());
+            return statuses
+                .stream()
+                .map(status -> GSON.fromJson(TwitterObjectFactory.getRawJSON(status), JsonObject.class))
+                .collect(Collectors.toList());
+        }
+    }
+
     public void fillAdditionalData(Collection<FullyResolvedEntry> dataset) {
         if (service == null) {
             if (credentials == null) {
@@ -105,11 +120,12 @@ public class Evaluate {
         Stream<UserData> candidateStream = dataset.parallelStream().flatMap(entry -> entry.candidates.stream());
         long total = candidateStream.count();
         AtomicLong processed = new AtomicLong();
+        StatusesProvider provider = new StatusesProvider(service);
         Consumer<UserData> resolveStatuses = (entry -> {
             boolean retry = true;
             while (retry) {
                 try {
-                    entry.data.put("statuses", service.getStatuses(entry.getId()));
+                    entry.populate(provider);
                     retry = false;
                 } catch (TwitterService.RateLimitException limit) {
                     try {
@@ -637,7 +653,7 @@ public class Evaluate {
         Collection<FullyResolvedEntry> entries = resolveDataset(dataset);
         try {
             Writer resolvedWriter = new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(new File(files.resolved, index + ".gz"))));
-            gson.toJson(entries, resolvedWriter);
+            GSON.toJson(entries, resolvedWriter);
             IOUtils.closeQuietly(resolvedWriter);
         } catch (IOException e) {
             logger.error("Something bad happened while saving chunk, skipping chunk " + index, e);
@@ -674,8 +690,10 @@ public class Evaluate {
         //}
 
         if (configuration.lsa != null) {
-            logger.info("LSA specified. Enabling PAI18 strategy");
-            evaluate.setScoreStrategy(new PAI18Strategy(source, configuration.lsa));
+            //logger.info("LSA specified. Enabling PAI18 strategy");
+            //evaluate.setScoreStrategy(new PAI18Strategy(source, configuration.lsa));
+            logger.info("LSA specified. Enabling SMT strategy");
+            evaluate.setScoreStrategy(new SMTStrategy(source, configuration.lsa));
         } else {
             logger.info("LSA is not specified. Falling back to the default strategy");
         }
@@ -779,11 +797,11 @@ public class Evaluate {
             }
             IOUtils.closeQuietly(reader);
             logger.info(String.format(
-                    "Chunk %s in %.2f seconds (left %2d)",
-                    file.getName(),
-                    (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000),
-                    chunksLeft.decrementAndGet()
-            );
+                "Chunk %s in %.2f seconds (left %2d)",
+                file.getName(),
+                (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000,
+                chunksLeft.decrementAndGet()
+            ));
         });
 
         strategiesCheck(resolveDataset);

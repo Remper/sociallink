@@ -21,14 +21,18 @@ import java.util.*;
 public class PAI18Strategy extends AbstractScoringStrategy {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PAI18Strategy.class);
-    private final List<FeatureVectorProvider> vectorProviders;
+    protected final List<FeatureVectorProvider> vectorProviders;
 
     public PAI18Strategy(DataSource source, String lsaPath) throws Exception {
-        vectorProviders = new LinkedList<FeatureVectorProvider>(){{
+        this(new LinkedList<FeatureVectorProvider>(){{
             add(new ISWC17Strategy(source, lsaPath));
             add(new EntityDirectEmbeddings(source, "kb200_rdf2vec"));
             add(new SocialGraphEmbeddings(source, "sg300"));
-        }};
+        }});
+    }
+
+    public PAI18Strategy(List<FeatureVectorProvider> vectorProviders) {
+        this.vectorProviders = vectorProviders;
     }
 
     @Override

@@ -209,12 +209,12 @@
         <dependency>
             <groupId>org.twitter4j</groupId>
             <artifactId>twitter4j-core</artifactId>
-            <version>4.0.5</version>
+            <version>4.0.6</version>
         </dependency>
         <dependency>
             <groupId>org.twitter4j</groupId>
             <artifactId>twitter4j-stream</artifactId>
-            <version>4.0.5</version>
+            <version>4.0.6</version>
         </dependency>
 
         <dependency>

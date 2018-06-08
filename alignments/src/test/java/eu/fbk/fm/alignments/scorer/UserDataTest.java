@@ -12,21 +12,27 @@ import static org.junit.Assert.*;
 
 public class UserDataTest {
 
+    public static class MockDataProvider implements UserData.DataProvider<User, Exception> {
+        @Override
+        public User provide(User profile) {
+            return profile;
+        }
+    }
+
+    public static class statuses implements UserData.DataProvider<User, Exception> {
+        @Override
+        public User provide(User profile) {
+            return profile;
+        }
+    }
+
     @org.junit.Test
-    public void get() throws IOException {
+    public void get() throws Exception {
         UserData user = testUser();
-        assertFalse(user.get(new UserData.DataProvider<User>() {
-
-            @Override
-            public String getId() {
-                return "user";
-            }
-
-            @Override
-            public User provide(User profile) {
-                return profile;
-            }
-        }).isPresent());
+        user.populate(new MockDataProvider());
+        user.populate(new statuses());
+        assertTrue(user.get(new MockDataProvider()).isPresent());
+        assertTrue(user.get(MockDataProvider.class).isPresent());
     }
 
     public UserData testUser() throws IOException {

@@ -1,38 +1,53 @@
 package eu.fbk.fm.alignments.scorer;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import eu.fbk.fm.alignments.twitter.TwitterDeserializer;
 import org.jetbrains.annotations.NotNull;
-import twitter4j.RateLimitStatus;
-import twitter4j.Status;
-import twitter4j.URLEntity;
-import twitter4j.User;
+import twitter4j.*;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Data class containing all the information we have on a particular user
  */
 public class UserData implements User {
+    private static final Gson GSON = TwitterDeserializer.getDefault().getBuilder().create();
+
     public final User profile;
-    public final Map<String, Object> data = new HashMap<>();
+    protected final Map<String, JsonElement> data = new HashMap<>();
 
     public UserData(User profile) {
         this.profile = profile;
     }
 
-    public <T> Optional<T> get(DataProvider<T> provider) {
-        return Optional.ofNullable((T) data.get(provider.getId()));
+    public <T, E extends Throwable> Optional<JsonElement> get(DataProvider<T, E> provider) {
+        return Optional.ofNullable(data.get("statuses"));
+        //return Optional.ofNullable((T) data.get(providr.getClass().getSimpleName()));
     }
 
-    public <T> void populate(DataProvider<T> provider) {
-        data.put(provider.getId(), provider.provide(profile));
+    public <T, E extends Throwable> Optional<JsonElement> get(Class<? extends DataProvider<T, E>> clazz) {
+        return Optional.ofNullable(data.get("statuses"));
+        //return Optional.ofNullable((T) data.get(clazz.getSimpleName()));
     }
 
-    public interface DataProvider<T> {
-        String getId();
-        T provide(User profile);
+    public <T, E extends Throwable> void populate(DataProvider<T, E> provider) throws E {
+        T value = provider.provide(profile);
+        JsonElement element;
+        if (value instanceof JsonElement) {
+            element = (JsonElement) value;
+        } else {
+            element = GSON.toJsonTree(value);
+        }
+        data.put(provider.getClass().getSimpleName(), element);
+    }
+
+    public void clear() {
+        data.clear();
+    }
+
+    public interface DataProvider<T, E extends Throwable> {
+        T provide(User profile) throws E;
     }
 
     @Override

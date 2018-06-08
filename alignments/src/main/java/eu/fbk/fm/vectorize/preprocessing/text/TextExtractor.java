@@ -41,6 +41,10 @@ public class TextExtractor implements FlatMapFunction<JsonObject, String>, MapFu
         return process(status);
     }
 
+    public String map(JsonElement status) {
+        return process(status.getAsJsonObject());
+    }
+
     protected String process(JsonObject status) {
         // Get the original text
         final String originalText = get(status, String.class, "text");
