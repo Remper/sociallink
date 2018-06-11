@@ -3,6 +3,7 @@ package eu.fbk.fm.alignments;
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import eu.fbk.fm.alignments.evaluation.*;
 import eu.fbk.fm.alignments.index.FillFromIndex;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
@@ -31,14 +32,12 @@ import twitter4j.User;
 
 import javax.sql.DataSource;
 import java.io.*;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.util.*;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
@@ -119,9 +118,9 @@ public class Evaluate {
         //Query additional data
         Stream<UserData> candidateStream = dataset.parallelStream().flatMap(entry -> entry.candidates.stream());
         long total = candidateStream.count();
-        AtomicLong processed = new AtomicLong();
+        AtomicInteger processed = new AtomicInteger();
         StatusesProvider provider = new StatusesProvider(service);
-        Consumer<UserData> resolveStatuses = (entry -> {
+        Function<UserData, Integer> resolveStatuses = (entry -> {
             boolean retry = true;
             while (retry) {
                 try {
@@ -135,7 +134,7 @@ public class Evaluate {
                 }
             }
 
-            processed.incrementAndGet();
+            return processed.incrementAndGet();
         });
 
         ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
@@ -143,8 +142,14 @@ public class Evaluate {
             logger.info(String.format("[Twitter statuses] Progress: %5d/%5d", processed.get(), total));
         }, 1, 30, TimeUnit.SECONDS);
 
-        dataset.parallelStream().flatMap(entry -> entry.candidates.stream()).forEach(resolveStatuses);
-
+        ForkJoinPool forkJoinPool = new ForkJoinPool();
+        forkJoinPool.invokeAll(
+            dataset.stream()
+                .flatMap(entry -> entry.candidates.stream())
+                .map(user -> (Callable<Integer>) () -> resolveStatuses.apply(user))
+                .collect(Collectors.toList())
+        );
+        forkJoinPool.shutdown();
         progressCheck.cancel(true);
         executor.shutdownNow();
     }
@@ -254,13 +259,17 @@ public class Evaluate {
         entries.parallelStream().forEach(entry -> {
             scoreStrategy.fillScore(entry);
             int curProc = processed.incrementAndGet();
-            if (curProc % 10 == 0 && (watch.elapsed(TimeUnit.SECONDS) > 120 || curProc % 1000 == 0)) {
+            if (curProc % 10 == 0 && (watch.elapsed(TimeUnit.SECONDS) > 60 || curProc % 1000 == 0)) {
                 synchronized (this) {
                     logger.info(String.format("Processed %d entities (%.2f seconds)", curProc, (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
                     watch.reset().start();
                 }
             }
         });
+    }
+
+    public void purgeAdditionalData(List<FullyResolvedEntry> entries) {
+        entries.parallelStream().flatMap(entry -> entry.candidates.stream()).forEach(user -> user.clear());
     }
 
     public class PairSample {
@@ -776,14 +785,14 @@ public class Evaluate {
 
         // Deserializing the entire collection
         final List<FullyResolvedEntry> resolveDataset = new LinkedList<>();
-        logger.info("Deserialising user data");
+        logger.info("Deserialising user data and generating features");
         List<File> resolveChunks = Arrays.asList(Optional.ofNullable(files.resolved.listFiles()).orElse(new File[0]));
         if (resolveChunks.size() == 0) {
             logger.error("Can't deserialize user data");
             return;
         }
         AtomicInteger chunksLeft = new AtomicInteger(resolveChunks.size());
-        resolveChunks.stream().parallel().forEach(file -> {
+        resolveChunks.forEach(file -> {
             Stopwatch watch = Stopwatch.createStarted();
             Reader reader;
             try {
@@ -791,13 +800,20 @@ public class Evaluate {
             } catch (IOException e) {
                 throw new RuntimeException("Can't open file "+file);
             }
-            FullyResolvedEntry[] entries =  gson.fromJson(reader, FullyResolvedEntry[].class);
-            synchronized (resolveDataset) {
-                Collections.addAll(resolveDataset, entries);
-            }
+            Type type = new TypeToken<List<FullyResolvedEntry>>() {}.getType();
+            List<FullyResolvedEntry> entries = gson.fromJson(reader, type);
+            logger.info(String.format(
+                "Chunk %s deserialized in %.2f seconds",
+                file.getName(),
+                (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000
+            ));
+            watch.reset().start();
+            evaluate.generateFeatures(entries);
+            evaluate.purgeAdditionalData(entries);
+            resolveDataset.addAll(entries);
             IOUtils.closeQuietly(reader);
             logger.info(String.format(
-                "Chunk %s in %.2f seconds (left %2d)",
+                "Chunk %s completed in %.2f seconds (left %2d)",
                 file.getName(),
                 (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000,
                 chunksLeft.decrementAndGet()
@@ -886,14 +902,19 @@ public class Evaluate {
                 candSum += trueCandidatesOrder[i];
                 logger.info(String.format("  %d — %d (%.2f", i, candSum, ((double) candSum / resolveDataset.size()) * 100) + "%)");
             }
+            resolveDataset.clear();
 
             //Generating features
-            logger.info("Generating features");
+            //logger.info("Generating features");
 
-            Stopwatch watch = Stopwatch.createStarted();
-            evaluate.generateFeatures(resolvedTrainingSet);
-            evaluate.generateFeatures(resolvedTestSet);
-            logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
+            //Stopwatch watch = Stopwatch.createStarted();
+            //evaluate.generateFeatures(resolvedTrainingSet);
+            //evaluate.generateFeatures(resolvedTestSet);
+
+            //Purging unneeded additional data
+            //evaluate.purgeAdditionalData(resolvedTrainingSet);
+            //evaluate.purgeAdditionalData(resolvedTestSet);
+            //logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
 
             //Saving unscaled JSON features to disk
             //evaluate.dumpFeatures(resolvedTrainingSet, files.train.unscaled);
@@ -910,7 +931,7 @@ public class Evaluate {
 
             //Rescaling features
             logger.info("Rescaling features");
-            watch.reset().start();
+            Stopwatch watch = Stopwatch.createStarted();
             transformDataset(scalers, resolvedTrainingSet);
             transformDataset(scalers, resolvedTestSet);
             logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
@@ -927,7 +948,7 @@ public class Evaluate {
             logger.info("Dumping full experimental setting to JSON");
             watch.reset().start();
             FileWriter resolvedWriter = new FileWriter(files.evaluation);
-            gson.toJson(resolvedTestSet.toArray(new FullyResolvedEntry[0]), resolvedWriter);
+            gson.toJson(resolvedTestSet, resolvedWriter);
             IOUtils.closeQuietly(resolvedWriter);
             logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
             evaluationPipeline(evaluate, files, resolvedTestSet, new ModelEndpoint("localhost", configuration.modelPort));

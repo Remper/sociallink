@@ -45,15 +45,13 @@ public class SMTStrategy extends PAI18Strategy {
         (user, resource) -> TextScorer
             .getResourceTexts(resource)
             .stream()
-            .reduce((text1, text2) -> text1 + " " + text2)
-            .orElse("");
+            .reduce("", (text1, text2) -> text1 + " " + text2);
 
     public static BiFunction<User, DBpediaResource, String> USER_TEXT_EXTRACTOR =
             (user, resource) -> {
                 if (!(user instanceof UserData)) {
                     return "";
                 }
-                Gson gson = TwitterDeserializer.getDefault().getBuilder().create();
                 TextExtractor extractor = new TextExtractor(false);
                 JsonElement array = ((UserData) user)
                     .get(Evaluate.StatusesProvider.class)
@@ -64,8 +62,7 @@ public class SMTStrategy extends PAI18Strategy {
                 return StreamSupport
                     .stream(((JsonArray) array).spliterator(), false)
                     .map(extractor::map)
-                    .reduce((text1, text2) -> text1 + " " + text2)
-                    .orElse("");
+                    .reduce("", (text1, text2) -> text1 + " " + text2);
             };
 
     public static class TextProvider implements FeatureVectorProvider {

@@ -73,7 +73,7 @@ public class DBpediaResource {
     }
 
     public List<String> getProperty(String property) {
-        return attributes.getOrDefault(property, new LinkedList<>());
+        return new LinkedList<>(attributes.getOrDefault(property, new LinkedList<>()));
     }
 
     public boolean isPersonLegacy() {

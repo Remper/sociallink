@@ -22,13 +22,11 @@ public class UserData implements User {
     }
 
     public <T, E extends Throwable> Optional<JsonElement> get(DataProvider<T, E> provider) {
-        return Optional.ofNullable(data.get("statuses"));
-        //return Optional.ofNullable((T) data.get(providr.getClass().getSimpleName()));
+        return Optional.ofNullable(data.get(provider.getClass().getSimpleName()));
     }
 
     public <T, E extends Throwable> Optional<JsonElement> get(Class<? extends DataProvider<T, E>> clazz) {
-        return Optional.ofNullable(data.get("statuses"));
-        //return Optional.ofNullable((T) data.get(clazz.getSimpleName()));
+        return Optional.ofNullable(data.get(clazz.getSimpleName()));
     }
 
     public <T, E extends Throwable> void populate(DataProvider<T, E> provider) throws E {

@@ -47,7 +47,10 @@ public class TextExtractor implements FlatMapFunction<JsonObject, String>, MapFu
 
     protected String process(JsonObject status) {
         // Get the original text
-        final String originalText = get(status, String.class, "text");
+        String originalText = get(status, String.class, "text");
+        if (originalText == null) {
+            originalText = get(status, String.class, "full_text");
+        }
 
         // Adding all the replacements
         final LinkedList<Replacement> replacements = new LinkedList<>();
