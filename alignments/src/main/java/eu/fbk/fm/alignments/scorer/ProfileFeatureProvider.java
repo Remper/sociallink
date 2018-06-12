@@ -22,7 +22,7 @@ public class ProfileFeatureProvider implements FeatureVectorProvider, JsonObject
         this.featureProviders = new LinkedList<FeatureVectorProvider>() {{
             add(new NameScorer(new JaroWinklerDistance()));
             add(new NameScorer.ScreenNameScorer(new JaroWinklerDistance()));
-            add(new TextScorer(scorer));
+            add(new TextScorer(scorer).all());
         }};
     }
 

@@ -1,15 +1,16 @@
 import json
 
-from pairwise_models.emb_extra_layer_mul_double_train import EmbExtraLayerMulDblTrain
 from pairwise_models.model import Model
 from pairwise_models.shared_w_trans_layer import SharedWeightTransLayer
 from pairwise_models.emb_extra_layer import EmbExtraLayer
 from pairwise_models.simple import SimpleModel
+from pairwise_models.smt import SMTModel
 
 
 def get_custom_models() -> dict:
     return {
-        "emb_extra_layer": EmbExtraLayer,
+        #"emb_extra_layer": EmbExtraLayer,
+        "smt": SMTModel,
         "simple": SimpleModel
     }
 

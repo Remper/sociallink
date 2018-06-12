@@ -83,7 +83,7 @@ def main(workdir):
                 for subspace in features:
                     sample_features[subspace].append(np.array(features[subspace]))
 
-                is_current_correct = sample["entry"]["twitterId"].casefold() == sample["candidates"][candidate_id]["screenName"].casefold()
+                is_current_correct = sample["entry"]["twitterId"].casefold() == sample["candidates"][candidate_id]["profile"]["screenName"].casefold()
                 if is_current_correct:
                     if correct_id >= 0:
                         print(" ", "Duplicate correct candidate found")
@@ -100,7 +100,7 @@ def main(workdir):
                     debug_writer.write("%.6f\t%.6f\t%d\t%d\t%s\t%s\n" % (sample_scores[i][0], sample_scores[i][1],
                                                                        int(correct_id == i), int(i == 0),
                                                                        sample["entry"]["twitterId"],
-                                                                       sample["candidates"][i]["screenName"]))
+                                                                       sample["candidates"][i]["profile"]["screenName"]))
 
                 sample_scores = sample_scores[::, 1]
                 top_2 = np.argsort(sample_scores)[-2::][::-1].tolist()

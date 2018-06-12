@@ -1,15 +1,15 @@
 import tensorflow as tf
 
-from pairwise_models.emb_extra_layer import EmbExtraLayer
 from pairwise_models.model import Model
 from tensorflow.contrib import slim
 
 from pairwise_models.simple import SimpleModel
 
 
-class SharedWeightTransLayer(EmbExtraLayer):
+class SMTModel(SimpleModel):
     """
-        Strange idea to use same weights for both knowledge base embeddings and the social graph ones
+        Simple model that doesn't require fancy features from KB side, but explicitly merges textual features
+        Designed to work with Social Media Toolkit
     """
     def __init__(self, name, inputs, classes, use_features=None):
         SimpleModel.__init__(self, name, inputs, classes, use_features=use_features)
@@ -23,56 +23,45 @@ class SharedWeightTransLayer(EmbExtraLayer):
             input_size = 0
 
             # Getting all appropriate subspaces for this model
-            kb_emb = None
-            sg_emb = None
-            kb_emb_size = None
-            sg_emb_size = None
+            kb_text = None
+            user_text = None
+            kb_text_size = None
+            user_text_size = None
             self._train_labels = tf.placeholder(tf.float32, shape=[None, self._classes], name="Y")
+
+            # Going through feature dimensions
             for id, length in self._inputs.items():
                 self._train_features[id] = tf.placeholder(tf.float32, shape=[None, length], name="X-"+id)
-                if id.startswith("emb_kb"):
-                    if kb_emb is not None:
-                        raise Exception("Two embeddings for knowledge base detected")
-                    kb_emb = self._train_features[id]
-                    kb_emb_size = length
+                if id == "text_lsa_dbpedia":
+                    kb_text = self._train_features[id]
+                    kb_text_size = length
                     continue
-                elif id.startswith("emb_sg"):
-                    if sg_emb is not None:
-                        raise Exception("Two embeddings for social graph detected")
-                    sg_emb = self._train_features[id]
-                    sg_emb_size = length
+
+                if id == "text_lsa_tweets":
+                    user_text = self._train_features[id]
+                    user_text_size = length
                     continue
 
                 feature_list.append(self._train_features[id])
                 input_size += length
 
-            if sg_emb is None or kb_emb is None:
-                raise Exception("Both KB and SG embedding are required for this model")
+            if kb_text is None or user_text_size is None:
+                raise Exception("Both textual embeddings required for this model")
 
             # Dropout rate
             self._dropout_rate = tf.placeholder(tf.float32, name="dropout_rate")
 
             # Embeddings multiplication
             final_emb_size = 50
-            with tf.name_scope("kb_dense_transform"):
-                kb_emb = self.dense(kb_emb, kb_emb_size, final_emb_size, self._dropout_rate)
-                feature_list.append(kb_emb)
+            with tf.name_scope("kb_text_transform"):
+                kb_text = self.dense(kb_text, kb_text_size, final_emb_size, self._dropout_rate)
+                feature_list.append(kb_text)
                 input_size += final_emb_size
-            with tf.name_scope("sg_dense_transform"):
-                sg_emb = self.dense(sg_emb, sg_emb_size, final_emb_size, self._dropout_rate)
-                feature_list.append(sg_emb)
+            with tf.name_scope("user_text_transform"):
+                user_text = self.dense(user_text, user_text_size, final_emb_size, self._dropout_rate)
+                feature_list.append(user_text)
                 input_size += final_emb_size
-
-            with tf.name_scope("shared_layer_weights"):
-                weights = self.weight_variable([final_emb_size, final_emb_size])
-                biases = self.bias_variable([final_emb_size])
-            with tf.name_scope("kb_shared_layer"):
-                kb_emb = tf.nn.tanh(tf.matmul(kb_emb, weights) + biases)
-                kb_emb = tf.nn.dropout(kb_emb, self._dropout_rate)
-            with tf.name_scope("sg_shared_layer"):
-                sg_emb = tf.nn.tanh(tf.matmul(sg_emb, weights) + biases)
-                sg_emb = tf.nn.dropout(sg_emb, self._dropout_rate)
-            emb_feat = tf.multiply(kb_emb, sg_emb, name="emb_combination")
+            emb_feat = tf.multiply(kb_text, user_text, name="emb_combination")
             feature_list.append(emb_feat)
             input_size += final_emb_size
 
@@ -110,6 +99,6 @@ class SharedWeightTransLayer(EmbExtraLayer):
 
     @staticmethod
     def restore_definition(params: dict) -> Model:
-        model = SharedWeightTransLayer(params["name"], params["inputs"], params["classes"])
+        model = EmbExtraLayer(params["name"], params["inputs"], params["classes"])
         model.layers(params["layers"]).units(params["units"])
         return model

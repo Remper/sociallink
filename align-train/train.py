@@ -59,12 +59,21 @@ for idx, _ in enumerate(labels):
 
 models = get_custom_models()
 feature_manifest = [
-    ['iswc17'],
-    ['iswc17', 'emb_kb', 'emb_sg'],
-    ['iswc17', 'emb_kb'],
-    ['iswc17', 'emb_sg'],
-    ['emb_kb', 'emb_sg']
+    ['profile'],
+    ['profile', 'text_lsa_dbpedia', 'text_lsa_tweets', 'emb_sg'],
+    ['profile', 'emb_sg'],
+    ['text_lsa_dbpedia', 'text_lsa_tweets']
 ]
+'''
+    Legacy manifest:
+        feature_manifest = [
+            ['iswc17'],
+            ['iswc17', 'emb_kb', 'emb_sg'],
+            ['iswc17', 'emb_kb'],
+            ['iswc17', 'emb_sg'],
+            ['emb_kb', 'emb_sg']
+        ]
+'''
 available_features = train_prod.feature_space.keys()
 eval_results = {}
 for feature_set in feature_manifest:

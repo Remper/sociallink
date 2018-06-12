@@ -1,18 +1,14 @@
 package eu.fbk.fm.alignments.scorer;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.Evaluate;
-import eu.fbk.fm.alignments.scorer.embeddings.EntityDirectEmbeddings;
 import eu.fbk.fm.alignments.scorer.embeddings.SocialGraphEmbeddings;
 import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
 import eu.fbk.fm.alignments.scorer.text.VectorProvider;
-import eu.fbk.fm.alignments.twitter.TwitterDeserializer;
 import eu.fbk.fm.vectorize.preprocessing.text.TextExtractor;
 import eu.fbk.utils.lsa.LSM;
-import eu.fbk.utils.math.DenseVector;
 import eu.fbk.utils.math.Vector;
 import twitter4j.User;
 
@@ -36,7 +32,6 @@ public class SMTStrategy extends PAI18Strategy {
             add(new ProfileFeatureProvider(lsm));
             add(new TextProvider("dbpedia", provider, DBPEDIA_TEXT_EXTRACTOR));
             add(new TextProvider("tweets", provider, USER_TEXT_EXTRACTOR));
-            add(new EntityDirectEmbeddings(source, "kb200_rdf2vec"));
             add(new SocialGraphEmbeddings(source, "sg300"));
         }};
     }
