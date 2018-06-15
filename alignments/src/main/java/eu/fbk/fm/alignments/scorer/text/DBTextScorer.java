@@ -1,9 +1,8 @@
-package eu.fbk.fm.alignments.scorer;
+package eu.fbk.fm.alignments.scorer.text;
 
 import eu.fbk.fm.alignments.DBpediaResource;
-import eu.fbk.fm.alignments.index.db.tables.UserText;
-import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
-import eu.fbk.fm.alignments.scorer.text.VectorProvider;
+import eu.fbk.fm.alignments.scorer.FeatureProvider;
+import eu.fbk.fm.alignments.scorer.TextScorer;
 import eu.fbk.utils.math.DenseVector;
 import eu.fbk.utils.math.Vector;
 import org.jooq.SQLDialect;
@@ -28,23 +27,28 @@ public class DBTextScorer implements FeatureProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(DBTextScorer.class);
 
     protected DataSource source;
-    protected VectorProvider lsaVectorProvider;
+    protected VectorProvider vectorProvider;
 
     protected boolean verbose = false;
 
-    public DBTextScorer(DataSource source, LSAVectorProvider lsaVectorProvider) {
+    public DBTextScorer(DataSource source, VectorProvider vectorProvider) {
         this.source = source;
-        this.lsaVectorProvider = lsaVectorProvider;
+        this.vectorProvider = vectorProvider;
     }
 
     @Override
     public double getFeature(User user, DBpediaResource resource) {
-        PGobject userVectorRaw = DSL.using(source, SQLDialect.POSTGRES)
+        PGobject userVectorRaw;
+        try {
+            userVectorRaw = DSL.using(source, SQLDialect.POSTGRES)
                 .select(USER_TEXT.LSA)
                 .from(USER_TEXT)
                 .where(USER_TEXT.UID.eq(user.getId()))
                 .fetchOne(USER_TEXT.LSA, PGobject.class);
-
+        } catch (Exception e) {
+            LOGGER.error("Something happened while querying user "+user.getScreenName(), e);
+            throw e;
+        }
 
         if (userVectorRaw == null) {
             if (verbose) {
@@ -62,7 +66,7 @@ public class DBTextScorer implements FeatureProvider {
 
         double topScore = 0.0d;
         for (String text : resourceTexts) {
-            Vector textVector = lsaVectorProvider.toVector(text);
+            Vector textVector = vectorProvider.toVector(text);
             double curScore = cosineSimilarity(userVector, (DenseVector) textVector);
             if (curScore > topScore) {
                 topScore = curScore;

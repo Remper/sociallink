@@ -11,6 +11,8 @@ import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.query.*;
 import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
 import eu.fbk.fm.alignments.scorer.*;
+import eu.fbk.fm.alignments.scorer.text.MemoryEmbeddingsProvider;
+import eu.fbk.fm.alignments.scorer.text.VectorProvider;
 import eu.fbk.fm.alignments.twitter.SearchRunner;
 import eu.fbk.fm.alignments.twitter.TwitterCredentials;
 import eu.fbk.fm.alignments.twitter.TwitterDeserializer;
@@ -34,6 +36,8 @@ import javax.sql.DataSource;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -698,14 +702,30 @@ public class Evaluate {
         //    evaluate.setQAStrategy(new StrictStrategy());
         //}
 
-        if (configuration.lsa != null) {
-            //logger.info("LSA specified. Enabling PAI18 strategy");
-            //evaluate.setScoreStrategy(new PAI18Strategy(source, configuration.lsa));
-            logger.info("LSA specified. Enabling SMT strategy");
-            evaluate.setScoreStrategy(new SMTStrategy(source, configuration.lsa));
-        } else {
-            logger.info("LSA is not specified. Falling back to the default strategy");
+        if (configuration.lsa == null) {
+            logger.info("LSA is not specified. Stopping");
+            return;
         }
+
+        PAI18Strategy strategy = new PAI18Strategy(source);
+        strategy.addProvider(ISWC17Strategy.builder().lsaPath(configuration.lsa).build());
+        if (configuration.embeddings != null) {
+            List<VectorProvider> embProviders = new LinkedList<>();
+            Files.list(Paths.get(configuration.embeddings)).forEach((path) -> {
+                try {
+                    VectorProvider provider = new MemoryEmbeddingsProvider(path.toString(), configuration.lsa);
+                    strategy.addProvider(ISWC17Strategy.builder().vectorProvider(provider).build());
+                    embProviders.add(provider);
+                } catch (Exception e) {
+                    logger.error("Error while loading embedding", e);
+                }
+            });
+            logger.info("Loaded {} embedding models", embProviders.size());
+        }
+        //logger.info("LSA specified. Enabling PAI18 strategy");
+        evaluate.setScoreStrategy(strategy);
+        //logger.info("LSA specified. Enabling SMT strategy");
+        //evaluate.setScoreStrategy(new SMTStrategy(source, configuration.lsa));
 
         FileProvider files = new FileProvider(configuration.workdir);
         if (!files.gold.exists()) {
@@ -967,6 +987,7 @@ public class Evaluate {
         String credentials;
         String strategy;
         String lsa = null;
+        String embeddings = null;
         int modelPort = 5000;
     }
 
@@ -1005,6 +1026,10 @@ public class Evaluate {
                         .hasArg().argName("DIRECTORY").longOpt("lsa-path").build()
         );
         options.addOption(
+                Option.builder().desc("Path to embeddings to use along with LSA")
+                        .hasArg().argName("DIRECTORY").longOpt("embeddings-path").build()
+        );
+        options.addOption(
                 Option.builder().desc("Port for the model endpoint")
                         .hasArg().argName("PORT").longOpt("model-port").build()
         );
@@ -1029,6 +1054,7 @@ public class Evaluate {
             configuration.credentials = line.getOptionValue("credentials");
             configuration.strategy = line.getOptionValue("strategy");
             configuration.lsa = line.getOptionValue("lsa-path");
+            configuration.embeddings = line.getOptionValue("embeddings-path");
             if (line.hasOption("model-port")) {
                 configuration.modelPort = Integer.valueOf(line.getOptionValue("model-port"));
             }

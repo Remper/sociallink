@@ -1,14 +1,21 @@
 package eu.fbk.fm.alignments.scorer;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.Evaluate;
 import eu.fbk.fm.alignments.scorer.text.SimilarityScorer;
+import eu.fbk.fm.vectorize.preprocessing.text.TextExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import twitter4j.User;
 
 import java.util.List;
+import java.util.function.BiFunction;
+import java.util.stream.StreamSupport;
 
 import static eu.fbk.fm.alignments.scorer.TextScorer.Mode.*;
+import static eu.fbk.fm.alignments.scorer.TextScorer.UserMode.*;
 
 /**
  * Scorer that concentrates multiple different fields from the profile and entity
@@ -23,10 +30,21 @@ public class TextScorer implements FeatureProvider {
         ALL, UNIFIED;
     }
 
+    public enum UserMode {
+        PROFILE, USER_DATA
+    }
+
+    public static final BiFunction<User, DBpediaResource, String> DBPEDIA_TEXT_EXTRACTOR =
+        (user, resource) -> TextScorer
+            .getResourceTexts(resource)
+            .stream()
+            .reduce("", (text1, text2) -> text1 + " " + text2);
+
     private SimilarityScorer scorer;
 
     private boolean includeStatus = true;
     private Mode mode = ALL;
+    private UserMode userMode = PROFILE;
 
     public TextScorer(SimilarityScorer scorer) {
         this.scorer = scorer;
@@ -47,6 +65,16 @@ public class TextScorer implements FeatureProvider {
         return this;
     }
 
+    public TextScorer profile() {
+        userMode = PROFILE;
+        return this;
+    }
+
+    public TextScorer userData() {
+        userMode = USER_DATA;
+        return this;
+    }
+
     public String getUserText(User user) {
         StringBuilder userText = new StringBuilder();
         if (user.getDescription() != null) {
@@ -63,6 +91,23 @@ public class TextScorer implements FeatureProvider {
         return userText.toString().trim();
     }
 
+    public static String getUserDataText(User user) {
+        if (!(user instanceof UserData)) {
+            return "";
+        }
+        TextExtractor extractor = new TextExtractor(false);
+        JsonElement array = ((UserData) user)
+                .get(Evaluate.StatusesProvider.class)
+                .orElse(new JsonArray());
+        if (!array.isJsonArray()) {
+            return "";
+        }
+        return StreamSupport
+            .stream(((JsonArray) array).spliterator(), false)
+            .map(extractor::map)
+            .reduce("", (text1, text2) -> text1 + " " + text2);
+    }
+
     public static List<String> getResourceTexts(DBpediaResource resource) {
         List<String> texts = resource.getProperty(DBpediaResource.ABSTRACT_PROPERTY);
         texts.addAll(resource.getProperty(DBpediaResource.COMMENT_PROPERTY));
@@ -73,13 +118,19 @@ public class TextScorer implements FeatureProvider {
     @Override
     public double getFeature(User user, DBpediaResource resource) {
         List<String> resourceTexts = getResourceTexts(resource);
+        String userText;
+        if (userMode == USER_DATA) {
+            userText = getUserDataText(user);
+        } else {
+            userText = getUserText(user);
+        }
         if (mode == ALL) {
-            return this.scorer.score(getUserText(user), String.join(" ", resourceTexts));
+            return this.scorer.score(userText, String.join(" ", resourceTexts));
         }
 
         double topScore = 0.0d;
         for (String text : resourceTexts) {
-            double curScore = this.scorer.score(getUserText(user), text);
+            double curScore = this.scorer.score(userText, text);
             if (curScore > topScore) {
                 topScore = curScore;
             }

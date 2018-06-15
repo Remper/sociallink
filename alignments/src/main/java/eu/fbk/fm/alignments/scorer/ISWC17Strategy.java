@@ -2,9 +2,7 @@ package eu.fbk.fm.alignments.scorer;
 
 import com.google.common.base.Stopwatch;
 import eu.fbk.fm.alignments.DBpediaResource;
-import eu.fbk.fm.alignments.scorer.text.CosineScorer;
-import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
-import eu.fbk.fm.alignments.scorer.text.SimilarityScorer;
+import eu.fbk.fm.alignments.scorer.text.*;
 import eu.fbk.utils.core.strings.JaroWinklerDistance;
 import eu.fbk.utils.lsa.LSM;
 import org.slf4j.Logger;
@@ -12,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import twitter4j.User;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -27,31 +26,31 @@ public class ISWC17Strategy extends AbstractScoringStrategy implements FeatureVe
     private final List<FeatureProvider> providers;
 
     private int numUniqueFeatures;
+    private String id = "iswc17";
 
-    public ISWC17Strategy(DataSource source, String lsaPath) throws Exception {
+    public ISWC17Strategy(VectorProvider textVectorProvider, List<FeatureProvider> featureProviders) throws Exception {
         Stopwatch watch = Stopwatch.createStarted();
-        LSM lsm = new LSM(lsaPath+"/X", 100, true);
-        SimilarityScorer scorer = new CosineScorer(new LSAVectorProvider(lsm));
+        SimilarityScorer scorer = new CosineScorer(textVectorProvider);
         providers = new LinkedList<FeatureProvider>(){{
             add(new VerifiedScorer());
             add(new NameScorer(new JaroWinklerDistance()));
             add(new NameScorer.ScreenNameScorer(new JaroWinklerDistance()));
-            add(new TextScorer(scorer).all());
+            add(new TextScorer(scorer).all().profile());
             add(new FollowersFriendsRatioScorer());
             add(new FriendsScorer());
             add(new FollowersScorer());
             add(new ListedScorer());
             add(new StatusesScorer());
         }};
-        providers.add(new DBTextScorer(source, new LSAVectorProvider(lsm)));
+        providers.addAll(featureProviders);
         providers.addAll(HomepageAlignmentsScorer.createProviders());
         providers.addAll(EntityTypeScorer.createProviders());
 
         numUniqueFeatures = providers.size();
         LOGGER.info(String.format(
-                "Done. Num unique features: %d. Init done in: %.2f seconds",
-                numUniqueFeatures,
-                (float) watch.stop().elapsed(TimeUnit.MILLISECONDS) / 1000
+            "Done init. Num unique features: %d. Init done in: %.2f seconds",
+            numUniqueFeatures,
+            (float) watch.stop().elapsed(TimeUnit.MILLISECONDS) / 1000
         ));
     }
 
@@ -98,6 +97,52 @@ public class ISWC17Strategy extends AbstractScoringStrategy implements FeatureVe
 
     @Override
     public String getSubspaceId() {
-        return "iswc17";
+        return id;
+    }
+
+    public static ISWC17StrategyBuilder builder() {
+        return new ISWC17StrategyBuilder();
+    }
+
+    public static class ISWC17StrategyBuilder {
+        private DataSource source = null;
+        private VectorProvider textVectorProvider = null;
+        private String lsaPath = null;
+
+        public ISWC17StrategyBuilder source(DataSource source) {
+            this.source = source;
+            return this;
+        }
+
+        public ISWC17StrategyBuilder vectorProvider(VectorProvider textVectorProvider) {
+            this.textVectorProvider = textVectorProvider;
+            return this;
+        }
+
+        public ISWC17StrategyBuilder lsaPath(String lsaPath) {
+            this.lsaPath = lsaPath;
+            return this;
+        }
+
+        public ISWC17Strategy build() throws Exception {
+            if (lsaPath != null && textVectorProvider == null) {
+                LSM lsm = new LSM(lsaPath+"/X", 100, true);
+                textVectorProvider = new LSAVectorProvider(lsm);
+            }
+            if (textVectorProvider == null) {
+                throw new Exception("Requires vectorProvider or LSA in order to be intitialised");
+            }
+
+            List<FeatureProvider> providers = new LinkedList<>();
+            if (source == null) {
+                SimilarityScorer scorer = new CosineScorer(textVectorProvider);
+                providers.add(new TextScorer(scorer).all().userData());
+            } else {
+                providers.add(new DBTextScorer(source, textVectorProvider));
+            }
+            ISWC17Strategy strategy = new ISWC17Strategy(textVectorProvider, providers);
+            strategy.id += "_" + textVectorProvider.toString();
+            return strategy;
+        }
     }
 }

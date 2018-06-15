@@ -1,13 +1,9 @@
 package eu.fbk.fm.alignments.scorer;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import eu.fbk.fm.alignments.DBpediaResource;
-import eu.fbk.fm.alignments.Evaluate;
 import eu.fbk.fm.alignments.scorer.embeddings.SocialGraphEmbeddings;
 import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
 import eu.fbk.fm.alignments.scorer.text.VectorProvider;
-import eu.fbk.fm.vectorize.preprocessing.text.TextExtractor;
 import eu.fbk.utils.lsa.LSM;
 import eu.fbk.utils.math.Vector;
 import twitter4j.User;
@@ -17,7 +13,8 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.function.BiFunction;
-import java.util.stream.StreamSupport;
+
+import static eu.fbk.fm.alignments.scorer.TextScorer.DBPEDIA_TEXT_EXTRACTOR;
 
 public class SMTStrategy extends PAI18Strategy {
 
@@ -31,34 +28,10 @@ public class SMTStrategy extends PAI18Strategy {
         return new LinkedList<FeatureVectorProvider>(){{
             add(new ProfileFeatureProvider(lsm));
             add(new TextProvider("dbpedia", provider, DBPEDIA_TEXT_EXTRACTOR));
-            add(new TextProvider("tweets", provider, USER_TEXT_EXTRACTOR));
+            add(new TextProvider("tweets", provider, (user, resource) -> TextScorer.getUserDataText(user)));
             add(new SocialGraphEmbeddings(source, "sg300"));
         }};
     }
-
-    public static BiFunction<User, DBpediaResource, String> DBPEDIA_TEXT_EXTRACTOR =
-        (user, resource) -> TextScorer
-            .getResourceTexts(resource)
-            .stream()
-            .reduce("", (text1, text2) -> text1 + " " + text2);
-
-    public static BiFunction<User, DBpediaResource, String> USER_TEXT_EXTRACTOR =
-            (user, resource) -> {
-                if (!(user instanceof UserData)) {
-                    return "";
-                }
-                TextExtractor extractor = new TextExtractor(false);
-                JsonElement array = ((UserData) user)
-                    .get(Evaluate.StatusesProvider.class)
-                    .orElse(new JsonArray());
-                if (!array.isJsonArray()) {
-                    return "";
-                }
-                return StreamSupport
-                    .stream(((JsonArray) array).spliterator(), false)
-                    .map(extractor::map)
-                    .reduce("", (text1, text2) -> text1 + " " + text2);
-            };
 
     public static class TextProvider implements FeatureVectorProvider {
         final String suffix;

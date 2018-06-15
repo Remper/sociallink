@@ -1,11 +1,9 @@
 package eu.fbk.fm.alignments.index;
 
-import eu.fbk.fm.alignments.Evaluate;
 import eu.fbk.fm.alignments.evaluation.DatasetEntry;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
-import eu.fbk.fm.alignments.query.StrictStrategy;
 import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
-import eu.fbk.fm.alignments.scorer.DBTextScorer;
+import eu.fbk.fm.alignments.scorer.text.DBTextScorer;
 import eu.fbk.fm.alignments.scorer.FullyResolvedEntry;
 import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
 import eu.fbk.fm.alignments.utils.DBUtils;

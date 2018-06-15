@@ -5,12 +5,18 @@ import eu.fbk.fm.alignments.scorer.embeddings.EmbeddingsProvider;
 import eu.fbk.fm.alignments.scorer.embeddings.EntityDirectEmbeddings;
 import eu.fbk.fm.alignments.scorer.embeddings.EntityEmbeddings;
 import eu.fbk.fm.alignments.scorer.embeddings.SocialGraphEmbeddings;
+import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
+import eu.fbk.fm.alignments.scorer.text.MemoryEmbeddingsProvider;
+import eu.fbk.fm.alignments.scorer.text.VectorProvider;
+import eu.fbk.utils.lsa.LSM;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import twitter4j.User;
 
 import javax.sql.DataSource;
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.*;
 
 /**
@@ -23,16 +29,49 @@ public class PAI18Strategy extends AbstractScoringStrategy {
     private static final Logger LOGGER = LoggerFactory.getLogger(PAI18Strategy.class);
     protected final List<FeatureVectorProvider> vectorProviders;
 
+    public PAI18Strategy(DataSource source) throws Exception {
+        this(initProviders(source));
+    }
+
     public PAI18Strategy(DataSource source, String lsaPath) throws Exception {
-        this(new LinkedList<FeatureVectorProvider>(){{
-            add(new ISWC17Strategy(source, lsaPath));
+        this(initProviders(source, lsaPath));
+    }
+
+    public PAI18Strategy(DataSource source, String lsaPath, String embeddingsPath) throws Exception {
+        this(initProviders(source, lsaPath, embeddingsPath));
+    }
+
+    private static LinkedList<FeatureVectorProvider> initProviders(DataSource source, String lsaPath) throws Exception {
+        return new LinkedList<FeatureVectorProvider>(){{
+            add(ISWC17Strategy.builder().source(source).lsaPath(lsaPath).build());
             add(new EntityDirectEmbeddings(source, "kb200_rdf2vec"));
             add(new SocialGraphEmbeddings(source, "sg300"));
-        }});
+        }};
+    }
+
+    private static LinkedList<FeatureVectorProvider> initProviders(DataSource source, String lsaPath, String embeddingsPath) throws Exception {
+        VectorProvider provider = new MemoryEmbeddingsProvider(embeddingsPath, lsaPath);
+        return new LinkedList<FeatureVectorProvider>(){{
+            add(ISWC17Strategy.builder().source(source).lsaPath(lsaPath).build());
+            add(ISWC17Strategy.builder().vectorProvider(provider).build());
+            add(new EntityDirectEmbeddings(source, "kb200_rdf2vec"));
+            add(new SocialGraphEmbeddings(source, "sg300"));
+        }};
+    }
+
+    private static LinkedList<FeatureVectorProvider> initProviders(DataSource source) throws Exception {
+        return new LinkedList<FeatureVectorProvider>(){{
+            add(new EntityDirectEmbeddings(source, "kb200_rdf2vec"));
+            add(new SocialGraphEmbeddings(source, "sg300"));
+        }};
     }
 
     public PAI18Strategy(List<FeatureVectorProvider> vectorProviders) {
         this.vectorProviders = vectorProviders;
+    }
+
+    public void addProvider(FeatureVectorProvider provider) {
+        this.vectorProviders.add(provider);
     }
 
     @Override

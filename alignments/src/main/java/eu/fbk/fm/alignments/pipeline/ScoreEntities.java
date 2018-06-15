@@ -178,7 +178,7 @@ public class ScoreEntities {
             Endpoint endpoint = new Endpoint(endpointUri);
             FileProvider provider = new FileProvider(workingDir);
             Map<String, Scaler> scalers = new Gson().fromJson(new FileReader(provider.scaler), provider.scalerType);
-            ScoringStrategy strategy = new ISWC17Strategy(source, lsaPath);
+            ScoringStrategy strategy = ISWC17Strategy.builder().source(source).lsaPath(lsaPath).build();
             ScoreEntities script = new ScoreEntities(source, endpoint, scalers, strategy);
 
             script.run();
