@@ -99,6 +99,6 @@ class SMTModel(SimpleModel):
 
     @staticmethod
     def restore_definition(params: dict) -> Model:
-        model = EmbExtraLayer(params["name"], params["inputs"], params["classes"])
+        model = SMTModel(params["name"], params["inputs"], params["classes"])
         model.layers(params["layers"]).units(params["units"])
         return model

@@ -61,7 +61,9 @@ def main(workdir):
         model.restore_from_file(model_location)
 
         expected = []
-        predicted = []
+        predicted = {}
+        for i in np.arange(0.0, 0.5, 0.1):
+            predicted[i] = []
         scores = []
         counter = 0
         check_interval = 1000
@@ -111,24 +113,27 @@ def main(workdir):
                 if len(top_2) > 1:
                     second_best = sample_scores[top_2[1]]
 
-            if highest_score - second_best < 0.4:
-                predicted_id = -1
+            for threshold in predicted:
+                if highest_score - second_best < threshold:
+                    predicted[threshold].append(-1)
+                else:
+                    predicted[threshold].append(predicted_id)
 
             expected.append(correct_id)
-            predicted.append(predicted_id)
             scores.append(highest_score)
 
             if counter % check_interval == 0:
                 print(" ", "%d samples processed (%.2fs)" % (counter, (time.time() - timestamp)))
 
         debug_writer.close()
-        p, r, s = precision_recall_curve(expected, predicted, scores)
 
         with open(path.join(evaluation_dir, model_name+".txt"), 'w') as writer:
             writer.write("Selection:\n")
             writer.write("All")
-            for i in range(len(p)):
-                writer.write("\nDNN\t%.4f\t%.4f\t%.4f\t%.2f\t%.2f" % (p[i], r[i], f1(p[i], r[i]), 0.4, s[i]))
+            for threshold in predicted:
+                p, r, s = precision_recall_curve(expected, predicted[threshold], scores)
+                for i in range(len(p)):
+                    writer.write("\nDNN\t%.4f\t%.4f\t%.4f\t%.2f\t%.2f" % (p[i], r[i], f1(p[i], r[i]), threshold, s[i]))
 
 
 if __name__ == "__main__":

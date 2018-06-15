@@ -8,7 +8,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from evaluation.common import precision_recall_curve, draw_f1_lines
+try:
+    from .common import precision_recall_curve, draw_f1_lines
+except Exception:
+    from common import precision_recall_curve, draw_f1_lines
 
 _module = sys.modules['__main__'].__file__
 _logger = logging.getLogger(_module)
@@ -233,7 +236,7 @@ def precision_recall_plot(data, expected_col, predicted_cols, score_cols, labels
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", nargs=1, default=_input_dir, help="the file or directory to collect data from")
+    parser.add_argument("--input", default=_input_dir, help="the file or directory to collect data from")
     parser.add_argument("--debug", help="log debug messages", action="store_true")
     args = parser.parse_args()
     
@@ -248,11 +251,12 @@ if __name__ == "__main__":
     pcols = ["index_" + method for method in methods]
     scols = ["score_" + method for method in methods]
 
-    entities = entity_table(candidates, 0.4)
+    min_improvement = 0.1
+    entities = entity_table(candidates, min_improvement)
 
     df = entities[entities.num_candidates > 1]
-    p, r, s = precision_recall_curve(df["correct"], df["index_emb_extra@full"], df["score_emb_extra@full"])
-    pj, rj, sj = precision_recall_curve(entities["correct_joint"], entities["index_emb_extra@full"], entities["score_emb_extra@full"])
+    p, r, s = precision_recall_curve(df["correct"], df["index_evaluation-smt-def-50"], df["score_evaluation-smt-def-50"])
+    pj, rj, sj = precision_recall_curve(entities["correct_joint"], entities["index_evaluation-smt-def-50"], entities["score_evaluation-smt-def-50"])
    
 #    plt.figure(figsize=(8, 6))
 #    precision_recall_plot(entities, "correct_joint", pcols, scols, methods, prange=(.7, 1), legendloc="upper right")
@@ -262,7 +266,7 @@ if __name__ == "__main__":
 #    precision_recall_plot(entities[entities.num_candidates > 1], "correct", pcols, scols, methods, prange=(.7, 1), legendloc="upper right")
 #    plt.savefig(_plot_file_selection)    
 
-    _min_improvements = np.linspace(0, 0.4, 2)
+    _min_improvements = np.linspace(0, min_improvement, 2)
     _grid = (2 * len(_min_improvements), 6)
     _row = 0
     plt.figure(figsize=(30, 10 * len(_min_improvements)))
