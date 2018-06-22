@@ -6,6 +6,7 @@ import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.FileProvider;
 import eu.fbk.fm.alignments.index.db.tables.records.AlignmentsRecord;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
+import eu.fbk.fm.alignments.persistence.ModelEndpoint.ProductionModelEndpoint;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.scorer.ISWC17Strategy;
 import eu.fbk.fm.alignments.scorer.ScoringStrategy;
@@ -47,20 +48,17 @@ public class ScoreEntities {
     private static final String DB_USER = "db-user";
     private static final String DB_PASSWORD = "db-password";
     private static final String ENDPOINT = "endpoint";
-    private static final String WORKING = "work";
     private static final String LSA_PATH = "lsa-path";
 
     private final DataSource source;
     private final Endpoint endpoint;
     private final ModelEndpoint modelEndpoint;
     private final ScoringStrategy strategy;
-    private final Map<String, Scaler> scalers;
 
-    public ScoreEntities(DataSource source, Endpoint endpoint, Map<String, Scaler> scalers, ScoringStrategy strategy) throws URISyntaxException {
+    public ScoreEntities(DataSource source, Endpoint endpoint, ScoringStrategy strategy) throws URISyntaxException {
         this.source = source;
         this.endpoint = endpoint;
-        this.modelEndpoint = new ModelEndpoint();
-        this.scalers = scalers;
+        this.modelEndpoint = new ProductionModelEndpoint();
         this.strategy = strategy;
     }
 
@@ -118,7 +116,6 @@ public class ScoreEntities {
 
                         // Scoring and rescaling
                         Map<String, double[]> features = strategy.getScore(user, resource);
-                        scalers.forEach((key, value) -> value.transform(features.get(key)));
 
                         // Classifying
                         double result = modelEndpoint.predict(features)[1];
@@ -154,9 +151,6 @@ public class ScoreEntities {
                 .withOption(null, ENDPOINT,
                         "URL to SPARQL endpoint", "ENDPOINT",
                         CommandLine.Type.STRING, true, false, true)
-                .withOption("w", WORKING,
-                        "Input file with entities", "INPUT",
-                        CommandLine.Type.STRING, true, false, true)
                 .withOption(null, LSA_PATH,
                         "path to LSA model", "DIRECTORY",
                         CommandLine.Type.STRING, true, false, true);
@@ -171,15 +165,12 @@ public class ScoreEntities {
             final String dbUser = cmd.getOptionValue(DB_USER, String.class);
             final String dbPassword = cmd.getOptionValue(DB_PASSWORD, String.class);
             final String endpointUri = cmd.getOptionValue(ENDPOINT, String.class);
-            final String workingDir = cmd.getOptionValue(WORKING, String.class);
             final String lsaPath = cmd.getOptionValue(LSA_PATH, String.class);
 
             DataSource source = DBUtils.createPGDataSource(dbConnection, dbUser, dbPassword);
             Endpoint endpoint = new Endpoint(endpointUri);
-            FileProvider provider = new FileProvider(workingDir);
-            Map<String, Scaler> scalers = new Gson().fromJson(new FileReader(provider.scaler), provider.scalerType);
             ScoringStrategy strategy = ISWC17Strategy.builder().source(source).lsaPath(lsaPath).build();
-            ScoreEntities script = new ScoreEntities(source, endpoint, scalers, strategy);
+            ScoreEntities script = new ScoreEntities(source, endpoint, strategy);
 
             script.run();
         } catch (final Throwable ex) {
