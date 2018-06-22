@@ -5,6 +5,7 @@ from os import path
 
 from evaluation.common import precision_recall_curve
 from pairwise_models import restore_definition
+from utils.common import Scaler
 
 
 def f1(prec: float, rec: float) -> float:
@@ -20,13 +21,32 @@ def present(workdir, file):
 
 def main(workdir):
     print("Performing checks")
-    [present(workdir, file) for file in ["test.csv", "models", "evaluation.json"]]
+    [present(workdir, file) for file in ["dataset.json", "splits", "manifest.json"]]
 
+    # Preparing the evaluation directory
     evaluation_dir = path.join(workdir, "evaluation")
     if not path.exists(evaluation_dir):
         os.mkdir(evaluation_dir)
 
-    models_dir = path.join(args.workdir, "models")
+    splits = []
+    # Detecting splits
+    splits_dir = path.join(args.workdir, "splits")
+    for split in os.listdir(splits_dir):
+        split_dir = path.join(splits_dir, split)
+        if split.startswith(".") or not path.isdir(split_dir):
+            continue
+
+        if not path.exists(path.join(split_dir, "models")):
+            print("Models are not trained for split %s. Halting" % split)
+            return
+        splits.append(split_dir)
+    print("Detected %d splits" % len(splits))
+
+    if len(splits) == 0:
+        print("Train the models first. Halting")
+        return
+
+    models_dir = path.join(splits[0], "models")
     print("\nDetected models:")
     models = dict()
     for model in os.listdir(models_dir):
@@ -38,27 +58,61 @@ def main(workdir):
             if feature_set.startswith("."):
                 continue
             model_name = "%s@%s" % (model, feature_set)
-            models[model_name] = path.join(model_dir, feature_set)
+            models[model_name] = (model, feature_set)
             print(" ", model_name)
 
     if len(models) == 0:
-        print(" ", "No models detected")
+        print(" ", "No models detected. Halting")
         return
 
-    print("\nDeserialising test set")
+    print("\nDeserialising dataset")
     timestamp = time.time()
-    test_set = json.load(open(path.join(workdir, "evaluation.json"), 'r'))
-    for sample in test_set:
-        del sample["resource"]
+    test_set = []
+    counter = 0
+    with open(path.join(workdir, "dataset.json"), 'r') as reader:
+        for line in reader:
+            sample = json.loads(line)
+            del sample["resource"]
+            test_set.append(sample)
+            counter += 1
+            if counter % 5000 == 0:
+                print("  Loaded %d samples" % counter)
     print("Done in %.2fs, loaded %d samples" % (time.time() - timestamp, len(test_set)))
+
+    print("\nDeserialising test splits")
+    test_ids = {}
+    test_stats = {}
+    for split_id, split in enumerate(splits):
+        # Deserializing test sets remembering from which split they came from
+        with open(path.join(split, "test.csv"), 'r') as reader:
+            ids = []
+            test_stats[split_id] = 0
+            for line in reader:
+                ids.append(line.rstrip().split(',')[0])
+            for entity_id in ids[1:]:
+                test_ids[entity_id] = split_id
+                test_stats[split_id] += 1
+    print("Loaded %d test items with following counts: [%s]" % (len(test_ids), ", ".join([str(stat) for stat in test_stats.values()])))
+
+    print("\nDeserialising scalers")
+    test_scalers = []
+    for split_id, split in enumerate(splits):
+        with open(path.join(split, "scaler.json"), 'r') as scaler_reader:
+            test_scalers.append(Scaler.from_dict(json.load(scaler_reader)))
 
     print("\nEvaluation:")
     for model_name in sorted(models.keys()):
         print("Evaluating model %s" % model_name)
         debug_writer = open(path.join(evaluation_dir, model_name + ".dump"), 'w')
-        model_location = path.join(models[model_name], "model")
-        model = restore_definition(model_location)
-        model.restore_from_file(model_location)
+
+        # Invoking a trained model from disk for each split
+        model_instances = []
+        model_type, feature_set = models[model_name]
+        for split_id, split in enumerate(splits):
+            model_location = path.join(split, "models", model_type, feature_set, "model")
+            model = restore_definition(model_location)
+            model.restore_from_file(model_location)
+            model_instances.append(model)
 
         expected = []
         predicted = {}
@@ -83,7 +137,8 @@ def main(workdir):
                     for subspace in features:
                         sample_features[subspace] = []
                 for subspace in features:
-                    sample_features[subspace].append(np.array(features[subspace]))
+                    cur_vector = test_scalers[test_ids[sample["entry"]["resourceId"]]].fit_subspace(features[subspace], subspace)
+                    sample_features[subspace].append(cur_vector)
 
                 is_current_correct = sample["entry"]["twitterId"].casefold() == sample["candidates"][candidate_id]["profile"]["screenName"].casefold()
                 if is_current_correct:
@@ -97,7 +152,7 @@ def main(workdir):
             if len(sample["features"]) > 0:
                 for subspace in sample_features:
                     sample_features[subspace] = np.vstack(sample_features[subspace])
-                sample_scores = model.predict(features=sample_features)
+                sample_scores = model_instances[test_ids[sample["entry"]["resourceId"]]].predict(features=sample_features)
                 for i in range(sample_scores.shape[0]):
                     debug_writer.write("%.6f\t%.6f\t%d\t%d\t%s\t%s\n" % (sample_scores[i][0], sample_scores[i][1],
                                                                        int(correct_id == i), int(i == 0),

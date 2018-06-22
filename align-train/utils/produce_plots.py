@@ -52,7 +52,7 @@ def main(input: list, output: str):
                     plots += 1
                     files[file][cur_section][subsection_name] = []
                 files[file][cur_section][subsection_name].append(sample)
-    #min_prec = 0.8
+    min_prec = 0.65
 
     # Producing joint graphs
     file1 = files[input[0]]

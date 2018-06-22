@@ -28,14 +28,12 @@ public class ISWC17Strategy extends AbstractScoringStrategy implements FeatureVe
     private int numUniqueFeatures;
     private String id = "iswc17";
 
-    public ISWC17Strategy(VectorProvider textVectorProvider, List<FeatureProvider> featureProviders) throws Exception {
+    public ISWC17Strategy(List<FeatureProvider> featureProviders) throws Exception {
         Stopwatch watch = Stopwatch.createStarted();
-        SimilarityScorer scorer = new CosineScorer(textVectorProvider);
         providers = new LinkedList<FeatureProvider>(){{
             add(new VerifiedScorer());
             add(new NameScorer(new JaroWinklerDistance()));
             add(new NameScorer.ScreenNameScorer(new JaroWinklerDistance()));
-            add(new TextScorer(scorer).all().profile());
             add(new FollowersFriendsRatioScorer());
             add(new FriendsScorer());
             add(new FollowersScorer());
@@ -107,6 +105,7 @@ public class ISWC17Strategy extends AbstractScoringStrategy implements FeatureVe
     public static class ISWC17StrategyBuilder {
         private DataSource source = null;
         private VectorProvider textVectorProvider = null;
+        private List<VectorProvider> textVectorProviders = null;
         private String lsaPath = null;
 
         public ISWC17StrategyBuilder source(DataSource source) {
@@ -119,9 +118,24 @@ public class ISWC17Strategy extends AbstractScoringStrategy implements FeatureVe
             return this;
         }
 
+        public ISWC17StrategyBuilder vectorProviders(List<VectorProvider> textVectorProvider) {
+            this.textVectorProviders = new LinkedList<>(textVectorProvider);
+            return this;
+        }
+
         public ISWC17StrategyBuilder lsaPath(String lsaPath) {
             this.lsaPath = lsaPath;
             return this;
+        }
+
+        private void initProvider(List<FeatureProvider> providers, VectorProvider textVectorProvider) {
+            SimilarityScorer scorer = new CosineScorer(textVectorProvider);
+            providers.add(new TextScorer(scorer).all().profile());
+            if (source == null) {
+                providers.add(new TextScorer(scorer).all().userData());
+            } else {
+                providers.add(new DBTextScorer(source, textVectorProvider));
+            }
         }
 
         public ISWC17Strategy build() throws Exception {
@@ -129,19 +143,27 @@ public class ISWC17Strategy extends AbstractScoringStrategy implements FeatureVe
                 LSM lsm = new LSM(lsaPath+"/X", 100, true);
                 textVectorProvider = new LSAVectorProvider(lsm);
             }
-            if (textVectorProvider == null) {
-                throw new Exception("Requires vectorProvider or LSA in order to be intitialised");
+            if (textVectorProvider == null && textVectorProviders == null) {
+                throw new Exception("Requires vectorProvider(s) or LSA in order to be intitialised");
             }
 
             List<FeatureProvider> providers = new LinkedList<>();
-            if (source == null) {
-                SimilarityScorer scorer = new CosineScorer(textVectorProvider);
-                providers.add(new TextScorer(scorer).all().userData());
-            } else {
-                providers.add(new DBTextScorer(source, textVectorProvider));
+            List<VectorProvider> vectorProviders = new LinkedList<>();
+            if (textVectorProvider != null) {
+                vectorProviders.add(textVectorProvider);
             }
-            ISWC17Strategy strategy = new ISWC17Strategy(textVectorProvider, providers);
-            strategy.id += "_" + textVectorProvider.toString();
+            if (textVectorProviders != null) {
+                vectorProviders.addAll(textVectorProviders);
+            }
+            for (VectorProvider vectorProvider : vectorProviders) {
+                initProvider(providers, vectorProvider);
+            }
+            ISWC17Strategy strategy = new ISWC17Strategy(providers);
+            strategy.id += "_" + vectorProviders.size() + "_" + vectorProviders
+                                    .stream()
+                                    .map(Object::toString)
+                                    .reduce((suf1, suf2) -> suf1 + "_" + suf2)
+                                    .orElse("none");
             return strategy;
         }
     }

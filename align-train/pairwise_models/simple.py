@@ -242,8 +242,8 @@ class SimpleModel(Model):
                         if eval_prod is not None and len(eval_prod.labels) == 2 and global_step % (check_interval*3) == 0:
                             appendix += ", "+self.do_eval(eval_prod)
 
-                        print("[+] step: %4.1fk, %6.2f steps/s, tol: %2d, epoch: %5.2f, avg.loss: %.5f, min.loss: %.5f%s"
-                              % (float(global_step) / 1000, float(check_interval) / (time.time() - timestamp),
+                        print("[%s] step: %4.1fk, %6.2f steps/s, tol: %2d, epoch: %5.2f, avg.loss: %.5f, min.loss: %.5f%s"
+                              % (self._name, float(global_step) / 1000, float(check_interval) / (time.time() - timestamp),
                                  tolerance, cur_epoch+(pointer/train_prod.set_size), average_loss, min_loss, appendix))
                         timestamp = time.time()
                         average_loss = 0
@@ -276,12 +276,15 @@ class SimpleModel(Model):
     def restore_definition(params: dict) -> Model:
         model = SimpleModel(params["name"], params["inputs"], params["classes"])
         model.layers(params["layers"]).units(params["units"])
+        if "desc" in params:
+            model.desc(params["desc"])
         return model
 
     def save_to_file(self, filename):
         Model.save_to_file(self, filename)
         json.dump({
             'name': self._name,
+            'desc': self._desc,
             'inputs': self._inputs,
             'classes': self._classes,
             'layers': self._layers,

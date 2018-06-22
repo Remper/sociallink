@@ -11,10 +11,20 @@ import numpy as np
 class Model:
     def __init__(self, name):
         self._name = name
+        self._desc = name
         self._graph = None
         self._session = None
         self._saver = None
         self._ready = False
+        self._device = None
+
+    def desc(self, desc):
+        self._desc = desc
+        return self
+
+    def device(self, device):
+        self._device = device
+        return self
 
     def _definition(self):
         raise NotImplementedError("Definition function must be implemented for the model")
@@ -27,7 +37,7 @@ class Model:
         if self._saver is None:
             raise NotImplementedError("Definition wasn't properly implemented: missing saver")
 
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.49)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.45, visible_device_list=self._device)
         self._session = tf.Session(graph=self._graph, config=tf.ConfigProto(gpu_options=gpu_options))
 
     def train(self, train_prod, eval_prod=None):

@@ -11,6 +11,7 @@ import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.query.*;
 import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
 import eu.fbk.fm.alignments.scorer.*;
+import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
 import eu.fbk.fm.alignments.scorer.text.MemoryEmbeddingsProvider;
 import eu.fbk.fm.alignments.scorer.text.VectorProvider;
 import eu.fbk.fm.alignments.twitter.SearchRunner;
@@ -18,6 +19,7 @@ import eu.fbk.fm.alignments.twitter.TwitterCredentials;
 import eu.fbk.fm.alignments.twitter.TwitterDeserializer;
 import eu.fbk.fm.alignments.twitter.TwitterService;
 import eu.fbk.fm.alignments.utils.DBUtils;
+import eu.fbk.utils.lsa.LSM;
 import eu.fbk.utils.math.Scaler;
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVFormat;
@@ -708,19 +710,24 @@ public class Evaluate {
         }
 
         PAI18Strategy strategy = new PAI18Strategy(source);
-        strategy.addProvider(ISWC17Strategy.builder().lsaPath(configuration.lsa).build());
+        LSM lsm = new LSM(configuration.lsa+"/X", 100, true);
+        VectorProvider textVectorProvider = new LSAVectorProvider(lsm);
+        strategy.addProvider(ISWC17Strategy.builder().vectorProvider(textVectorProvider).build());
         if (configuration.embeddings != null) {
-            List<VectorProvider> embProviders = new LinkedList<>();
+            LinkedList<VectorProvider> embProviders = new LinkedList<>();
             Files.list(Paths.get(configuration.embeddings)).forEach((path) -> {
                 try {
                     VectorProvider provider = new MemoryEmbeddingsProvider(path.toString(), configuration.lsa);
-                    strategy.addProvider(ISWC17Strategy.builder().vectorProvider(provider).build());
+                    //strategy.addProvider(ISWC17Strategy.builder().vectorProvider(provider).build());
                     embProviders.add(provider);
                 } catch (Exception e) {
                     logger.error("Error while loading embedding", e);
                 }
             });
             logger.info("Loaded {} embedding models", embProviders.size());
+            List<VectorProvider> allVectorProviders = new LinkedList<>(embProviders);
+            allVectorProviders.add(textVectorProvider);
+            strategy.addProvider(ISWC17Strategy.builder().vectorProviders(allVectorProviders).build());
         }
         //logger.info("LSA specified. Enabling PAI18 strategy");
         evaluate.setScoreStrategy(strategy);
@@ -733,9 +740,9 @@ public class Evaluate {
             return;
         }
 
-        if (files.evaluation.exists()) {
+        if (files.dataset.exists()) {
             List<FullyResolvedEntry> testSet = new LinkedList<>();
-            FullyResolvedEntry[] testSetRaw = gson.fromJson(new FileReader(files.evaluation), FullyResolvedEntry[].class);
+            FullyResolvedEntry[] testSetRaw = gson.fromJson(new FileReader(files.dataset), FullyResolvedEntry[].class);
             logger.info("Deserialised " + testSetRaw.length + " entities");
             Collections.addAll(testSet, testSetRaw);
             evaluationPipeline(evaluate, files, testSet, new ModelEndpoint("localhost", configuration.modelPort));
@@ -842,31 +849,7 @@ public class Evaluate {
 
         strategiesCheck(resolveDataset);
 
-        //Produce multiple train/test splits
-        if (!files.train.plain.exists() || !files.test.plain.exists()) {
-            int numSplits = 2;
-            FileProvider provider = null;
-            for (int i = numSplits; i > 0; i--) {
-                File newWorkdir = new File(configuration.workdir, "split"+i);
-                if (!newWorkdir.mkdir()) {
-                    logger.error("Error while creating subdirectory for split "+i);
-                }
-                provider = new FileProvider(newWorkdir);
-                logger.info("Generating training/test sets for split"+i);
-                evaluate.produceTrainTestSets(goldStandardDataset, provider.train.plain, provider.test.plain, 0.9);
-                Files.createSymbolicLink(provider.resolved.toPath(), files.resolved.toPath());
-                Files.copy(files.gold.toPath(), provider.gold.toPath());
-            }
-            //Picking one of the providers to continue
-            files = provider;
-        }
-
         try {
-            Dataset trainSetDataset = Dataset.fromFile(files.train.plain);
-            Dataset testSetDataset = Dataset.fromFile(files.test.plain);
-
-            List<FullyResolvedEntry> resolvedTestSet = new LinkedList<>();
-            List<FullyResolvedEntry> resolvedTrainingSet = new LinkedList<>();
             Set<String> resourceIds = new HashSet<>();
             int numCandidates = 0;
             int numNoCandidates = 0;
@@ -896,21 +879,10 @@ public class Evaluate {
                     continue;
                 }
                 resourceIds.add(entry.entry.resourceId);
-
-                if (testSetDataset.findEntry(entry.entry.resourceId) != null) {
-                    resolvedTestSet.add(entry);
-                    continue;
-                }
-                if (trainSetDataset.findEntry(entry.entry.resourceId) != null) {
-                    resolvedTrainingSet.add(entry);
-                }
-            }
-            if (resolvedTestSet.size() + resolvedTrainingSet.size() != resolveDataset.size()) {
-                logger.warn("For some reason we lost some data while preparing datasets");
             }
             logger.info("Dataset statistics: ");
-            logger.info(" Items before resolving:\t" + goldStandardDataset.size() + "\t(" + trainSetDataset.size() + "+" + testSetDataset.size() + ")");
-            logger.info(" Items after resolving:\t" + resolveDataset.size() + "\t(" + resolvedTrainingSet.size() + "+" + resolvedTestSet.size() + ")");
+            logger.info(" Items before resolving:\t" + goldStandardDataset.size());
+            logger.info(" Items after resolving:\t" + resolveDataset.size());
             int lost = goldStandardDataset.size() - resolveDataset.size();
             logger.info(String.format(" Lost:\t%d (%.2f", lost, ((double) lost / goldStandardDataset.size()) * 100) + "%)");
             logger.info(String.format(" Average candidates per entity: %.2f", (double) numCandidates / resolveDataset.size()));
@@ -922,56 +894,22 @@ public class Evaluate {
                 candSum += trueCandidatesOrder[i];
                 logger.info(String.format("  %d — %d (%.2f", i, candSum, ((double) candSum / resolveDataset.size()) * 100) + "%)");
             }
-            resolveDataset.clear();
 
-            //Generating features
-            //logger.info("Generating features");
-
-            //Stopwatch watch = Stopwatch.createStarted();
-            //evaluate.generateFeatures(resolvedTrainingSet);
-            //evaluate.generateFeatures(resolvedTestSet);
-
-            //Purging unneeded additional data
-            //evaluate.purgeAdditionalData(resolvedTrainingSet);
-            //evaluate.purgeAdditionalData(resolvedTestSet);
-            //logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
-
-            //Saving unscaled JSON features to disk
-            //evaluate.dumpFeatures(resolvedTrainingSet, files.train.unscaled);
-            //evaluate.dumpFeatures(resolvedTestSet, files.test.unscaled);
-
-            Map<String, Scaler> scalers;
-            if (files.scaler.exists()) {
-                scalers = gson.fromJson(new FileReader(files.scaler), files.scalerType);
-            } else {
-                scalers = fitDataset(resolvedTrainingSet);
-                //Saving scaler to disk
-                FileUtils.writeStringToFile(files.scaler, gson.toJson(scalers));
-            }
-
-            //Rescaling features
-            logger.info("Rescaling features");
             Stopwatch watch = Stopwatch.createStarted();
-            transformDataset(scalers, resolvedTrainingSet);
-            transformDataset(scalers, resolvedTestSet);
-            logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
-
-            //Saving JSON features to disk
-            logger.info("Dumping features");
-            watch.reset().start();
-            evaluate.dumpFeatures(resolvedTrainingSet, files.train.scaled);
-            evaluate.dumpFeatures(resolvedTestSet, files.test.scaled);
-            //evaluate.dumpJointFeatures(resolvedTrainingSet, files.train.scaled);
-            //evaluate.dumpJointFeatures(resolvedTestSet, files.test.scaled);
-            logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
-
             logger.info("Dumping full experimental setting to JSON");
-            watch.reset().start();
-            FileWriter resolvedWriter = new FileWriter(files.evaluation);
-            gson.toJson(resolvedTestSet, resolvedWriter);
+            FileWriter resolvedWriter = new FileWriter(files.dataset);
+            boolean first = true;
+            for (FullyResolvedEntry entry : resolveDataset) {
+                if (first) {
+                    first = false;
+                } else {
+                    resolvedWriter.write('\n');
+                }
+                gson.toJson(entry, resolvedWriter);
+            }
             IOUtils.closeQuietly(resolvedWriter);
             logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
-            evaluationPipeline(evaluate, files, resolvedTestSet, new ModelEndpoint("localhost", configuration.modelPort));
+            //evaluationPipeline(evaluate, files, resolvedTestSet, new ModelEndpoint("localhost", configuration.modelPort));
         } catch (Exception e) {
             logger.error("Error while processing pipeline", e);
             e.printStackTrace();

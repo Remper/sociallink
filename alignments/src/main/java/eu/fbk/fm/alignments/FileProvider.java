@@ -15,8 +15,7 @@ import java.util.Map;
  * @author Yaroslav Nechaev (remper@me.com)
  */
 public class FileProvider {
-    public final File gold, resolved, scaler, model, evaluation, evaluationResult, evaluationRawResult;
-    public final FileSet test, train;
+    public final File gold, resolved, manifest, dataset, evaluationResult, evaluationRawResult;
     public final Type scalerType = new TypeToken<Map<String, Scaler>>(){}.getType();
 
     public FileProvider(String workdir) {
@@ -30,11 +29,8 @@ public class FileProvider {
 
         gold = new File(coreDirectory, "gold.csv");
         resolved = new File(coreDirectory, "resolved");
-        scaler = new File(coreDirectory, "scaler.json");
-        model = new File(coreDirectory, "model");
-        test = new FileSet(coreDirectory, "test");
-        train = new FileSet(coreDirectory, "train");
-        evaluation = new File(coreDirectory, "evaluation.json");
+        manifest = new File(coreDirectory, "manifest.json");
+        dataset = new File(coreDirectory, "dataset.json");
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM-dd-HH-mm"));
         evaluationResult = new File(coreDirectory, "evaluation-"+date+".txt");
         evaluationRawResult = new File(coreDirectory, "evaluation-raw-"+date);
