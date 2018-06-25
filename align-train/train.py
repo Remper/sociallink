@@ -2,9 +2,10 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import time
+
 import argparse
 import json
-from asyncio import Queue
+from multiprocessing import Lock, Queue
 from multiprocessing.pool import Pool
 
 from os import path, mkdir
@@ -76,6 +77,7 @@ models = get_custom_models()
 feature_manifest = json.load(open(path.join(args.work_dir, "manifest.json")))
 eval_results = []
 available_gpus = Queue()
+lock = Lock()
 for i in range(args.num_gpus):
     for _ in range(2):
         available_gpus.put(i)
@@ -88,9 +90,6 @@ class Settings:
 
 
 def train(settings):
-    # Acquire the GPU
-
-
     fold_path = path.join(args.work_dir, "splits", str(settings.fold_id))
     train_path = path.join(fold_path, "train.json")
     eval_path = path.join(fold_path, "test.json")
@@ -129,8 +128,10 @@ def train(settings):
         print("")
 
     # Acquire the GPU
+    lock.acquire()
     device_id = available_gpus.get()
-    print("Acquired GPU with id %d (%d GPUs left)" % (device_id, len(available_gpus)))
+    lock.release()
+    print("Acquired GPU with id %d (%d GPUs left)" % (device_id, available_gpus.qsize()))
 
     available_features = train_prod.feature_space.keys()
     fold_results = {}
@@ -168,7 +169,9 @@ def train(settings):
     eval_results.append(fold_results)
 
     # Release the GPU
+    lock.acquire()
     available_gpus.put(device_id)
+    lock.release()
     print("Done in %.2fs" % (time.time() - timestamp))
 
 

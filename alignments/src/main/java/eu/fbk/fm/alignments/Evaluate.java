@@ -49,6 +49,8 @@ import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import static eu.fbk.fm.alignments.scorer.TextScorer.DBPEDIA_TEXT_EXTRACTOR;
+
 /**
  * Script that evaluates a particular alignments pipeline
  *
@@ -712,21 +714,26 @@ public class Evaluate {
         PAI18Strategy strategy = new PAI18Strategy(source);
         LSM lsm = new LSM(configuration.lsa+"/X", 100, true);
         VectorProvider textVectorProvider = new LSAVectorProvider(lsm);
-        strategy.addProvider(ISWC17Strategy.builder().vectorProvider(textVectorProvider).build());
+        List<VectorProvider> allVectorProviders = new LinkedList<>();
+        allVectorProviders.add(textVectorProvider);
         if (configuration.embeddings != null) {
             LinkedList<VectorProvider> embProviders = new LinkedList<>();
             Files.list(Paths.get(configuration.embeddings)).forEach((path) -> {
                 try {
-                    VectorProvider provider = new MemoryEmbeddingsProvider(path.toString(), configuration.lsa);
-                    //strategy.addProvider(ISWC17Strategy.builder().vectorProvider(provider).build());
-                    embProviders.add(provider);
+                    embProviders.add(new MemoryEmbeddingsProvider(path.toString(), configuration.lsa));
                 } catch (Exception e) {
                     logger.error("Error while loading embedding", e);
                 }
             });
             logger.info("Loaded {} embedding models", embProviders.size());
-            List<VectorProvider> allVectorProviders = new LinkedList<>(embProviders);
-            allVectorProviders.add(textVectorProvider);
+            allVectorProviders.addAll(embProviders);
+        }
+        for (VectorProvider provider : allVectorProviders) {
+            strategy.addProvider(ISWC17Strategy.builder().vectorProvider(provider).build());
+            strategy.addProvider(new SMTStrategy.TextProvider("dbpedia", provider, DBPEDIA_TEXT_EXTRACTOR));
+            strategy.addProvider(new SMTStrategy.TextProvider("tweets", provider, (user, resource) -> TextScorer.getUserDataText(user)));
+        }
+        if (allVectorProviders.size() > 1) {
             strategy.addProvider(ISWC17Strategy.builder().vectorProviders(allVectorProviders).build());
         }
         //logger.info("LSA specified. Enabling PAI18 strategy");
