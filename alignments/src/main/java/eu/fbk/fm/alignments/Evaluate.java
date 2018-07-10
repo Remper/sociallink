@@ -2,6 +2,7 @@ package eu.fbk.fm.alignments;
 
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import eu.fbk.fm.alignments.evaluation.*;
@@ -23,10 +24,15 @@ import eu.fbk.utils.lsa.LSM;
 import eu.fbk.utils.math.Scaler;
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.io.FileUtils;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullWriter;
+import org.jooq.Record2;
+import org.jooq.SQLDialect;
+import org.jooq.Table;
+import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import twitter4j.Status;
@@ -37,8 +43,8 @@ import twitter4j.User;
 import javax.sql.DataSource;
 import java.io.*;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.*;
@@ -49,7 +55,11 @@ import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import static eu.fbk.fm.alignments.index.db.tables.UserIndex.USER_INDEX;
+import static eu.fbk.fm.alignments.index.db.tables.UserObjects.USER_OBJECTS;
 import static eu.fbk.fm.alignments.scorer.TextScorer.DBPEDIA_TEXT_EXTRACTOR;
+import static org.jooq.impl.DSL.select;
+import static org.jooq.impl.DSL.sum;
 
 /**
  * Script that evaluates a particular alignments pipeline
@@ -60,7 +70,7 @@ public class Evaluate {
 
     private static final Gson GSON = TwitterDeserializer.getDefault().getBuilder().create();
     private static final Logger logger = LoggerFactory.getLogger(Evaluate.class);
-    public static final int CANDIDATES_THRESHOLD = 40;
+    public static final int CANDIDATES_THRESHOLD = 1000;
     public static final int RESOLVE_CHUNK_SIZE = 2000;
 
     private Endpoint endpoint;
@@ -114,7 +124,7 @@ public class Evaluate {
         }
     }
 
-    public void fillAdditionalData(Collection<FullyResolvedEntry> dataset) {
+    public void initService() {
         if (service == null) {
             if (credentials == null) {
                 logger.info("Twitter credentials are not set, skipping additional queries");
@@ -122,6 +132,10 @@ public class Evaluate {
             }
             service = new TwitterService(SearchRunner.createInstances(credentials));
         }
+    }
+
+    public void fillAdditionalData(Collection<FullyResolvedEntry> dataset) {
+        initService();
 
         //Query additional data
         Stream<UserData> candidateStream = dataset.parallelStream().flatMap(entry -> entry.candidates.stream());
@@ -162,7 +176,7 @@ public class Evaluate {
         executor.shutdownNow();
     }
 
-    public Collection<FullyResolvedEntry> resolveDatasetViaIndex(Dataset dataset) {
+    public List<FullyResolvedEntry> resolveDatasetViaIndex(Dataset dataset) {
         Objects.requireNonNull(dataset);
         Objects.requireNonNull(index);
         final AtomicInteger processed = new AtomicInteger(0);
@@ -326,36 +340,29 @@ public class Evaluate {
         IOUtils.closeQuietly(jsonOutput);
     }
 
-    public void dumpFeatures(List<FullyResolvedEntry> entries, FileProvider.FeatureSet output) throws IOException {
-        Gson gson = new Gson();
-        FileWriter jsonOutput = new FileWriter(output.JSONFeat);
-        CSVPrinter indexPrinter = new CSVPrinter(new FileWriter(output.index), CSVFormat.DEFAULT);
+    public static void dumpStats(List<FullyResolvedEntry> entries, CSVPrinter statsPrinter) {
+        try {
+            for (FullyResolvedEntry entry : entries) {
+                for (UserData user : entry.candidates) {
+                    boolean isPositive = user.getScreenName().equalsIgnoreCase(entry.entry.twitterId);
 
-        boolean first = true;
-        for (FullyResolvedEntry entry : entries) {
-            int order = 0;
-            for (User user : entry.candidates) {
-                boolean isPositive = user.getScreenName().equalsIgnoreCase(entry.entry.twitterId);
-                if (order >= 6 && !isPositive) {
-                    order++;
-                    continue;
+                    if (!isPositive) {
+                        continue;
+                    }
+                    statsPrinter.printRecord(
+                        entry.resource.getIdentifier(),
+                        user.getScreenName(),
+                        isPositive ? 1 : 0,
+                        entry.resource.isCompany() ? "org" : "per",
+                        user.getFollowersCount(),
+                        user.get("frequency").map(JsonElement::getAsInt).orElse(0),
+                        user.isVerified() ? 1 : 0
+                    );
                 }
-                if (!first) {
-                    jsonOutput.write('\n');
-                }
-                first = false;
-
-                indexPrinter.printRecord(entry.resource.getIdentifier(), entry.entry.twitterId, user.getId(), user.getScreenName());
-                Map<String, double[]> features = entry.features.get(order);
-
-                jsonOutput.write(String.valueOf(isPositive ? 1 : 0));
-                jsonOutput.write('\t');
-                jsonOutput.write(gson.toJson(features));
-                order++;
             }
+        } catch (IOException e) {
+            logger.error("Error while dumping stats", e);
         }
-        IOUtils.closeQuietly(jsonOutput);
-        indexPrinter.close();
     }
 
     private static Map<String, Scaler> fitDataset(List<FullyResolvedEntry> entries) {
@@ -625,7 +632,7 @@ public class Evaluate {
         writer.close();
     }
 
-    private static void strategiesCheck(Collection<FullyResolvedEntry> resolveDataset) {
+    private static void strategiesCheck(List<FullyResolvedEntry> resolveDataset) {
         //Here we check all the strategies doing a random pick from the resolved dataset
         logger.info("Strategies check");
         QueryAssemblyStrategy[] strategies = {
@@ -635,17 +642,10 @@ public class Evaluate {
                 new StrictStrategy(),
                 new StrictWithTopicStrategy()
         };
-        Iterator<FullyResolvedEntry> datasetIterator = resolveDataset.iterator();
+
         Random rnd = new Random();
         for (int i = 0; i < 10; i++) {
-            FullyResolvedEntry entry;
-            do {
-                entry = datasetIterator.next();
-
-                if (!datasetIterator.hasNext()) {
-                    datasetIterator = resolveDataset.iterator();
-                }
-            } while (rnd.nextDouble() > 0.1);
+            FullyResolvedEntry entry = resolveDataset.get(rnd.nextInt(resolveDataset.size()));
 
             logger.info("Entity: " + entry.entry.resourceId + ". True alignments: @" + entry.entry.twitterId);
             logger.info("  Names: " + String.join(", ", entry.resource.getNames()));
@@ -739,6 +739,7 @@ public class Evaluate {
         //logger.info("LSA specified. Enabling PAI18 strategy");
         evaluate.setScoreStrategy(strategy);
         //logger.info("LSA specified. Enabling SMT strategy");
+        //evaluate.setScoreStrategy(new PAI18Strategy(new LinkedList<>()));
         //evaluate.setScoreStrategy(new SMTStrategy(source, configuration.lsa));
 
         FileProvider files = new FileProvider(configuration.workdir);
@@ -758,6 +759,10 @@ public class Evaluate {
 
         //Loading full gold standard
         Dataset goldStandardDataset = Dataset.fromFile(files.gold);
+
+        if (configuration.credentials != null) {
+            evaluate.setCredentials(TwitterCredentials.credentialsFromFile(new File(configuration.credentials)));
+        }
 
         //Resolving all the data needed for analysis
         int curLastIndex = -1;
@@ -790,9 +795,6 @@ public class Evaluate {
         if (curLastIndex < totalChunks) {
             int toSkip = curLastIndex;
 
-            if (configuration.credentials != null) {
-                evaluate.setCredentials(TwitterCredentials.credentialsFromFile(new File(configuration.credentials)));
-            }
             logger.info(String.format(
                 "Resolving all data from the dataset (%d entries, skip chunks: %d, projected chunks: %d)",
                 goldStandardDataset.size(), toSkip, totalChunks
@@ -826,6 +828,7 @@ public class Evaluate {
             return;
         }
         AtomicInteger chunksLeft = new AtomicInteger(resolveChunks.size());
+        CSVPrinter statsPrinter = new CSVPrinter(new FileWriter(files.datasetStats), CSVFormat.TDF);
         resolveChunks.forEach(file -> {
             Stopwatch watch = Stopwatch.createStarted();
             Reader reader;
@@ -843,7 +846,8 @@ public class Evaluate {
             ));
             watch.reset().start();
             evaluate.generateFeatures(entries);
-            evaluate.purgeAdditionalData(entries);
+            dumpStats(entries, statsPrinter);
+            //evaluate.purgeAdditionalData(entries);
             resolveDataset.addAll(entries);
             IOUtils.closeQuietly(reader);
             logger.info(String.format(
@@ -853,6 +857,7 @@ public class Evaluate {
                 chunksLeft.decrementAndGet()
             ));
         });
+        //statsPrinter.close();
 
         strategiesCheck(resolveDataset);
 
@@ -861,7 +866,18 @@ public class Evaluate {
             int numCandidates = 0;
             int numNoCandidates = 0;
             int trueCandidates = 0;
-            int[] trueCandidatesOrder = new int[CANDIDATES_THRESHOLD];
+            int maxAmountOfCandidates = 0;
+            int longTail = 5;
+            int[] cutoff = new int[]{0, 0};
+            int[] indexLoss = new int[]{0, 0};
+            for (FullyResolvedEntry entry : resolveDataset) {
+                if (maxAmountOfCandidates < entry.candidates.size()) {
+                    maxAmountOfCandidates = entry.candidates.size();
+                }
+            }
+            int[] trueCandidatesOrder = new int[maxAmountOfCandidates];
+            int[] distributionCandidates = new int[maxAmountOfCandidates+1];
+            Map<String, List<FullyResolvedEntry>> missingTrueAlignments = new HashMap<>();
             for (FullyResolvedEntry entry : resolveDataset) {
                 if (entry == null) {
                     logger.error("Entry is null for some reason!");
@@ -871,16 +887,32 @@ public class Evaluate {
                 if (entry.candidates.size() == 0) {
                     numNoCandidates++;
                 }
+                distributionCandidates[entry.candidates.size()] += 1;
                 int order = 0;
+                boolean foundTrue = false;
                 for (User candidate : entry.candidates) {
                     if (candidate.getScreenName().equalsIgnoreCase(entry.entry.twitterId)) {
                         trueCandidates++;
-                        if (order < CANDIDATES_THRESHOLD) {
-                            trueCandidatesOrder[order]++;
+                        trueCandidatesOrder[order]++;
+                        if (order >= 40) {
+                            cutoff[entry.resource.isCompany() ? 1 : 0] += 1;
                         }
+                        if (order > 50 && longTail > 0) {
+                            logger.info(String.format("   An alignment within the long tail (%d): %s", order+1, entry.entry.resourceId));
+                            longTail--;
+                        }
+                        foundTrue = true;
                         break;
                     }
                     order++;
+                }
+                if (!foundTrue) {
+                    indexLoss[entry.resource.isCompany() ? 1 : 0] += 1;
+                    String twitterId = entry.entry.twitterId.toLowerCase();
+                    if (!missingTrueAlignments.containsKey(twitterId)) {
+                        missingTrueAlignments.put(twitterId, new LinkedList<>());
+                    }
+                    missingTrueAlignments.get(twitterId).add(entry);
                 }
                 if (resourceIds.contains(entry.entry.resourceId)) {
                     continue;
@@ -895,12 +927,146 @@ public class Evaluate {
             logger.info(String.format(" Average candidates per entity: %.2f", (double) numCandidates / resolveDataset.size()));
             logger.info(String.format(" Entities without candidates: %d (%.2f", numNoCandidates, ((double) numNoCandidates / resolveDataset.size()) * 100) + "%)");
             logger.info(String.format(" Entities with true candidate: %d (%.2f", trueCandidates, ((double) trueCandidates / resolveDataset.size()) * 100) + "%)");
-            logger.info(" True candidates distribution: ");
+
+            List<String> trueDist = new LinkedList<>();
+            List<String> totalDist = new LinkedList<>();
             int candSum = 0;
             for (int i = 0; i < trueCandidatesOrder.length; i++) {
                 candSum += trueCandidatesOrder[i];
-                logger.info(String.format("  %d — %d (%.2f", i, candSum, ((double) candSum / resolveDataset.size()) * 100) + "%)");
+                trueDist.add(String.format("%d\t%d\t%.4f", i, candSum, ((double) candSum) / resolveDataset.size()));
             }
+            for (int i = 0; i < distributionCandidates.length; i++) {
+                totalDist.add(String.format("%d\t%d", i, distributionCandidates[i]));
+            }
+            logger.info(String.format(" CA Recall: %.2f%%", ((double) candSum / resolveDataset.size()) * 100));
+            int cutoffSum = cutoff[0] + cutoff[1];
+            int indexLossSum = indexLoss[0] + indexLoss[1];
+            logger.info(String.format(" CA Index loss: %d (%.2f%%, persons: %d, organisations: %d)", indexLossSum, ((double) indexLossSum / resolveDataset.size()) * 100, indexLoss[0], indexLoss[1]));
+            logger.info(String.format(" CA Cutoff loss: %d (%.2f%%, persons: %d, organisations: %d)", cutoffSum, ((double) cutoffSum / resolveDataset.size()) * 100, cutoff[0], cutoff[1]));
+            Files.write(Paths.get(files.trueDist.getAbsolutePath()), trueDist);
+            Files.write(Paths.get(files.totalDist.getAbsolutePath()), totalDist);
+            totalDist.clear();
+            totalDist.clear();
+
+            // Temporary part of pipeline that resolves IDs of missing profiles and tries to resolve them against DB
+            if (configuration.userDictionary != null) {
+                // Resolving Ids
+                HashMap<String, Long> resolvedIds = new HashMap<>();
+                int row = 0;
+                int resolvedOrg = 0;
+                int resolvedPer = 0;
+                try (CSVParser reader = new CSVParser(new InputStreamReader(new GZIPInputStream(new FileInputStream(configuration.userDictionary))), CSVFormat.TDF)) {
+                    for (CSVRecord record : reader) {
+                        String currentScreenName = record.get(1).toLowerCase();
+                        if (missingTrueAlignments.containsKey(currentScreenName)) {
+                            for (FullyResolvedEntry entry : missingTrueAlignments.get(currentScreenName)) {
+                                if (entry.resource.isCompany()) {
+                                    resolvedOrg++;
+                                } else {
+                                    resolvedPer++;
+                                }
+                            }
+                            resolvedIds.put(currentScreenName, Long.valueOf(record.get(0)));
+                        }
+                        row++;
+                        if (row % 10000000 == 0) {
+                            logger.info(String.format("  Read %d0m users from dictionary", row / 10000000));
+                        }
+                    }
+                }
+                int streamLoss = missingTrueAlignments.size() - resolvedIds.size();
+                logger.info(String.format(" Stream loss: %d (%.2f%%, recovered %d persons, %d organisations)", streamLoss, ((double) streamLoss / resolveDataset.size()) * 100, resolvedPer, resolvedOrg));
+
+                // Executing awesome queries
+                evaluate.initService();
+                logger.info(String.format("Resolving the rest of gold alignments (%d to go)", resolvedIds.size()));
+                AtomicInteger nulls = new AtomicInteger(0);
+                AtomicInteger resolvedNulls = new AtomicInteger(0);
+                resolvedIds.entrySet().parallelStream().map(entry -> {
+                    Table<Record2<Long, BigDecimal>> subquery =
+                        select(USER_INDEX.UID, sum(USER_INDEX.FREQ).as("freq"))
+                            .from(USER_INDEX)
+                            .where(USER_INDEX.UID.eq(entry.getValue()))
+                            .groupBy(USER_INDEX.UID)
+                            .asTable("a");
+
+                    Optional<Record2> result = Optional.ofNullable(
+                        DSL.using(source, SQLDialect.POSTGRES)
+                            .select(USER_OBJECTS.OBJECT, subquery.field("freq"))
+                            .from(subquery)
+                            .join(USER_OBJECTS)
+                            .on(subquery.field(USER_INDEX.UID).eq(USER_OBJECTS.UID))
+                            .fetchOne()
+                    );
+
+                    try {
+                        UserData data = result.map(res -> {
+                            try {
+                                UserData userData = new UserData(TwitterObjectFactory.createUser(res.get(USER_OBJECTS.OBJECT).toString()));
+                                userData.submitData("frequency", res.get(subquery.field("freq")));
+                                return userData;
+                            } catch (TwitterException e) {
+                                logger.error("Error while deserializing user object", e);
+                            }
+                            try {
+                                return new UserData(evaluate.service.getProfile(entry.getValue()));
+                            } catch (TwitterService.RateLimitException e) {
+                                logger.error("Rate limit exception", e);
+                            }
+                            return null;
+                        }).orElseGet(() -> {
+                            try {
+                                return new UserData(evaluate.service.getProfile(entry.getValue()));
+                            } catch (TwitterService.RateLimitException e) {
+                                logger.error("Rate limit exception", e);
+                            }
+                            return null;
+                        });
+                        if (!data.getScreenName().equalsIgnoreCase(entry.getKey()))  {
+                            if (!missingTrueAlignments.containsKey(data.getScreenName().toLowerCase())) {
+                                logger.error("Creating a mapping from : @"+entry.getKey()+" -> @"+data.getScreenName());
+                                missingTrueAlignments.put(data.getScreenName().toLowerCase(), missingTrueAlignments.get(entry.getKey().toLowerCase()));
+                            }
+                        }
+                        resolvedNulls.incrementAndGet();
+                        return data;
+                    } catch (Exception e) {
+                        nulls.incrementAndGet();
+                        return null;
+                    }
+                }).forEach(userData -> {
+                    if (userData == null) {
+                        return;
+                    }
+
+                    synchronized (evaluate) {
+                        UserData user = (UserData) userData;
+                        List<FullyResolvedEntry> entries = missingTrueAlignments.get(user.getScreenName().toLowerCase());
+                        if (entries == null) {
+                            logger.error("Something bad happened for screenname: "+user.getScreenName());
+                            return;
+                        }
+                        try {
+                            for (FullyResolvedEntry entry : entries) {
+                                statsPrinter.printRecord(
+                                    entry.entry.resourceId,
+                                    user.getScreenName(),
+                                    1,
+                                    entry.resource.isCompany() ? "org" : "per",
+                                    user.getFollowersCount(),
+                                    user.get("frequency").map(JsonElement::getAsInt).orElse(0),
+                                    user.isVerified() ? 1 : 0
+                                );
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+                logger.info("  Unresolvable users: "+nulls.get());
+                logger.info("  Recovered users: "+resolvedNulls.get());
+            }
+            statsPrinter.close();
 
             Stopwatch watch = Stopwatch.createStarted();
             logger.info("Dumping full experimental setting to JSON");
@@ -933,6 +1099,7 @@ public class Evaluate {
         String strategy;
         String lsa = null;
         String embeddings = null;
+        String userDictionary = null;
         int modelPort = 5000;
     }
 
@@ -975,6 +1142,10 @@ public class Evaluate {
                         .hasArg().argName("DIRECTORY").longOpt("embeddings-path").build()
         );
         options.addOption(
+                Option.builder().desc("Path to user dictionary needed for additional analysis")
+                        .hasArg().argName("DIRECTORY").longOpt("user-dictionary").build()
+        );
+        options.addOption(
                 Option.builder().desc("Port for the model endpoint")
                         .hasArg().argName("PORT").longOpt("model-port").build()
         );
@@ -1000,6 +1171,7 @@ public class Evaluate {
             configuration.strategy = line.getOptionValue("strategy");
             configuration.lsa = line.getOptionValue("lsa-path");
             configuration.embeddings = line.getOptionValue("embeddings-path");
+            configuration.userDictionary = line.getOptionValue("user-dictionary");
             if (line.hasOption("model-port")) {
                 configuration.modelPort = Integer.valueOf(line.getOptionValue("model-port"));
             }

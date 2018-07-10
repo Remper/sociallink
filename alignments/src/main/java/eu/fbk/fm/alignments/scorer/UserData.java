@@ -29,6 +29,10 @@ public class UserData implements User {
         return Optional.ofNullable(data.get(clazz.getSimpleName()));
     }
 
+    public Optional<JsonElement> get(String name) {
+        return Optional.ofNullable(data.get(name));
+    }
+
     public <T, E extends Throwable> void populate(DataProvider<T, E> provider) throws E {
         T value = provider.provide(profile);
         JsonElement element;
@@ -38,6 +42,16 @@ public class UserData implements User {
             element = GSON.toJsonTree(value);
         }
         data.put(provider.getClass().getSimpleName(), element);
+    }
+
+    public void submitData(String name, Object obj) {
+        JsonElement element;
+        if (obj instanceof JsonElement) {
+            element = (JsonElement) obj;
+        } else {
+            element = GSON.toJsonTree(obj);
+        }
+        data.put(name, element);
     }
 
     public void clear() {

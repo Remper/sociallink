@@ -13,7 +13,9 @@ import eu.fbk.fm.alignments.scorer.FullyResolvedEntry;
 import eu.fbk.fm.alignments.scorer.UserData;
 import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.utils.core.CommandLine;
+import org.jooq.Record2;
 import org.jooq.SQLDialect;
+import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,10 +25,12 @@ import twitter4j.User;
 
 import javax.sql.DataSource;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static eu.fbk.fm.alignments.Evaluate.CANDIDATES_THRESHOLD;
@@ -80,8 +84,19 @@ public class FillFromIndex implements AutoCloseable {
         return String.format("[Query: %s Entity: %s]", query, resourceId);
     }
 
-    public List<User> queryCandidates(DBpediaResource resource) {
-        List<User> result = new LinkedList<>();
+    public static Function<String, Table<Record2<Long, BigDecimal>>> SEARCH_SUBQUERY = query ->
+            select(USER_INDEX.UID, sum(USER_INDEX.FREQ).as("freq"))
+                .from(USER_INDEX)
+                    .where(
+                        "to_tsquery({0}) @@ to_tsvector('english_fullname', USER_INDEX.FULLNAME)",
+                        query
+                        )
+                    .groupBy(USER_INDEX.UID)
+                    .orderBy(sum(USER_INDEX.FREQ).desc())
+                .limit(CANDIDATES_THRESHOLD).asTable("a");
+
+    public List<UserData> queryCandidates(DBpediaResource resource) {
+        List<UserData> result = new LinkedList<>();
         String query = qaStrategy.getQuery(resource);
         if (query.length() < 4) {
             LOGGER.error("Query is less than 3 symbols. Ignoring. "+logAppendix(resource.getIdentifier(), query));
@@ -90,31 +105,26 @@ public class FillFromIndex implements AutoCloseable {
 
         Stopwatch watch = Stopwatch.createStarted();
         try {
+            Table<Record2<Long, BigDecimal>> subquery = SEARCH_SUBQUERY.apply(query);
             UserIndex indexAlias = USER_INDEX.as("a");
+
             DSL.using(source, SQLDialect.POSTGRES)
-                .select(USER_OBJECTS.OBJECT)
-                .from(
-                    select(USER_INDEX.UID, sum(USER_INDEX.FREQ))
-                        .from(USER_INDEX)
-                        .where(
-                            "to_tsquery({0}) @@ to_tsvector('english_fullname', USER_INDEX.FULLNAME)",
-                            query
-                        )
-                        .groupBy(USER_INDEX.UID)
-                        .orderBy(sum(USER_INDEX.FREQ).desc())
-                        .limit(CANDIDATES_THRESHOLD).asTable("a")
-                )
+                .select(USER_OBJECTS.OBJECT, subquery.field("freq"))
+                .from(subquery)
                 .leftJoin(USER_OBJECTS)
                 .on(indexAlias.UID.eq(USER_OBJECTS.UID))
                 .queryTimeout(timeout)
                 .stream()
                 .forEach(record -> {
                     Object rawObject = record.get(USER_OBJECTS.OBJECT);
+
                     if (rawObject == null) {
                         return;
                     }
                     try {
-                        result.add(TwitterObjectFactory.createUser(rawObject.toString()));
+                        UserData userData = new UserData(TwitterObjectFactory.createUser(rawObject.toString()));
+                        userData.submitData("frequency", record.get(subquery.field("freq")));
+                        result.add(userData);
                     } catch (TwitterException e) {
                         LOGGER.error("Error while deserializing user object", e);
                     }
@@ -144,7 +154,7 @@ public class FillFromIndex implements AutoCloseable {
      */
     public void fill(FullyResolvedEntry entry) {
         entry.resource = endpoint.getResourceById(entry.entry.resourceId);
-        entry.candidates = queryCandidates(entry.resource).stream().map(UserData::new).collect(Collectors.toList());
+        entry.candidates = queryCandidates(entry.resource);
     }
 
     private synchronized void initWatch() {

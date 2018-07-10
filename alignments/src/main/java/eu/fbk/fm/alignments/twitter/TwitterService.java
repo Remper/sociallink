@@ -23,6 +23,7 @@ public class TwitterService {
     private final List<TwitterInstance> twitter;
 
     public static final String USERS_SEARCH = "/users/search";
+    public static final String USERS_SHOW = "/users/show";
     public static final String USER_TIMELINE = "/statuses/user_timeline";
     public static final String FRIENDS_LIST = "/friends/list";
     public static final int MAX_VALUE = 100500;
@@ -47,6 +48,9 @@ public class TwitterService {
         return getReadyInstance(USER_TIMELINE).getStatuses(uid);
     }
 
+    public User getProfile(long uid) throws RateLimitException {
+        return getReadyInstance(USERS_SHOW).getProfile(uid);
+    }
 
     public TwitterInstance getReadyInstance(String method) throws RateLimitException {
         int minTime = MAX_VALUE;
@@ -189,6 +193,10 @@ public class TwitterService {
             return processListResult(limits, USER_TIMELINE, () -> twitter.timelines().getUserTimeline(uid));
         }
 
+        private synchronized User getProfile(Long uid) {
+            return processResult(limits, USERS_SHOW, () -> twitter.users().showUser(uid)).orElse(null);
+        }
+
         private List<User> getFriends(long uid) {
             return getFriends(uid, -1);
         }
@@ -202,6 +210,18 @@ public class TwitterService {
                 String method,
                 TwitterSupplier<ResponseList<T>> supplier)
         {
+            Optional<ResponseList<T>> result = processResult(limits, method, supplier);
+            if (result.isPresent()) {
+                return result.get();
+            }
+            return new LinkedList<>();
+        }
+
+        private <T extends TwitterResponse> Optional<T> processResult(
+                Map<String, RateLimitStatus> limits,
+                String method,
+                TwitterSupplier<T> supplier)
+        {
             int req = requests.incrementAndGet();
             if (req % 500 == 0) {
                 logger.info(String.format("[Crawl instance %2d] Processed requests: %d, limit on latest method (%s): %d",
@@ -210,14 +230,14 @@ public class TwitterService {
                 ));
             }
             try {
-                ResponseList<T> statuses = supplier.get();
+                T statuses = supplier.get();
                 limits.put(method, statuses.getRateLimitStatus());
-                return statuses;
+                return Optional.of(statuses);
             } catch (TwitterException e) {
                 processException(method, e);
             }
 
-            return new LinkedList<>();
+            return Optional.empty();
         }
 
         private void relax() {
@@ -239,7 +259,7 @@ public class TwitterService {
                     logger.warn(String.format("[Crawl instance %2d] 401 errors: %d, total requests: %d", id, err, requests.get()));
                     relax();
                 }
-            } else if (!e.getMessage().contains("404:The URI requested is invalid")) {
+            } else if (!e.getMessage().contains("404:The URI requested is invalid") && e.getErrorCode() != 63) {
                 logger.warn(String.format("[Crawl instance %2d] Unexpected rate limit exception: %s", id, e.getMessage()));
                 return;
             }
