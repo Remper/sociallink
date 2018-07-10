@@ -1,6 +1,5 @@
 package eu.fbk.fm.alignments.twitter;
 
-import eu.fbk.fm.alignments.Evaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import twitter4j.*;
@@ -19,7 +18,7 @@ import static java.lang.Math.max;
  */
 public class TwitterService {
 
-    private static final Logger logger = LoggerFactory.getLogger(Evaluate.class);
+    private static final Logger logger = LoggerFactory.getLogger(TwitterService.class);
     private final List<TwitterInstance> twitter;
 
     public static final String USERS_SEARCH = "/users/search";

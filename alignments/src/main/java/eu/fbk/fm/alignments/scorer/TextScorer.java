@@ -3,7 +3,7 @@ package eu.fbk.fm.alignments.scorer;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import eu.fbk.fm.alignments.DBpediaResource;
-import eu.fbk.fm.alignments.Evaluate;
+import eu.fbk.fm.alignments.PrepareTrainingSet;
 import eu.fbk.fm.alignments.scorer.text.SimilarityScorer;
 import eu.fbk.fm.vectorize.preprocessing.text.TextExtractor;
 import org.slf4j.Logger;
@@ -97,7 +97,7 @@ public class TextScorer implements FeatureProvider {
         }
         TextExtractor extractor = new TextExtractor(false);
         JsonElement array = ((UserData) user)
-                .get(Evaluate.StatusesProvider.class)
+                .get(PrepareTrainingSet.StatusesProvider.class)
                 .orElse(new JsonArray());
         if (!array.isJsonArray()) {
             return "";

@@ -18,7 +18,17 @@ public class UserData implements User {
     protected final Map<String, JsonElement> data = new HashMap<>();
 
     public UserData(User profile) {
+        if (profile instanceof UserData) {
+            throw new RuntimeException("Nested UserData is forbidden.");
+        }
         this.profile = profile;
+    }
+
+    public static UserData wrap(User profile) {
+        if (profile instanceof UserData) {
+            return (UserData) profile;
+        }
+        return new UserData(profile);
     }
 
     public <T, E extends Throwable> Optional<JsonElement> get(DataProvider<T, E> provider) {

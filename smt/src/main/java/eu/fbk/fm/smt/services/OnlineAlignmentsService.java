@@ -25,8 +25,6 @@ import javax.sql.DataSource;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * Runs the entire alignment pipeline
@@ -113,10 +111,10 @@ public class OnlineAlignmentsService {
 
     public CandidatesBundle.Resolved performCASocialLink(DBpediaResource resource) {
         init();
-        List<User> users = index.queryCandidates(resource);
+        List<UserData> users = index.queryCandidates(resource);
 
         CandidatesBundle.Resolved result = CandidatesBundle.resolved("index");
-        users.forEach(user -> result.addUser(new UserData(user)));
+        users.forEach(result::addUser);
         return result;
     }
 

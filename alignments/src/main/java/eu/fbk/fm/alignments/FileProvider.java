@@ -1,13 +1,9 @@
 package eu.fbk.fm.alignments;
 
-import com.google.gson.reflect.TypeToken;
-import eu.fbk.utils.math.Scaler;
-
 import java.io.File;
-import java.lang.reflect.Type;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Provides file objects for the common filename structure
@@ -15,8 +11,11 @@ import java.util.Map;
  * @author Yaroslav Nechaev (remper@me.com)
  */
 public class FileProvider {
-    public final File gold, resolved, trueDist, totalDist, manifest, dataset, datasetStats, evaluationResult, evaluationRawResult;
-    public final Type scalerType = new TypeToken<Map<String, Scaler>>(){}.getType();
+    public final File
+        gold, goldFiltered,
+        trueDist, totalDist, strategyCheck,
+        resolved, manifest,
+        dataset, datasetStats, evaluationResult, evaluationRawResult;
 
     public FileProvider(String workdir) {
         this(new File(workdir));
@@ -26,17 +25,20 @@ public class FileProvider {
         if (!coreDirectory.exists() || !coreDirectory.isDirectory()) {
             throw new IllegalArgumentException("Target directory doesn't exist or isn't a directory");
         }
-
-        gold = new File(coreDirectory, "gold.csv");
-        resolved = new File(coreDirectory, "resolved");
-        manifest = new File(coreDirectory, "manifest.json");
-        trueDist = new File(coreDirectory, "ca-true-distribution.txt");
-        totalDist = new File(coreDirectory, "ca-total-distribution.txt");
-        dataset = new File(coreDirectory, "dataset.json");
-        datasetStats = new File(coreDirectory, "stats.tsv");
+        Function<String, File> folder = folder(coreDirectory);
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM-dd-HH-mm"));
-        evaluationResult = new File(coreDirectory, "evaluation-"+date+".txt");
-        evaluationRawResult = new File(coreDirectory, "evaluation-raw-"+date);
+
+        gold = folder.apply("gold.csv");
+        goldFiltered = folder.apply("gold_filtered.csv");
+        resolved = folder.apply("resolved");
+        manifest = folder.apply("manifest.json");
+        trueDist = folder.apply("ca-true-distribution.txt");
+        totalDist = folder.apply("ca-total-distribution.txt");
+        strategyCheck = folder.apply("strategy-check.txt");
+        dataset = folder.apply("dataset.json");
+        datasetStats = folder.apply("stats.tsv");
+        evaluationResult = folder.apply("evaluation-"+date+".txt");
+        evaluationRawResult = folder.apply("evaluation-raw-"+date);
     }
 
     public File getEvaluationRawResultFile(boolean joint, String type) {
@@ -62,5 +64,9 @@ public class FileProvider {
             JSONJointFeat = new File(coreDirectory, prefix + ".joint.feat.json");
             index = new File(coreDirectory, prefix + ".index.csv");
         }
+    }
+
+    public static Function<String, File> folder(File parent) {
+        return (child) -> new File(parent, child);
     }
 }

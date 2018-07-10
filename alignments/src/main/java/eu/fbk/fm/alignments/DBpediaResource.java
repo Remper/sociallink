@@ -154,6 +154,10 @@ public class DBpediaResource {
         return getProperty(ATTRIBUTE_NAME);
     }
 
+    public List<String> getLabels() {
+        return getProperty(DBpediaResource.ATTRIBUTE_LABEL);
+    }
+
     public List<String> getGivenNames() {
         return getProperty(ATTRIBUTE_GIVEN_NAME);
     }

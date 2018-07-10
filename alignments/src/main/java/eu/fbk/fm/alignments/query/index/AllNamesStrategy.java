@@ -4,7 +4,6 @@ import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.query.QueryAssemblyStrategy;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -55,7 +54,7 @@ public class AllNamesStrategy implements QueryAssemblyStrategy {
 
     private Map<String, Integer> complileListOfNames(DBpediaResource resource) {
         List<String> names = resource.getNames();
-        names.addAll(resource.getProperty(DBpediaResource.ATTRIBUTE_LABEL));
+        names.addAll(resource.getLabels());
         List<String> givenNames = lowercaseNames(resource.getGivenNames());
         List<String> surnames = lowercaseNames(resource.getSurnames());
         String cleanId = resource.getCleanResourceId();

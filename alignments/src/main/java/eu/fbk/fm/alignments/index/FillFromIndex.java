@@ -31,9 +31,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
-import static eu.fbk.fm.alignments.Evaluate.CANDIDATES_THRESHOLD;
+import static eu.fbk.fm.alignments.PrepareTrainingSet.CANDIDATES_THRESHOLD;
 import static eu.fbk.fm.alignments.index.db.tables.UserIndex.USER_INDEX;
 import static eu.fbk.fm.alignments.index.db.tables.UserObjects.USER_OBJECTS;
 import static org.jooq.impl.DSL.select;
