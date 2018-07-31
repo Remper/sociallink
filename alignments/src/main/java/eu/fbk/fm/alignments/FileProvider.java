@@ -12,7 +12,7 @@ import java.util.function.Function;
  */
 public class FileProvider {
     public final File
-        gold, goldFiltered,
+        gold, goldFiltered, input,
         trueDist, totalDist, strategyCheck,
         resolved, manifest,
         dataset, datasetStats, evaluationResult, evaluationRawResult;
@@ -29,6 +29,7 @@ public class FileProvider {
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM-dd-HH-mm"));
 
         gold = folder.apply("gold.csv");
+        input = folder.apply("input.csv");
         goldFiltered = folder.apply("gold_filtered.csv");
         resolved = folder.apply("resolved");
         manifest = folder.apply("manifest.json");

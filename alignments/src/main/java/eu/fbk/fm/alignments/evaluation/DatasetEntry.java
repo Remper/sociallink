@@ -15,8 +15,11 @@ public class DatasetEntry {
     }
 
     public DatasetEntry(DBpediaResource resource) {
-        this.resourceId = resource.getIdentifier();
-        this.twitterId = null;
+        this(resource.getIdentifier(), null);
+    }
+
+    public DatasetEntry(String resourceId) {
+        this(resourceId, null);
     }
 
     @Override

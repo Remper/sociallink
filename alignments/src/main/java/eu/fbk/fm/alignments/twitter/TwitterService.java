@@ -23,6 +23,7 @@ public class TwitterService {
 
     public static final String USERS_SEARCH = "/users/search";
     public static final String USERS_SHOW = "/users/show";
+    public static final String USERS_LOOKUP = "/users/lookup";
     public static final String USER_TIMELINE = "/statuses/user_timeline";
     public static final String FRIENDS_LIST = "/friends/list";
     public static final int MAX_VALUE = 100500;
@@ -41,6 +42,14 @@ public class TwitterService {
 
     public List<User> getFriends(long uid) throws RateLimitException {
         return getReadyInstance(FRIENDS_LIST).getFriends(uid);
+    }
+
+    public List<User> getProfiles(long[] uid) throws RateLimitException {
+        return getReadyInstance(USERS_LOOKUP).getProfiles(uid);
+    }
+
+    public List<User> getProfiles(String[] screenNames) throws RateLimitException {
+        return getReadyInstance(USERS_LOOKUP).getProfiles(screenNames);
     }
 
     public List<Status> getStatuses(long uid) throws RateLimitException {
@@ -190,6 +199,14 @@ public class TwitterService {
 
         private synchronized List<Status> getStatuses(Long uid) {
             return processListResult(limits, USER_TIMELINE, () -> twitter.timelines().getUserTimeline(uid));
+        }
+
+        private synchronized List<User> getProfiles(long[] uid) {
+            return processListResult(limits, USERS_LOOKUP, () -> twitter.users().lookupUsers(uid));
+        }
+
+        private synchronized List<User> getProfiles(String[] screenNames) {
+            return processListResult(limits, USERS_LOOKUP, () -> twitter.users().lookupUsers(screenNames));
         }
 
         private synchronized User getProfile(Long uid) {

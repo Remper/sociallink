@@ -160,10 +160,10 @@ public class ISWC17Strategy extends AbstractScoringStrategy implements FeatureVe
             }
             ISWC17Strategy strategy = new ISWC17Strategy(providers);
             strategy.id += "_" + vectorProviders.size() + "_" + vectorProviders
-                                    .stream()
-                                    .map(Object::toString)
-                                    .reduce((suf1, suf2) -> suf1 + "_" + suf2)
-                                    .orElse("none");
+                .stream()
+                .map(Object::toString)
+                .reduce((suf1, suf2) -> suf1 + "_" + suf2)
+                .orElse("none");
             return strategy;
         }
     }

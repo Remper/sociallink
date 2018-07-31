@@ -11,6 +11,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
+import java.util.function.Function;
 
 /**
  * A named dataset of entity -> twitter_id alignments
@@ -42,6 +43,7 @@ public class Dataset implements Iterable<DatasetEntry> {
     public void add(DatasetEntry entry) {
         if (mappedEntries.containsKey(entry.resourceId)) {
             logger.error("This example is already in the dataset: " + entry.resourceId);
+            return;
         }
         entries.add(entry);
         mappedEntries.put(entry.resourceId, entry);
@@ -64,8 +66,12 @@ public class Dataset implements Iterable<DatasetEntry> {
                     reader,
                     CSVFormat.DEFAULT.withDelimiter(',').withHeader()
             );
+            Function<CSVRecord, DatasetEntry> datasetGenerator = (record) -> new DatasetEntry(record.get("entity"), record.get("twitter_id"));
+            if (parser.getHeaderMap().size() == 1) {
+                datasetGenerator = (record) -> new DatasetEntry(record.get("entity"));
+            }
             for (CSVRecord record : parser) {
-                dataset.add(new DatasetEntry(record.get("entity"), record.get("twitter_id")));
+                dataset.add(datasetGenerator.apply(record));
             }
         }
         return dataset;

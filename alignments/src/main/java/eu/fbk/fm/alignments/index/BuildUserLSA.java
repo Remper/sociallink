@@ -61,7 +61,7 @@ public class BuildUserLSA {
 
         reducedUserObjects
                 .output(
-                        new PostgresFileSink<Tuple2<Long, String>>("text-lsa").testFile(parameters)
+                    new PostgresFileSink<Tuple2<Long, String>>("text-lsa").testFile(parameters)
                 )
                 .withParameters(parameters)
                 .setParallelism(4);

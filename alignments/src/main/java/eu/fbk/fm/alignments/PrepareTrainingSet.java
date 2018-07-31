@@ -317,7 +317,7 @@ public class PrepareTrainingSet {
             watch.reset().start();
             prepareTrainingSet.generateFeatures(entries);
             dumpStats(entries, statsPrinter);
-            //prepareTrainingSet.purgeAdditionalData(entries);
+            prepareTrainingSet.purgeAdditionalData(entries);
             resolveDataset.addAll(entries);
             IOUtils.closeQuietly(reader);
             logger.info(String.format(

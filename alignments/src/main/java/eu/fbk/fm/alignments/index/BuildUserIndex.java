@@ -10,6 +10,7 @@ import eu.fbk.fm.alignments.index.sink.PostgresFileSink;
 import eu.fbk.fm.alignments.index.utils.Deserializer;
 import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
 import eu.fbk.fm.alignments.utils.flink.TextInputFormat;
+import eu.fbk.fm.vectorize.preprocessing.text.TextExtractorWithId;
 import eu.fbk.utils.core.CommandLine;
 import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.common.io.OutputFormat;
@@ -42,16 +43,20 @@ public class BuildUserIndex implements JsonObjectProcessor {
     private static final String DB_CONNECTION = "db-connection";
     private static final String DB_USER = "db-user";
     private static final String DB_PASSWORD = "db-password";
+    private static final String OPT_OBJECTS = "objects";
+    private static final String OPT_INDEX = "index";
+    private static final String OPT_TEXT = "text";
 
     private OutputFormat<Tuple3<String, Long, Integer>> indexOutputFormat;
     private OutputFormat<Tuple2<Long, String>> objectsOutputFormat;
+    private OutputFormat<Tuple2<Long, String>> textOutputFormat;
 
-    private void start(Path input, Path output) throws Exception {
-        final Configuration parameters = new Configuration();
+    private void start(Path input, Path output, Configuration parameters) throws Exception {
         parameters.setString("db.file", output.getPath());
 
         indexOutputFormat = new PostgresFileSink<Tuple3<String, Long, Integer>>("index").testFile(parameters);
         objectsOutputFormat = new PostgresFileSink<Tuple2<Long, String>>("objects").testFile(parameters);
+        textOutputFormat = new PostgresFileSink<Tuple2<Long, String>>("text").testFile(parameters);
 
         startPipeline(input, parameters);
     }
@@ -60,6 +65,10 @@ public class BuildUserIndex implements JsonObjectProcessor {
 
         indexOutputFormat = new IndexPostgresSink();
         objectsOutputFormat = new UserObjectPostgresSink();
+        if (parameters.getBoolean(OPT_TEXT, false)) {
+            parameters.setBoolean(OPT_TEXT, false);
+            LOGGER.info("Direct writing of text to the database is currently unsupported. Disabling text extraction");
+        }
 
         startPipeline(input, parameters);
     }
@@ -69,32 +78,45 @@ public class BuildUserIndex implements JsonObjectProcessor {
         parameters.setBoolean("recursive.file.enumeration", true);
 
         final DataSet<String> text = new DataSource<>(
-                env,
-                new TextInputFormat(input),
-                BasicTypeInfo.STRING_TYPE_INFO,
-                Utils.getCallLocationName()
+            env,
+            new TextInputFormat(input),
+            BasicTypeInfo.STRING_TYPE_INFO,
+            Utils.getCallLocationName()
         ).withParameters(parameters);
 
         //Deserialize and convert
         DataSet<JsonObject> tweets = text
                 .flatMap(new Deserializer());
 
-
-        DataSet<Tuple2<Long, JsonObject>> reducedUserObjects = tweets
+        if (parameters.getBoolean(OPT_OBJECTS, false)) {
+            LOGGER.info("Enabling objects");
+            DataSet<Tuple2<Long, JsonObject>> reducedUserObjects = tweets
                 .flatMap(new UserObjectExtractor())
                 .groupBy(0)
                 .reduce(new LatestUserObjectReduce())
                 .project(0, 1);
 
-        reducedUserObjects
+            reducedUserObjects
                 .map(new Serializer())
                 .output(objectsOutputFormat).withParameters(parameters);
+        }
 
-        /*tweets
+        if (parameters.getBoolean(OPT_INDEX, false)) {
+            LOGGER.info("Enabling index");
+            tweets
                 .flatMap(new IndexExtractor())
                 .groupBy(0, 1)
                 .sum(2)
-                .output(indexOutputFormat).withParameters(parameters);*/
+                .output(indexOutputFormat).withParameters(parameters);
+        }
+
+        if (parameters.getBoolean(OPT_TEXT, false)) {
+            LOGGER.info("Enabling text");
+            tweets
+                .flatMap(new TextExtractorWithId(true))
+                .groupBy(0).reduce((value1, value2) -> new Tuple2<>(value1.f0, value1.f1 + "\n" + value2.f1))
+                .output(textOutputFormat).withParameters(parameters);
+        }
 
         env.execute();
     }
@@ -298,7 +320,10 @@ public class BuildUserIndex implements JsonObjectProcessor {
                         CommandLine.Type.STRING, true, false, true)
                 .withOption("r", RESULTS_PATH,
                         "specifies the directory to which the results will be saved (in this case the db params are not required)", "DIRECTORY",
-                        CommandLine.Type.STRING, true, false, false);
+                        CommandLine.Type.STRING, true, false, false)
+                .withOption(null, OPT_INDEX, "extract user index")
+                .withOption(null, OPT_OBJECTS, "extract user objects")
+                .withOption(null, OPT_TEXT, "extract text");
     }
 
     public static void main(String[] args) throws Exception {
@@ -315,10 +340,23 @@ public class BuildUserIndex implements JsonObjectProcessor {
             //noinspection ConstantConditions
             final Path tweetsPath = new Path(cmd.getOptionValue(TWEETS_PATH, String.class));
 
+            final Configuration parameters = new Configuration();
+            boolean todo = false;
+            for (String flag : new String[]{OPT_INDEX, OPT_OBJECTS, OPT_TEXT}) {
+                LOGGER.info(String.format("Option: %s, value: %s", flag, cmd.hasOption(flag) ? "true" : "false"));
+                parameters.setBoolean(flag, cmd.hasOption(flag));
+                if (cmd.hasOption(flag)) {
+                    todo = true;
+                }
+            }
+            if (!todo) {
+                throw new Exception("Nothing to do, halting");
+            }
+
             if (cmd.hasOption(RESULTS_PATH)) {
                 //noinspection ConstantConditions
                 final Path results = new Path(cmd.getOptionValue(RESULTS_PATH, String.class));
-                extractor.start(tweetsPath, results);
+                extractor.start(tweetsPath, results, parameters);
                 return;
             }
 
@@ -329,7 +367,6 @@ public class BuildUserIndex implements JsonObjectProcessor {
                 throw new Exception("Insufficient configuration");
             }
 
-            final Configuration parameters = new Configuration();
             parameters.setString("db.connection", cmd.getOptionValue(DB_CONNECTION, String.class));
             parameters.setString("db.user", cmd.getOptionValue(DB_USER, String.class));
             parameters.setString("db.password", cmd.getOptionValue(DB_PASSWORD, String.class));
