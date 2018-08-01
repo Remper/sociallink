@@ -758,6 +758,10 @@ if __name__ == "__main__":
         "baseline": "MOST_POPULAR",
         "ref": "ISWC2017",
         "emb_extra_layer@iswc17+emb_kb200_rdf2vec_w+emb_sg300_w": "BASE_KB_SG_TL",
+        "all": "ALL",
+        "glove": "GloVe",
+        "fasttext": "fastText",
+        "lsa": "LSA",
         "emb_extra_layer@iswc17+emb_sg300_w": "BASE_SG_TL",
         "emb_extra_layer@iswc17+emb_kb200_rdf2vec_w": "BASE_KB_TL",
         "simple@iswc17": "BASE",
@@ -806,8 +810,8 @@ if __name__ == "__main__":
             dnn_df = df[df.method == "DNN"][["r", "p", "f1"]]
             ax.plot(twitter_df["r"], twitter_df["p"], "s-", label="TWITTER")
             ax.plot(dnn_df["r"], dnn_df["p"], "-", label="SIM_SAC2017")
-        precision_recall_plot(ents, expected_col, pcols(methods), scols(methods), labels(methods), prange=prange,
-                              legendloc=legendloc, title=title, ax=ax)
+        precision_recall_plot(ents, expected_col, pcols(methods), scols(methods), labels(methods),
+                              prange=prange, rrange=rrange, legendloc=legendloc, title=title, ax=ax)
 
 
     def pr_table(entities, methods, joint):
@@ -889,17 +893,8 @@ if __name__ == "__main__":
     #    _predicted = entities["index_" + _method]
     #    print(bootstrap_confidence_intervals(_expected, _predicted, pr_measures, iterations=10000, confidence=95))
 
-    moverall = ["emb_extra_layer@iswc17_emb_fasttext_300_emb_glove_300_lsa+emb_kb200_rdf2vec_w+emb_sg300_w",
-                "ref",
-                "baseline"]
-    mselection = ["emb_extra_layer@iswc17_emb_fasttext_300_emb_glove_300_lsa+emb_kb200_rdf2vec_w+emb_sg300_w",
-                  "emb_extra_layer@iswc17_lsa+emb_kb200_rdf2vec_w+emb_sg300_w",
-                  "simple@iswc17_emb_fasttext_300_emb_glove_300_lsa+emb_kb200_rdf2vec_w+emb_sg300_w",
-                  "simple@iswc17_lsa+emb_kb200_rdf2vec_w+emb_sg300_w",
-                  "simple@iswc17_lsa",
-                  "simple@iswc17_emb_fasttext_300_emb_glove_300_lsa",
-                  "ref",
-                  "baseline"]
+    moverall = ["lsa", "most_followers"]
+    mselection = ["lsa", "glove", "fasttext", "most_followers"]
 
     if (_table_acquisition):
         def compute(ents, label):
@@ -949,8 +944,8 @@ if __name__ == "__main__":
         plt.savefig(path.join(args.input, "eval_overall_org.pdf"))
 
     if (_plot_selection):
-        plt.figure(figsize=(8, 6.5))
-        pr_plot(entities, mselection, False, prange=(.62, 1), legendloc="lower left")
+        plt.figure(figsize=(6, 4.5))
+        pr_plot(entities, mselection, False, prange=(.7, 1), rrange=(.7, 1), legendloc="lower left")
         plt.savefig(path.join(args.input, "eval_selection_all.pdf"))
         plt.figure(figsize=(4, 3))
         pr_plot(entities, mselection, False, entity_type="per", prange=(.5, 1), legendloc=None)

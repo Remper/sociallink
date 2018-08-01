@@ -3,7 +3,7 @@ package eu.fbk.fm.vectorize.preprocessing.text;
 import com.google.gson.JsonObject;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.util.Collector;
 
 /**
@@ -11,7 +11,7 @@ import org.apache.flink.util.Collector;
  *
  * @author Yaroslav Nechaev (remper@me.com)
  */
-public class TextExtractorWithId extends TextProcessor implements FlatMapFunction<JsonObject, Tuple2<Long, String>>, MapFunction<JsonObject, Tuple2<Long, String>> {
+public class TextExtractorWithId extends TextProcessor implements FlatMapFunction<JsonObject, Tuple3<Long, Long, String>>, MapFunction<JsonObject, Tuple3<Long, Long, String>> {
 
     private static final long serialVersionUID = 1L;
 
@@ -20,7 +20,7 @@ public class TextExtractorWithId extends TextProcessor implements FlatMapFunctio
     }
 
     @Override
-    public void flatMap(JsonObject status, Collector<Tuple2<Long, String>> out) throws Exception {
+    public void flatMap(JsonObject status, Collector<Tuple3<Long, Long, String>> out) throws Exception {
         out.collect(map(status));
 
         final JsonObject retweet = get(status, JsonObject.class, "retweeted_status");
@@ -30,7 +30,7 @@ public class TextExtractorWithId extends TextProcessor implements FlatMapFunctio
     }
 
     @Override
-    public Tuple2<Long, String> map(JsonObject status) throws Exception {
+    public Tuple3<Long, Long, String> map(JsonObject status) throws Exception {
         return process(status);
     }
 }

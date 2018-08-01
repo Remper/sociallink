@@ -31,11 +31,11 @@ public class TextExtractor extends TextProcessor implements FlatMapFunction<Json
 
     @Override
     public String map(JsonObject status) {
-        return process(status).f1;
+        return process(status).f2;
     }
 
     public String map(JsonElement status) {
-        return process(status.getAsJsonObject()).f1;
+        return process(status.getAsJsonObject()).f2;
     }
 
 

@@ -75,7 +75,7 @@ else:
 
 models = get_custom_models()
 feature_manifest = json.load(open(path.join(args.work_dir, "manifest.json")))
-eval_results = []
+eval_results = Queue()
 available_gpus = Queue()
 lock = Lock()
 for i in range(args.num_gpus):
@@ -135,9 +135,11 @@ def train(settings):
 
     available_features = train_prod.feature_space.keys()
     fold_results = {}
-    for feature_set in feature_manifest:
+    for manifest_job in feature_manifest:
         aligned_features = []
         use_features = []
+        feature_set = manifest_job["features"]
+        model_name = manifest_job["model"]
         for feature in feature_set:
             for avail_feature in available_features:
                 # if avail_feature.startswith(feature):
@@ -146,27 +148,26 @@ def train(settings):
                     use_features.append(avail_feature)
                     break
 
-        for model_name in models:
-            full_model_name = "("+str(settings.fold_id)+")"+model_name+"@"+"+".join(use_features)
-            if path.exists(path.join(output_path, model_name, "+".join(use_features))):
-                print("The model %s has already been trained, skipping" % full_model_name)
-                continue
+        full_model_name = "("+str(settings.fold_id)+")"+model_name+"@"+"+".join(use_features)
+        if path.exists(path.join(output_path, model_name, "+".join(use_features))):
+            print("The model %s has already been trained, skipping" % full_model_name)
+            continue
 
-            try:
-                print("Starting training model \"%s\" with the following feature set: %s"
-                        % (model_name, ", ".join(aligned_features)))
-                model = models[model_name](full_model_name, train_prod.feature_space, len(train_prod.labels), use_features=use_features)
-                model.device(str(device_id)).units(args.units).layers(args.layers).batch_size(args.batch_size)\
-                    .max_epochs(args.max_epochs).tolerance(args.tolerance).l1(args.l1).l2(args.l2)
-                eval_result = model.train(train_prod=train_prod, eval_prod=eval_prod)
-                fold_results[full_model_name] = eval_result
-                model_dir = path.join(output_path, model_name)
-                if not path.exists(model_dir):
-                    mkdir(model_dir)
-                model.save_to_file(path.join(model_dir, "+".join(use_features)))
-            except Exception as e:
-                print("Skipping: %s" % str(e))
-    eval_results.append(fold_results)
+        try:
+            print("Starting training model \"%s\" with the following feature set: %s"
+                    % (model_name, ", ".join(aligned_features)))
+            model = models[model_name](full_model_name, train_prod.feature_space, len(train_prod.labels), use_features=use_features)
+            model.device(str(device_id)).units(args.units).layers(args.layers).batch_size(args.batch_size)\
+                .max_epochs(args.max_epochs).tolerance(args.tolerance).l1(args.l1).l2(args.l2)
+            eval_result = model.train(train_prod=train_prod, eval_prod=eval_prod)
+            fold_results[full_model_name] = eval_result
+            model_dir = path.join(output_path, model_name)
+            if not path.exists(model_dir):
+                mkdir(model_dir)
+            model.save_to_file(path.join(model_dir, "+".join(use_features)))
+        except Exception as e:
+            print("Skipping: %s" % str(e))
+    eval_results.put(fold_results)
 
     # Release the GPU
     lock.acquire()
@@ -175,7 +176,7 @@ def train(settings):
     print("Done in %.2fs" % (time.time() - timestamp))
 
 
-with Pool(4*args.num_gpus) as p:
+with Pool(1*args.num_gpus) as p:
     p.map(train, [Settings(i, 0) for i in range(args.folds)])
 
 print("")
@@ -183,7 +184,9 @@ print("============================")
 print("======= Eval results =======")
 print("============================")
 print("")
-print("Num results: %d" % len(eval_results))
-for fold_result in eval_results:
+print("Num results: %d" % eval_results.qsize())
+while not eval_results.empty():
+    fold_result = eval_results.get()
+
     for model_name in fold_result:
         print("  %s -> %s" % (model_name, fold_result[model_name]))

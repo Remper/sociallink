@@ -80,51 +80,11 @@ def main(workdir):
                 print("  Loaded %d samples" % counter)
     print("Done in %.2fs, loaded %d samples" % (time.time() - timestamp, len(test_set)))
 
-    print("\nDeserialising test splits")
-    test_ids = {}
-    test_stats = {}
-    for split_id, split in enumerate(splits):
-        # Deserializing test sets remembering from which split they came from
-        with open(path.join(split, "test.csv"), 'r') as reader:
-            ids = []
-            test_stats[split_id] = 0
-            for line in reader:
-                ids.append(line.rstrip().split(',')[0])
-            for entity_id in ids[1:]:
-                test_ids[entity_id] = split_id
-                test_stats[split_id] += 1
-    print("Loaded %d test items with following counts: [%s]" % (len(test_ids), ", ".join([str(stat) for stat in test_stats.values()])))
-
     print("\nDeserialising scalers")
     test_scalers = []
     for split_id, split in enumerate(splits):
         with open(path.join(split, "scaler.json"), 'r') as scaler_reader:
             test_scalers.append(Scaler.from_dict(json.load(scaler_reader)))
-
-    print("\nDumping baseline:")
-    baseline = MostFollowers()
-    debug_writer = open(path.join(evaluation_dir, "most_followers.dump"), 'w')
-    for sample in test_set:
-        debug_writer.write("Entry: %s\n" % sample["entry"]["resourceId"])
-        debug_writer.write("Query: -\n")
-
-        correct = -1
-        predicted = baseline.predict(sample)
-        for i, candidate in enumerate(sample["candidates"]):
-            if sample["entry"]["twitterId"].casefold() == candidate["profile"]["screenName"].casefold():
-                correct = i
-
-        for i, candidate in enumerate(sample["candidates"]):
-            if predicted == i:
-                scores = [0.0, 1.0]
-            else:
-                scores = [1.0, 0.0]
-
-            debug_writer.write("%.6f\t%.6f\t%d\t%d\t%s\t%s\n" % (scores[0], scores[1],
-                                                                 int(correct == i), int(i == 0),
-                                                                 sample["entry"]["twitterId"],
-                                                                 sample["candidates"][i]["profile"]["screenName"]))
-    debug_writer.close()
 
     print("\nEvaluation:")
     for model_name in sorted(models.keys()):
@@ -143,22 +103,14 @@ def main(workdir):
             print("Error happened while restoring model:", e)
             continue
 
-        debug_writer = open(path.join(evaluation_dir, model_name + ".dump"), 'w')
+        debug_writer = open(path.join(evaluation_dir, model_name + ".results"), 'w')
 
-        expected = []
-        predicted = {}
-        for i in np.arange(0.0, 0.5, 0.1):
-            predicted[i] = []
-        scores = []
         counter = 0
         check_interval = 1000
         timestamp = time.time()
         for sample in test_set:
             counter += 1
-            highest_score = -1.0
-            predicted_id = -1
             candidate_id = -1
-            correct_id = -1
             second_best = -1.0
             sample_features = None
             for features in sample["features"]:
@@ -168,27 +120,23 @@ def main(workdir):
                     for subspace in features:
                         sample_features[subspace] = []
                 for subspace in features:
-                    cur_vector = test_scalers[test_ids[sample["entry"]["resourceId"]]].fit_subspace(features[subspace], subspace)
+                    cur_vector = test_scalers[0].fit_subspace(features[subspace], subspace)
                     sample_features[subspace].append(cur_vector)
 
-                is_current_correct = sample["entry"]["twitterId"].casefold() == sample["candidates"][candidate_id]["profile"]["screenName"].casefold()
-                if is_current_correct:
-                    if correct_id >= 0:
-                        print(" ", "Duplicate correct candidate found")
-                    else:
-                        correct_id = candidate_id
-
-            debug_writer.write("Entry: %s\n" % sample["entry"]["resourceId"])
-            debug_writer.write("Query: -\n")
+            prediction = {
+                "entry": sample["entry"]["resourceId"],
+                "candidates": [],
+                "prediction": None
+            }
             if len(sample["features"]) > 0:
                 for subspace in sample_features:
                     sample_features[subspace] = np.vstack(sample_features[subspace])
-                sample_scores = model_instances[test_ids[sample["entry"]["resourceId"]]].predict(features=sample_features)
+                sample_scores = model_instances[0].predict(features=sample_features)
                 for i in range(sample_scores.shape[0]):
-                    debug_writer.write("%.6f\t%.6f\t%d\t%d\t%s\t%s\n" % (sample_scores[i][0], sample_scores[i][1],
-                                                                       int(correct_id == i), int(i == 0),
-                                                                       sample["entry"]["twitterId"],
-                                                                       sample["candidates"][i]["profile"]["screenName"]))
+                    prediction["candidates"].append({
+                        "screen_name": sample["candidates"][i]["profile"]["screenName"],
+                        "confidence": float(sample_scores[i][1])
+                    })
 
                 sample_scores = sample_scores[::, 1]
                 top_2 = np.argsort(sample_scores)[-2::][::-1].tolist()
@@ -199,27 +147,17 @@ def main(workdir):
                 if len(top_2) > 1:
                     second_best = sample_scores[top_2[1]]
 
-            for threshold in predicted:
-                if highest_score - second_best < threshold:
-                    predicted[threshold].append(-1)
-                else:
-                    predicted[threshold].append(predicted_id)
-
-            expected.append(correct_id)
-            scores.append(highest_score)
+                if highest_score - second_best < 0.1 and highest_score > 0.7:
+                    prediction["prediction"] = {
+                        "screen_name": sample["candidates"][predicted_id]["profile"]["screenName"],
+                        "confidence": float(sample_scores[predicted_id][1])
+                    }
+            debug_writer.write(json.dumps(prediction)+"\n")
 
             if counter % check_interval == 0:
                 print(" ", "%d samples processed (%.2fs)" % (counter, (time.time() - timestamp)))
 
         debug_writer.close()
-
-        with open(path.join(evaluation_dir, model_name+".txt"), 'w') as writer:
-            writer.write("Selection:\n")
-            writer.write("All")
-            for threshold in predicted:
-                p, r, s = precision_recall_curve(expected, predicted[threshold], scores)
-                for i in range(len(p)):
-                    writer.write("\nDNN\t%.4f\t%.4f\t%.4f\t%.2f\t%.2f" % (p[i], r[i], f1(p[i], r[i]), threshold, s[i]))
 
 
 if __name__ == "__main__":

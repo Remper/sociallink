@@ -11,7 +11,7 @@ from pairwise_models.smt import SMTModel
 def get_custom_models() -> dict:
     return {
         "emb_extra_layer": EmbExtraLayer,
-        #"smt": SMTModel,
+        "smt": SMTModel,
         "simple": SimpleModel
     }
 

@@ -112,9 +112,13 @@ public class BuildUserIndex implements JsonObjectProcessor {
 
         if (parameters.getBoolean(OPT_TEXT, false)) {
             LOGGER.info("Enabling text");
-            tweets
+            DataSet<Tuple2<Long, String>> reducedTweets = tweets
                 .flatMap(new TextExtractorWithId(true))
-                .groupBy(0).reduce((value1, value2) -> new Tuple2<>(value1.f0, value1.f1 + "\n" + value2.f1))
+                .groupBy(0).reduce((value1, value2) -> value1)
+                .project(1, 2);
+
+            reducedTweets
+                .groupBy(1).reduce((value1, value2) -> new Tuple2<>(value1.f0, value1.f1 + "\n" + value2.f1))
                 .output(textOutputFormat).withParameters(parameters);
         }
 
@@ -300,7 +304,20 @@ public class BuildUserIndex implements JsonObjectProcessor {
 
         @Override
         public Tuple2<Long, String> map(Tuple2<Long, JsonObject> value) throws Exception {
-            return new Tuple2<>(value.f0, GSON.toJson(value.f1));
+            return new Tuple2<>(value.f0, prepareString(GSON.toJson(value.f1)));
+        }
+
+        private static String prepareString(String source) {
+            StringBuilder buffer = new StringBuilder();
+
+            source.codePoints().forEach(value -> {
+                if (value == 0x00) {
+                    return;
+                }
+                buffer.appendCodePoint(value);
+            });
+
+            return buffer.toString();
         }
     }
 

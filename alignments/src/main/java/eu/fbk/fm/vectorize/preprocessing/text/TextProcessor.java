@@ -4,7 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
-import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 
 import java.io.Serializable;
 import java.util.Comparator;
@@ -26,9 +26,12 @@ public abstract class TextProcessor implements JsonObjectProcessor, Serializable
         this.noCase = noCase;
     }
 
-    protected Tuple2<Long, String> process(JsonObject status) {
+    protected Tuple3<Long, Long, String> process(JsonObject status) {
         // Getting user id
-        Long id = get(status, Long.class, "user", "id");
+        Long userId = get(status, Long.class, "user", "id");
+
+        // Getting tweet id
+        Long id = get(status, Long.class, "id");
 
         // Get the original text
         String originalText = get(status, String.class, "text");
@@ -41,7 +44,7 @@ public abstract class TextProcessor implements JsonObjectProcessor, Serializable
 
         JsonObject entities = status.getAsJsonObject("entities");
         if (entities == null) {
-            return new Tuple2<>(id, originalText);
+            return new Tuple3<>(id, userId, prepareString(originalText));
         }
 
         replacements.addAll(addReplacements(entities, "hashtags", hashtag -> breakHashtag(hashtag.get("text").getAsString())));
@@ -86,7 +89,7 @@ public abstract class TextProcessor implements JsonObjectProcessor, Serializable
             processedText = processedText.toLowerCase();
         }
 
-        return new Tuple2<>(id, processedText.trim());
+        return new Tuple3<>(id, userId, prepareString(processedText.trim()));
     }
 
     private String breakHashtag(String hashtag) {
@@ -123,6 +126,19 @@ public abstract class TextProcessor implements JsonObjectProcessor, Serializable
         }
 
         return replacements;
+    }
+
+    private static String prepareString(String source) {
+        StringBuilder buffer = new StringBuilder();
+
+        source.codePoints().forEach(value -> {
+            if (value == 0x00) {
+                return;
+            }
+            buffer.appendCodePoint(value);
+        });
+
+        return buffer.toString();
     }
 
     private static class Replacement {
