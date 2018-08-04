@@ -9,4 +9,7 @@ import eu.fbk.fm.alignments.DBpediaResource;
  */
 public interface QueryAssemblyStrategy {
     String getQuery(DBpediaResource resource);
+    default String getQuery(DBpediaResource resource, int option) {
+        return getQuery(resource);
+    }
 }

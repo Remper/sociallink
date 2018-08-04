@@ -70,7 +70,7 @@ import static org.jooq.impl.DSL.sum;
  */
 public class PrepareTrainingSet {
 
-    public static final int CANDIDATES_THRESHOLD = 1000;
+    public static final int CANDIDATES_THRESHOLD = 40;
     public static final int RESOLVE_CHUNK_SIZE = 2000;
     private static final Gson GSON = TwitterDeserializer.getDefault().getBuilder().create();
     private static final Logger logger = LoggerFactory.getLogger(PrepareTrainingSet.class);
@@ -189,7 +189,7 @@ public class PrepareTrainingSet {
             return;
         }
 
-        PAI18Strategy strategy = new PAI18Strategy(source);
+        /*PAI18Strategy strategy = new PAI18Strategy(source);
         LSM lsm = new LSM(configuration.lsa + "/X", 100, true);
         VectorProvider textVectorProvider = new LSAVectorProvider(lsm);
         List<VectorProvider> allVectorProviders = new LinkedList<>();
@@ -208,17 +208,15 @@ public class PrepareTrainingSet {
         }
         for (VectorProvider provider : allVectorProviders) {
             strategy.addProvider(ISWC17Strategy.builder().vectorProvider(provider).build());
-            strategy.addProvider(new SMTStrategy.TextProvider("dbpedia", provider, DBPEDIA_TEXT_EXTRACTOR));
-            strategy.addProvider(new SMTStrategy.TextProvider("tweets", provider, (user, resource) -> TextScorer.getUserDataText(user)));
         }
         if (allVectorProviders.size() > 1) {
             strategy.addProvider(ISWC17Strategy.builder().vectorProviders(allVectorProviders).build());
         }
         //logger.info("LSA specified. Enabling PAI18 strategy");
-        prepareTrainingSet.setScoreStrategy(strategy);
+        prepareTrainingSet.setScoreStrategy(strategy);*/
         //logger.info("LSA specified. Enabling SMT strategy");
         //prepareTrainingSet.setScoreStrategy(new PAI18Strategy(new LinkedList<>()));
-        //prepareTrainingSet.setScoreStrategy(new SMTStrategy(source, configuration.lsa));
+        prepareTrainingSet.setScoreStrategy(new SMTStrategy(source, configuration.lsa));
 
         FileProvider files = new FileProvider(configuration.workdir);
         if (!files.gold.exists()) {
@@ -478,11 +476,6 @@ public class PrepareTrainingSet {
                             } catch (TwitterException e) {
                                 logger.error("Error while deserializing user object", e);
                             }
-                            try {
-                                return new UserData(prepareTrainingSet.service.getProfile(entry.getValue()));
-                            } catch (TwitterService.RateLimitException e) {
-                                logger.error("Rate limit exception", e);
-                            }
                             return null;
                         }).orElseGet(() -> {
                             try {
@@ -518,14 +511,15 @@ public class PrepareTrainingSet {
                         }
                         try {
                             for (FullyResolvedEntry entry : entries) {
+                                entry.entry.twitterId = user.getScreenName();
                                 statsPrinter.printRecord(
-                                        entry.entry.resourceId,
-                                        user.getScreenName(),
-                                        1,
-                                        entry.resource.isCompany() ? "org" : "per",
-                                        user.getFollowersCount(),
-                                        user.get("frequency").map(JsonElement::getAsInt).orElse(0),
-                                        user.isVerified() ? 1 : 0
+                                    entry.entry.resourceId,
+                                    user.getScreenName(),
+                                    1,
+                                    entry.resource.isCompany() ? "org" : "per",
+                                    user.getFollowersCount(),
+                                    user.get("frequency").map(JsonElement::getAsInt).orElse(0),
+                                    user.isVerified() ? 1 : 0
                                 );
                             }
                         } catch (IOException e) {
@@ -541,16 +535,21 @@ public class PrepareTrainingSet {
             Stopwatch watch = Stopwatch.createStarted();
             logger.info("Dumping full experimental setting to JSON");
             FileWriter resolvedWriter = new FileWriter(files.dataset);
+            FileWriter filteredGoldWriter = new FileWriter(files.goldFiltered);
             boolean first = true;
             for (FullyResolvedEntry entry : resolveDataset) {
                 if (first) {
                     first = false;
+                    filteredGoldWriter.write("entity,twitter_id\n");
                 } else {
                     resolvedWriter.write('\n');
+                    filteredGoldWriter.write('\n');
                 }
+                filteredGoldWriter.write(String.format("%s,%s", entry.entry.resourceId, entry.entry.twitterId));
                 gson.toJson(entry, resolvedWriter);
             }
             IOUtils.closeQuietly(resolvedWriter);
+            IOUtils.closeQuietly(filteredGoldWriter);
             logger.info(String.format("Complete in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
             //evaluationPipeline(prepareTrainingSet, files, resolvedTestSet, new ModelEndpoint("localhost", configuration.modelPort));
         } catch (Exception e) {
@@ -683,8 +682,13 @@ public class PrepareTrainingSet {
         initService();
 
         //Query additional data
-        Stream<UserData> candidateStream = dataset.parallelStream().flatMap(entry -> entry.candidates.stream());
-        long total = candidateStream.count();
+        List<UserData> candidates = dataset.stream().flatMap(entry -> entry.candidates.stream()).collect(Collectors.toList());
+        fillAdditionalData(candidates, service);
+    }
+
+    public static void fillAdditionalData(List<UserData> candidates, TwitterService service) {
+        //Query additional data
+        long total = candidates.size();
         AtomicInteger processed = new AtomicInteger();
         StatusesProvider provider = new StatusesProvider(service);
         Function<UserData, Integer> resolveStatuses = (entry -> {
@@ -712,10 +716,10 @@ public class PrepareTrainingSet {
 
         ForkJoinPool forkJoinPool = new ForkJoinPool();
         forkJoinPool.invokeAll(
-                dataset.stream()
-                        .flatMap(entry -> entry.candidates.stream())
-                        .map(user -> (Callable<Integer>) () -> resolveStatuses.apply(user))
-                        .collect(Collectors.toList())
+            candidates
+                .stream()
+                .map(user -> (Callable<Integer>) () -> resolveStatuses.apply(user))
+                .collect(Collectors.toList())
         );
         forkJoinPool.shutdown();
         progressCheck.cancel(true);
@@ -837,7 +841,7 @@ public class PrepareTrainingSet {
     }
 
     public void purgeAdditionalData(List<FullyResolvedEntry> entries) {
-        entries.parallelStream().flatMap(entry -> entry.candidates.stream()).forEach(user -> user.clear());
+        entries.parallelStream().flatMap(entry -> entry.candidates.stream()).forEach(UserData::clear);
     }
 
     public void dumpJointFeatures(List<FullyResolvedEntry> entries, FileProvider.FeatureSet output) throws IOException {

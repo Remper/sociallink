@@ -893,8 +893,16 @@ if __name__ == "__main__":
     #    _predicted = entities["index_" + _method]
     #    print(bootstrap_confidence_intervals(_expected, _predicted, pr_measures, iterations=10000, confidence=95))
 
-    moverall = ["lsa", "most_followers"]
-    mselection = ["lsa", "glove", "fasttext", "most_followers"]
+    moverall = [
+        "emb_extra_layer@iswc17_3_lsa_emb_fasttext_300_emb_glove_300+emb_kb200_rdf2vec_w+emb_sg300_w",
+        "emb_extra_layer@iswc17_1_lsa+emb_kb200_rdf2vec_w+emb_sg300_w",
+        "simple@iswc17_3_lsa_emb_fasttext_300_emb_glove_300"
+    ]
+    mselection = [
+        "emb_extra_layer@iswc17_3_lsa_emb_fasttext_300_emb_glove_300+emb_kb200_rdf2vec_w+emb_sg300_w",
+        "emb_extra_layer@iswc17_1_lsa+emb_kb200_rdf2vec_w+emb_sg300_w",
+        "simple@iswc17_3_lsa_emb_fasttext_300_emb_glove_300"
+    ]
 
     if (_table_acquisition):
         def compute(ents, label):
@@ -958,12 +966,12 @@ if __name__ == "__main__":
         #mall = list(method_labels.keys())
         mall = mselection
         # _min_improvements = np.linspace(0, 0.4, 2)
-        _min_improvements = np.linspace(0, 0.1, 2)
+        _min_improvements = [0.0]
         _grid = (2 * len(_min_improvements), 6)
         _row = 0
         plt.figure(figsize=(30, 10 * len(_min_improvements)))
         for _min_imp in _min_improvements:
-            ents = entity_table(candidates, _min_imp)
+            ents = entity_table(candidates, float(_min_imp))
             pr_plot(ents, mall, False, entity_type="per", title="Selection PER - %.2f" % _min_imp,
                     ax=plt.subplot2grid(_grid, (_row, 0)), legendloc=None)
             pr_plot(ents, mall, False, entity_type="org", title="Selection ORG - %.2f" % _min_imp,

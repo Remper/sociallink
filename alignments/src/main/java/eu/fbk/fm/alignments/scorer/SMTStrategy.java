@@ -22,11 +22,19 @@ public class SMTStrategy extends PAI18Strategy {
         super(initProviders(source, lsaPath));
     }
 
+    public SMTStrategy(DataSource source, VectorProvider provider) throws Exception {
+        super(initProviders(source, provider));
+    }
+
     private static LinkedList<FeatureVectorProvider> initProviders(DataSource source, String lsaPath) throws IOException, URISyntaxException {
         LSM lsm = new LSM(lsaPath+"/X", 100, true);
         LSAVectorProvider provider = new LSAVectorProvider(lsm);
+        return initProviders(source, provider);
+    }
+
+    private static LinkedList<FeatureVectorProvider> initProviders(DataSource source, VectorProvider provider) throws IOException, URISyntaxException {
         return new LinkedList<FeatureVectorProvider>(){{
-            add(new ProfileFeatureProvider(lsm));
+            add(new ProfileFeatureProvider(provider));
             add(new TextProvider("dbpedia", provider, DBPEDIA_TEXT_EXTRACTOR));
             add(new TextProvider("tweets", provider, (user, resource) -> TextScorer.getUserDataText(user)));
             add(new SocialGraphEmbeddings(source, "sg300"));

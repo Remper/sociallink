@@ -29,6 +29,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 import static eu.fbk.fm.alignments.PrepareTrainingSet.RESOLVE_CHUNK_SIZE;
@@ -87,14 +88,7 @@ public class ProcessDataset {
             logger.info("Loaded {} embedding models", embProviders.size());
             allVectorProviders.addAll(embProviders);
         }
-        for (VectorProvider provider : allVectorProviders) {
-            strategy.addProvider(ISWC17Strategy.builder().vectorProvider(provider).build());
-            strategy.addProvider(new SMTStrategy.TextProvider("dbpedia", provider, DBPEDIA_TEXT_EXTRACTOR));
-            strategy.addProvider(new SMTStrategy.TextProvider("tweets", provider, (user, resource) -> TextScorer.getUserDataText(user)));
-        }
-        if (allVectorProviders.size() > 1) {
-            strategy.addProvider(ISWC17Strategy.builder().vectorProviders(allVectorProviders).build());
-        }
+        strategy.addProvider(ISWC17Strategy.builder().vectorProviders(allVectorProviders).build());
         prepareTrainingSet.setScoreStrategy(strategy);
         //prepareTrainingSet.setScoreStrategy(new PAI18Strategy(new LinkedList<>()));
         //prepareTrainingSet.setScoreStrategy(new SMTStrategy(source, configuration.lsa));
@@ -176,6 +170,8 @@ public class ProcessDataset {
             return;
         }
         AtomicInteger chunksLeft = new AtomicInteger(resolveChunks.size());
+        AtomicInteger dead = new AtomicInteger(0);
+        AtomicInteger empty = new AtomicInteger(0);
         resolveChunks.forEach(file -> {
             Stopwatch watch = Stopwatch.createStarted();
             Reader reader;
@@ -193,15 +189,28 @@ public class ProcessDataset {
                     (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000
             ));
             watch.reset().start();
+            List<FullyResolvedEntry> filteredChunk = entries
+                .stream()
+                .filter(entry -> !entry.resource.isDead()).collect(Collectors.toList());
+            dead.addAndGet(entries.size()-filteredChunk.size());
             prepareTrainingSet.generateFeatures(entries);
             prepareTrainingSet.purgeAdditionalData(entries);
-            resolveDataset.addAll(entries);
+            filteredChunk = filteredChunk
+                .stream()
+                .filter(entry -> entry.candidates.size() > 0)
+                .collect(Collectors.toList());
+            empty.addAndGet(entries.size()-filteredChunk.size());
+
+            synchronized (resolveDataset) {
+                resolveDataset.addAll(filteredChunk);
+            }
+
             IOUtils.closeQuietly(reader);
             logger.info(String.format(
-                    "Chunk %s completed in %.2f seconds (left %2d)",
-                    file.getName(),
-                    (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000,
-                    chunksLeft.decrementAndGet()
+                "Chunk %s completed in %.2f seconds (left %2d)",
+                file.getName(),
+                (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000,
+                chunksLeft.decrementAndGet()
             ));
         });
 
@@ -215,7 +224,11 @@ public class ProcessDataset {
             logger.info(" Items before resolving:\t" + inputDataset.size());
             logger.info(" Items after resolving:\t" + resolveDataset.size());
             int lost = inputDataset.size() - resolveDataset.size();
-            logger.info(String.format(" Lost:\t%d (%.2f", lost, ((double) lost / inputDataset.size()) * 100) + "%)");
+            logger.info(String.format(
+                " Lost:\t%d (%.2f%%, dead: %d, empty: %d)",
+                lost, ((double) lost / inputDataset.size()) * 100,
+                dead.get(), empty.get()-dead.get()
+            ));
             logger.info(String.format(" Average candidates per entity: %.2f", (double) numCandidates / resolveDataset.size()));
 
             Stopwatch watch = Stopwatch.createStarted();

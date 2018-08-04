@@ -95,7 +95,7 @@ public class TextScorer implements FeatureProvider {
         if (!(user instanceof UserData)) {
             return "";
         }
-        TextExtractor extractor = new TextExtractor(false);
+        TextExtractor extractor = new TextExtractor(true);
         JsonElement array = ((UserData) user)
                 .get(PrepareTrainingSet.StatusesProvider.class)
                 .orElse(new JsonArray());

@@ -35,6 +35,7 @@ import java.util.function.Function;
 import static eu.fbk.fm.alignments.PrepareTrainingSet.CANDIDATES_THRESHOLD;
 import static eu.fbk.fm.alignments.index.db.tables.UserIndex.USER_INDEX;
 import static eu.fbk.fm.alignments.index.db.tables.UserObjects.USER_OBJECTS;
+import static org.jooq.impl.DSL.atan;
 import static org.jooq.impl.DSL.select;
 import static org.jooq.impl.DSL.sum;
 
@@ -70,81 +71,89 @@ public class FillFromIndex implements AutoCloseable {
         this(endpoint, qaStrategy, DBUtils.createPGDataSource(connString, connUser, connPassword));
     }
 
-    private static String logAppendix(FullyResolvedEntry entry, String query) {
+    private static String logAppendix(FullyResolvedEntry entry, String query, int attempt) {
         String correct = "unknown";
         if (entry.entry.twitterId != null) {
             correct = entry.entry.twitterId;
         }
 
-        return String.format("[Query: %s Entity: %s Correct: %s]", query, entry.entry.resourceId, correct);
+        return String.format("[Query: %s Entity: %s Correct: %s Attempt: %d]", query, entry.entry.resourceId, correct, attempt);
     }
 
-    private static String logAppendix(String resourceId, String query) {
-        return String.format("[Query: %s Entity: %s]", query, resourceId);
+    private static String logAppendix(String resourceId, String query, int attempt) {
+        return String.format("[Query: %s Entity: %s Attempt: %d]", query, resourceId, attempt);
     }
 
-    public static Function<String, Table<Record2<Long, BigDecimal>>> SEARCH_SUBQUERY = query ->
-            select(USER_INDEX.UID, sum(USER_INDEX.FREQ).as("freq"))
+    public Table<Record2<Long, BigDecimal>> constructQuery(String query) {
+        return select(USER_INDEX.UID, sum(USER_INDEX.FREQ).as("freq"))
                 .from(USER_INDEX)
                     .where(
-                        "to_tsquery({0}) @@ to_tsvector('english_fullname', USER_INDEX.FULLNAME)",
-                        query
-                        )
+                            "to_tsquery({0}) @@ to_tsvector('english_fullname', USER_INDEX.FULLNAME)",
+                            query
+                    )
                     .groupBy(USER_INDEX.UID)
                     .orderBy(sum(USER_INDEX.FREQ).desc())
-                .limit(CANDIDATES_THRESHOLD).asTable("a");
+                .limit(1000).asTable("a");
+    }
 
     public List<UserData> queryCandidates(DBpediaResource resource) {
         List<UserData> result = new LinkedList<>();
-        String query = qaStrategy.getQuery(resource);
-        if (query.length() < 4) {
-            LOGGER.error("Query is less than 3 symbols. Ignoring. "+logAppendix(resource.getIdentifier(), query));
-            return result;
-        }
+        int attempt = 0;
+        String oldQuery = null;
+        String query = qaStrategy.getQuery(resource, attempt);
+        while ((oldQuery == null || result.size() > 300) && !query.equals(oldQuery) && query.length() > 3) {
+            result.clear();
+            Stopwatch watch = Stopwatch.createStarted();
+            try {
+                Table<Record2<Long, BigDecimal>> subquery = constructQuery(query);
+                UserIndex indexAlias = USER_INDEX.as("a");
 
-        Stopwatch watch = Stopwatch.createStarted();
-        try {
-            Table<Record2<Long, BigDecimal>> subquery = SEARCH_SUBQUERY.apply(query);
-            UserIndex indexAlias = USER_INDEX.as("a");
+                DSL.using(source, SQLDialect.POSTGRES)
+                    .select(USER_OBJECTS.OBJECT, subquery.field("freq"))
+                    .from(subquery)
+                    .leftJoin(USER_OBJECTS)
+                    .on(indexAlias.UID.eq(USER_OBJECTS.UID))
+                    .queryTimeout(timeout)
+                    .stream()
+                    .forEach(record -> {
+                        Object rawObject = record.get(USER_OBJECTS.OBJECT);
 
-            DSL.using(source, SQLDialect.POSTGRES)
-                .select(USER_OBJECTS.OBJECT, subquery.field("freq"))
-                .from(subquery)
-                .leftJoin(USER_OBJECTS)
-                .on(indexAlias.UID.eq(USER_OBJECTS.UID))
-                .queryTimeout(timeout)
-                .stream()
-                .forEach(record -> {
-                    Object rawObject = record.get(USER_OBJECTS.OBJECT);
-
-                    if (rawObject == null) {
-                        return;
-                    }
-                    try {
-                        UserData userData = new UserData(TwitterObjectFactory.createUser(rawObject.toString()));
-                        userData.submitData("frequency", record.get(subquery.field("freq")));
-                        result.add(userData);
-                    } catch (TwitterException e) {
-                        LOGGER.error("Error while deserializing user object", e);
-                    }
-                });
-            watch.stop();
-        } catch (Exception e) {
-            LOGGER.error("Error while requesting candidates. "+logAppendix(resource.getIdentifier(), query));
-            if (!exceptionPrinted) {
-                exceptionPrinted = true;
-                e.printStackTrace();
+                        if (rawObject == null) {
+                            return;
+                        }
+                        try {
+                            UserData userData = new UserData(TwitterObjectFactory.createUser(rawObject.toString()));
+                            userData.submitData("frequency", record.get(subquery.field("freq")));
+                            result.add(userData);
+                        } catch (TwitterException e) {
+                            LOGGER.error("Error while deserializing user object", e);
+                        }
+                    });
+                watch.stop();
+            } catch (Exception e) {
+                LOGGER.error("Error while requesting candidates. "+logAppendix(resource.getIdentifier(), query, attempt));
+                if (!exceptionPrinted) {
+                    exceptionPrinted = true;
+                    e.printStackTrace();
+                }
             }
-        }
-        long elapsed = watch.elapsed(TimeUnit.SECONDS);
-        if (verbose && elapsed > 10) {
-            LOGGER.info("Slow ("+elapsed+"s) query. "+logAppendix(resource.getIdentifier(), query));
-        }
-        if (verbose && result.size() == 0 && noCandidates < 100) {
-            noCandidates++;
-            LOGGER.warn("No candidates. "+logAppendix(resource.getIdentifier(), query));
+            long elapsed = watch.elapsed(TimeUnit.SECONDS);
+            if (verbose && elapsed > 10) {
+                LOGGER.info("Slow ("+elapsed+"s) query. "+logAppendix(resource.getIdentifier(), query, attempt));
+            }
+            if (verbose && result.size() == 0 && noCandidates < 100) {
+                noCandidates++;
+                LOGGER.warn("No candidates. "+logAppendix(resource.getIdentifier(), query, attempt));
+            }
+
+            attempt++;
+            oldQuery = query;
+            query = qaStrategy.getQuery(resource, attempt);
         }
 
+        if (result.size() > CANDIDATES_THRESHOLD) {
+            return new LinkedList<>(result.subList(0, CANDIDATES_THRESHOLD));
+        }
         return result;
     }
 
@@ -190,33 +199,33 @@ public class FillFromIndex implements AutoCloseable {
 
         String query = qaStrategy.getQuery(resource);
         if (query.length() < 4) {
-            LOGGER.error("Query is less than 4 symbols. Ignoring. "+logAppendix(resourceId, query));
+            LOGGER.error("Query is less than 4 symbols. Ignoring. "+logAppendix(resourceId, query, -1));
             return candidates;
         }
 
         Stopwatch watch = Stopwatch.createStarted();
         try {
             DSL.using(source, SQLDialect.POSTGRES)
-                    .select(USER_INDEX.UID)
-                    .from(USER_INDEX)
-                    .where(
-                            "to_tsquery({0}) @@ to_tsvector('english_fullname', USER_INDEX.FULLNAME)",
-                            qaStrategy.getQuery(resource)
-                    )
-                    .orderBy(USER_INDEX.FREQ.desc())
-                    .limit(CANDIDATES_THRESHOLD)
-                    .queryTimeout(timeout)
-                    .stream()
-                    .forEach(record -> {
-                        long candidate = record.get(USER_INDEX.UID);
-                        if (!candidates.contains(candidate)) {
-                            candidates.add(candidate);
-                        }
-                    });
+                .select(USER_INDEX.UID)
+                .from(USER_INDEX)
+                .where(
+                        "to_tsquery({0}) @@ to_tsvector('english_fullname', USER_INDEX.FULLNAME)",
+                        qaStrategy.getQuery(resource)
+                )
+                .orderBy(USER_INDEX.FREQ.desc())
+                .limit(CANDIDATES_THRESHOLD)
+                .queryTimeout(timeout)
+                .stream()
+                .forEach(record -> {
+                    long candidate = record.get(USER_INDEX.UID);
+                    if (!candidates.contains(candidate)) {
+                        candidates.add(candidate);
+                    }
+                });
             watch.stop();
         } catch (Exception e) {
             if (verbose) {
-                LOGGER.error("Error while requesting candidates. "+logAppendix(resourceId, query));
+                LOGGER.error("Error while requesting candidates. "+logAppendix(resourceId, query, -1));
                 if (!exceptionPrinted) {
                     exceptionPrinted = true;
                     e.printStackTrace();
@@ -228,12 +237,12 @@ public class FillFromIndex implements AutoCloseable {
         if (elapsed > 10) {
             slow.incrementAndGet();
             if (verbose) {
-                LOGGER.info("Slow ("+elapsed+"s) query. "+logAppendix(resourceId, query));
+                LOGGER.info("Slow ("+elapsed+"s) query. "+logAppendix(resourceId, query, -1));
             }
         }
         if (verbose && candidates.size() == 0 && noCandidates < 100) {
             noCandidates++;
-            LOGGER.warn("No candidates. "+logAppendix(resourceId, query));
+            LOGGER.warn("No candidates. "+logAppendix(resourceId, query, -1));
         }
         if (!verbose) {
             checkWatch();

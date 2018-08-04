@@ -10,24 +10,6 @@ class EmbExtraLayer(SimpleModel):
     def __init__(self, name, inputs, classes, use_features=None):
         SimpleModel.__init__(self, name, inputs, classes, use_features=use_features)
 
-    def _add_translation_layer(self, first, second, final_emb_size=50):
-        feature_list = []
-        input_size = 0
-        first_tensor = self._train_features[first]
-        second_tensor = self._train_features[second]
-        with tf.name_scope(first+"_transform"):
-            first_tensor = self.dense(first_tensor, self._inputs[first], final_emb_size, self._dropout_rate)
-            feature_list.append(first_tensor)
-            input_size += final_emb_size
-        with tf.name_scope(second+"_transform"):
-            second_tensor = self.dense(second_tensor, self._inputs[second], final_emb_size, self._dropout_rate)
-            feature_list.append(second_tensor)
-            input_size += final_emb_size
-        emb_feat = tf.multiply(first_tensor, second_tensor, name="comb_"+first+"_"+second)
-        feature_list.append(emb_feat)
-        input_size += final_emb_size
-        return feature_list, input_size
-
     def _definition(self):
         graph = tf.Graph()
         with graph.as_default():

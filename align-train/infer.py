@@ -3,9 +3,7 @@ import numpy as np
 
 from os import path
 
-from evaluation.common import precision_recall_curve
 from pairwise_models import restore_definition
-from rule_based.most_followers import MostFollowers
 from utils.common import Scaler
 
 
@@ -13,11 +11,19 @@ def f1(prec: float, rec: float) -> float:
     return 2 * prec * rec / (prec + rec)
 
 
-def present(workdir, file):
+def present(workdir: str, file: str) -> None:
     if path.exists(path.join(workdir, file)):
         print(" ", "%s exists" % file)
     else:
         raise Exception("%s does not exist" % file)
+
+
+def test_set(workdir: str):
+    with open(path.join(workdir, "dataset.json"), 'r') as reader:
+        for line in reader:
+            sample = json.loads(line)
+            del sample["resource"]
+            yield sample
 
 
 def main(workdir):
@@ -25,7 +31,7 @@ def main(workdir):
     [present(workdir, file) for file in ["dataset.json", "splits", "manifest.json"]]
 
     # Preparing the evaluation directory
-    evaluation_dir = path.join(workdir, "evaluation")
+    evaluation_dir = path.join(workdir, "inference")
     if not path.exists(evaluation_dir):
         os.mkdir(evaluation_dir)
 
@@ -66,29 +72,15 @@ def main(workdir):
         print(" ", "No models detected. Halting")
         return
 
-    print("\nDeserialising dataset")
-    timestamp = time.time()
-    test_set = []
-    counter = 0
-    with open(path.join(workdir, "dataset.json"), 'r') as reader:
-        for line in reader:
-            sample = json.loads(line)
-            del sample["resource"]
-            test_set.append(sample)
-            counter += 1
-            if counter % 5000 == 0:
-                print("  Loaded %d samples" % counter)
-    print("Done in %.2fs, loaded %d samples" % (time.time() - timestamp, len(test_set)))
-
     print("\nDeserialising scalers")
     test_scalers = []
     for split_id, split in enumerate(splits):
         with open(path.join(split, "scaler.json"), 'r') as scaler_reader:
             test_scalers.append(Scaler.from_dict(json.load(scaler_reader)))
 
-    print("\nEvaluation:")
+    print("\nInference:")
     for model_name in sorted(models.keys()):
-        print("Evaluating model %s" % model_name)
+        print("Inferring using model %s" % model_name)
 
         # Invoking a trained model from disk for each split
         model_instances = []
@@ -108,7 +100,8 @@ def main(workdir):
         counter = 0
         check_interval = 1000
         timestamp = time.time()
-        for sample in test_set:
+        predicted = 0
+        for sample in test_set(workdir):
             counter += 1
             candidate_id = -1
             second_best = -1.0
@@ -123,22 +116,32 @@ def main(workdir):
                     cur_vector = test_scalers[0].fit_subspace(features[subspace], subspace)
                     sample_features[subspace].append(cur_vector)
 
-            prediction = {
-                "entry": sample["entry"]["resourceId"],
-                "candidates": [],
-                "prediction": None
-            }
             if len(sample["features"]) > 0:
+                prediction = {
+                    "entry": sample["entry"]["resourceId"],
+                    "candidates": [],
+                    "prediction": None
+                }
                 for subspace in sample_features:
                     sample_features[subspace] = np.vstack(sample_features[subspace])
-                sample_scores = model_instances[0].predict(features=sample_features)
+                sample_scores = np.zeros([len(sample["features"])])
+                for i in range(len(splits)):
+                    sample_scores += model_instances[i].predict(features=sample_features)[::, 1]
+                sample_scores /= len(splits)
+
+                # Rescaling scores using Francesco's approach
+                scores_sum = sample_scores.sum()
+                if scores_sum > 0:
+                    sample_scores = sample_scores[-1] * sample_scores / scores_sum
+
                 for i in range(sample_scores.shape[0]):
                     prediction["candidates"].append({
                         "screen_name": sample["candidates"][i]["profile"]["screenName"],
-                        "confidence": float(sample_scores[i][1])
+                        "confidence": float(sample_scores[i])
                     })
+                prediction["candidates"].sort(key=lambda cand: cand["confidence"], reverse=True)
+                prediction["candidates"] = prediction["candidates"][:10]
 
-                sample_scores = sample_scores[::, 1]
                 top_2 = np.argsort(sample_scores)[-2::][::-1].tolist()
 
                 predicted_id = top_2[0]
@@ -147,17 +150,21 @@ def main(workdir):
                 if len(top_2) > 1:
                     second_best = sample_scores[top_2[1]]
 
-                if highest_score - second_best < 0.1 and highest_score > 0.7:
+                if highest_score - second_best > 0.1 and highest_score > 0.20:
+                    predicted += 1
+                    if predicted < 30:
+                        print("  ", sample["entry"]["resourceId"], sample["candidates"][predicted_id]["profile"]["screenName"], str(sample_scores[predicted_id]))
                     prediction["prediction"] = {
                         "screen_name": sample["candidates"][predicted_id]["profile"]["screenName"],
-                        "confidence": float(sample_scores[predicted_id][1])
+                        "confidence": float(sample_scores[predicted_id])
                     }
-            debug_writer.write(json.dumps(prediction)+"\n")
+                debug_writer.write(json.dumps(prediction)+"\n")
 
             if counter % check_interval == 0:
-                print(" ", "%d samples processed (%.2fs)" % (counter, (time.time() - timestamp)))
+                print(" ", "%d samples processed (%.2fs, predictions: %d)" % (counter, (time.time() - timestamp), predicted))
 
         debug_writer.close()
+        print(" ", "%d samples processed (%.2fs, predictions: %d)" % (counter, (time.time() - timestamp), predicted))
 
 
 if __name__ == "__main__":

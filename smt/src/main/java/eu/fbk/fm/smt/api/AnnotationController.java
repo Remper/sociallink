@@ -1,9 +1,13 @@
 package eu.fbk.fm.smt.api;
 
+import com.google.gson.JsonArray;
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
 import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.PrepareTrainingSet;
 import eu.fbk.fm.alignments.scorer.TextScorer;
+import eu.fbk.fm.alignments.scorer.UserData;
+import eu.fbk.fm.alignments.twitter.TwitterService;
 import eu.fbk.fm.smt.model.CandidatesBundle;
 import eu.fbk.fm.smt.model.Score;
 import eu.fbk.fm.smt.model.ScoreBundle;
@@ -20,6 +24,7 @@ import javax.ws.rs.core.UriInfo;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -32,6 +37,9 @@ import java.util.stream.Stream;
 @Path("annotate")
 public class AnnotationController {
     private static final String[] allowedTypes = {"ORGANIZATION", "PERSON"};
+
+    @Inject
+    private TwitterService twitter;
 
     @Inject
     WikimachineService wikimachineService;
@@ -103,15 +111,28 @@ public class AnnotationController {
         response.token = token;
         response.tokenClass = ner;
         response.context = text;
+        response.dictionary = new HashMap<>();
 
         List<CandidatesBundle.Resolved> candidates = getCandidates(resource);
-        response.dictionary = new HashMap<>();
-        candidates.stream()
-                .flatMap(resolved -> resolved.dictionary.values().stream())
-                .map(user -> user.profile)
-                .forEach(cand -> response.dictionary.put(cand.getScreenName(), cand));
+
+        List<UserData> candidateList = candidates.stream()
+            .flatMap(resolved -> resolved.dictionary.values().stream()).collect(Collectors.toList());
+
+        candidateList.stream()
+            .map(user -> user.profile)
+            .forEach(cand -> response.dictionary.put(cand.getScreenName(), cand));
+
+        //Request additional user data
+        PrepareTrainingSet.fillAdditionalData(candidateList, twitter);
 
         response.caResults = candidates.stream().map(cand -> cand.bundle).collect(Collectors.toList());
+        response.caStats = candidateList
+            .stream()
+            .map(candidate -> String.format(
+                "[@%s] Statuses: %d",
+                candidate.getScreenName(),
+                candidate.get(PrepareTrainingSet.StatusesProvider.class).orElse(new JsonArray()).getAsJsonArray().size()
+            )).collect(Collectors.toList());
         response.csResults = func.apply(resource, new LinkedList<>(response.dictionary.values()));
 
         return Response.success(response).respond();
@@ -241,6 +262,7 @@ public class AnnotationController {
         public String token;
         public String tokenClass;
         public List<CandidatesBundle> caResults;
+        public List<String> caStats;
         public List<ScoreBundle> csResults;
         public Map<String, User> dictionary;
     }

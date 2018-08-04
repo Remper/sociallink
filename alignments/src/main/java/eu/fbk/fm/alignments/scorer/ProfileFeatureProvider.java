@@ -4,6 +4,7 @@ import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.scorer.text.CosineScorer;
 import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
 import eu.fbk.fm.alignments.scorer.text.SimilarityScorer;
+import eu.fbk.fm.alignments.scorer.text.VectorProvider;
 import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
 import eu.fbk.utils.core.strings.JaroWinklerDistance;
 import eu.fbk.utils.lsa.LSM;
@@ -17,12 +18,12 @@ public class ProfileFeatureProvider implements FeatureVectorProvider, JsonObject
     final SimilarityScorer scorer;
     final List<FeatureVectorProvider> featureProviders;
 
-    public ProfileFeatureProvider(LSM lsa) {
-        this.scorer = new CosineScorer(new LSAVectorProvider(lsa));
+    public ProfileFeatureProvider(VectorProvider provider) {
+        this.scorer = new CosineScorer(provider);
         this.featureProviders = new LinkedList<FeatureVectorProvider>() {{
             add(new NameScorer(new JaroWinklerDistance()));
             add(new NameScorer.ScreenNameScorer(new JaroWinklerDistance()));
-            add(new TextScorer(scorer).all());
+            add(new TextScorer(scorer).all().profile());
         }};
     }
 

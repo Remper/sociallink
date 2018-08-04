@@ -19,51 +19,34 @@ class SMTModel(SimpleModel):
         with graph.as_default():
             # Graph begins with input. tf.placeholder tells TF that we will input those variables at each iteration
             self._train_features = dict()
+
+            # Setting up label tensor
+            self._train_labels = tf.placeholder(tf.float32, shape=[None, self._classes], name="Y")
+
+            # Dropout rate
+            self._dropout_rate = tf.placeholder(tf.float32, name="dropout_rate")
+
             feature_list = []
             input_size = 0
 
             # Getting all appropriate subspaces for this model
-            kb_text = None
-            user_text = None
-            kb_text_size = None
-            user_text_size = None
-            self._train_labels = tf.placeholder(tf.float32, shape=[None, self._classes], name="Y")
-
-            # Going through feature dimensions
+            text_pair = []
             for id, length in self._inputs.items():
                 self._train_features[id] = tf.placeholder(tf.float32, shape=[None, length], name="X-"+id)
-                if id == "text_lsa_dbpedia":
-                    kb_text = self._train_features[id]
-                    kb_text_size = length
-                    continue
 
-                if id == "text_lsa_tweets":
-                    user_text = self._train_features[id]
-                    user_text_size = length
+                if id.startswith("text_"):
+                    text_pair.append(id)
                     continue
 
                 feature_list.append(self._train_features[id])
                 input_size += length
 
-            if kb_text is None or user_text_size is None:
-                raise Exception("Both textual embeddings required for this model")
-
-            # Dropout rate
-            self._dropout_rate = tf.placeholder(tf.float32, name="dropout_rate")
-
-            # Embeddings multiplication
-            final_emb_size = 50
-            with tf.name_scope("kb_text_transform"):
-                kb_text = self.dense(kb_text, kb_text_size, final_emb_size, self._dropout_rate)
-                feature_list.append(kb_text)
-                input_size += final_emb_size
-            with tf.name_scope("user_text_transform"):
-                user_text = self.dense(user_text, user_text_size, final_emb_size, self._dropout_rate)
-                feature_list.append(user_text)
-                input_size += final_emb_size
-            emb_feat = tf.multiply(kb_text, user_text, name="emb_combination")
-            feature_list.append(emb_feat)
-            input_size += final_emb_size
+            # Embeddings translation layers
+            if len(text_pair) != 2:
+                raise Exception("Both KB and social texts are required by this model")
+            add_feats, add_input_size = self._add_translation_layer(text_pair[0], text_pair[1], 100)
+            feature_list += add_feats
+            input_size += add_input_size
 
             # Multiple dense layers
             hidden_units = self._units
