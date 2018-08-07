@@ -6,7 +6,6 @@ import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.FileProvider;
 import eu.fbk.fm.alignments.index.db.tables.records.AlignmentsRecord;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
-import eu.fbk.fm.alignments.persistence.ModelEndpoint.ProductionModelEndpoint;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.scorer.ISWC17Strategy;
 import eu.fbk.fm.alignments.scorer.ScoringStrategy;
@@ -58,7 +57,7 @@ public class ScoreEntities {
     public ScoreEntities(DataSource source, Endpoint endpoint, ScoringStrategy strategy) throws URISyntaxException {
         this.source = source;
         this.endpoint = endpoint;
-        this.modelEndpoint = new ProductionModelEndpoint();
+        this.modelEndpoint = new ModelEndpoint();
         this.strategy = strategy;
     }
 

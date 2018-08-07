@@ -60,7 +60,7 @@ public class OnlineAlignmentsService {
             fakeResourceEndpoint = new FakeEndpoint();
             index = new FillFromIndex(fakeResourceEndpoint, new AllNamesStrategy(), dataSource);
             try {
-                scoringStrategy = new PAI18Strategy(dataSource, lsaFilename);
+                scoringStrategy = new SMTStrategy(dataSource, lsaFilename);
             } catch (Exception e) {
                 throw new RuntimeException("Can't initialize OnlineAlignmnetsService", e);
             }

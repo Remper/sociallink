@@ -33,6 +33,8 @@ public class TwitterFactory implements Supplier<Twitter[]> {
                         .setOAuthConsumerSecret(credentials.consumerSecret)
                         .setOAuthAccessToken(credentials.token)
                         .setOAuthAccessTokenSecret(credentials.tokenSecret)
+                        .setTweetModeExtended(true)
+                        .setJSONStoreEnabled(true)
                         .build()
         ).getInstance();
     }

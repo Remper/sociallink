@@ -54,7 +54,7 @@ public class Application {
         wikimachineEndpoint = config.wikimachineEndpoint;
         alignments = ConnectionFactory.getConf(config.connection);
         credentials = TwitterCredentials.credentialsFromFile(new File(config.credentials));
-        modelEndpoint = new ModelEndpoint.ProductionModelEndpoint(config.modelEndpoint, 5000);
+        modelEndpoint = new ModelEndpoint(config.modelEndpoint, 5000);
         lsaFilename = config.lsaFilename;
         sparqlLocation = config.sparqlEndpoint;
 

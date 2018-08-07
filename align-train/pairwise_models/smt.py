@@ -31,6 +31,8 @@ class SMTModel(SimpleModel):
 
             # Getting all appropriate subspaces for this model
             text_pair = []
+            sg_emb = None
+            profile = None
             for id, length in self._inputs.items():
                 self._train_features[id] = tf.placeholder(tf.float32, shape=[None, length], name="X-"+id)
 
@@ -38,8 +40,33 @@ class SMTModel(SimpleModel):
                     text_pair.append(id)
                     continue
 
+                if id.startswith("emb_sg"):
+                    sg_emb = id
+                    continue
+
+                if id.startswith("profile"):
+                    profile = id
+                    continue
+
                 feature_list.append(self._train_features[id])
                 input_size += length
+
+            # Reduce dimensionality of aux user representation
+            features = []
+            if profile is not None:
+                features.append(profile)
+            if sg_emb is not None:
+                features.append(sg_emb)
+            if len(features) > 0:
+                with tf.name_scope("user_transform"):
+                    feature_tensors = [self._train_features[id] for id in features]
+                    if len(features) > 1:
+                        feature_tensor = tf.concat(feature_tensors, 1, name="user-stitching")
+                    else:
+                        feature_tensor = feature_tensors[0]
+                    feature_tensor = self.dense(feature_tensor, sum([self._inputs[id] for id in features]), 50, self._dropout_rate)
+                    feature_list.append(feature_tensor)
+                    input_size += 50
 
             # Embeddings translation layers
             if len(text_pair) != 2:

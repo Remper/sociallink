@@ -72,18 +72,4 @@ public class ModelEndpoint {
         }
         return result;
     }
-
-    public static class ProductionModelEndpoint extends ModelEndpoint {
-
-        public ProductionModelEndpoint(String host, int port) throws URISyntaxException {
-            super(host, port);
-        }
-
-        public ProductionModelEndpoint() throws URISyntaxException { super(); }
-
-        @Override
-        protected void init() throws URISyntaxException {
-            url = new URIBuilder().setScheme("http").setHost(host).setPort(port).setPath("/predict/scaled").build();
-        }
-    }
 }

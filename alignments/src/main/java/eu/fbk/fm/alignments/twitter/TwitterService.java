@@ -198,7 +198,7 @@ public class TwitterService {
         }
 
         private synchronized List<Status> getStatuses(Long uid) {
-            return processListResult(limits, USER_TIMELINE, () -> twitter.timelines().getUserTimeline(uid));
+            return processListResult(limits, USER_TIMELINE, () -> twitter.timelines().getUserTimeline(uid, new Paging(1, 200)));
         }
 
         private synchronized List<User> getProfiles(long[] uid) {
