@@ -9,6 +9,7 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import java.io.Serializable;
 import java.util.Comparator;
 import java.util.LinkedList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 /**
@@ -48,9 +49,9 @@ public abstract class TextProcessor implements JsonObjectProcessor, Serializable
         }
 
         replacements.addAll(addReplacements(entities, "hashtags", hashtag -> breakHashtag(hashtag.get("text").getAsString())));
-        replacements.addAll(addReplacements(entities, "user_mentions", mention -> " <mention> "));
-        replacements.addAll(addReplacements(entities, "urls", url -> " <url> "));
-        replacements.addAll(addReplacements(entities, "media", media -> " <media> "));
+        replacements.addAll(addReplacements(entities, "user_mentions", mention -> mention.get("name").getAsString()));
+        replacements.addAll(addReplacements(entities, "urls", url -> " \uD83D\uDD17 "));
+        replacements.addAll(addReplacements(entities, "media", media -> " \uD83D\uDDBC️ "));
 
         // Sorting replacements
         replacements.sort(Comparator.comparingInt(r -> r.start));
@@ -74,17 +75,18 @@ public abstract class TextProcessor implements JsonObjectProcessor, Serializable
             replacements.pollFirst();
         });
 
-        String processedText = sb.toString();
+        //Clean and separate emojis
+        String processedText = cleanAndSeparateEmoji(sb.toString());
 
         //Getting rid of RT pattern, excess whitespace and sneaky urls
         processedText = processedText
-                .replaceAll("^RT ", "")
-                .replaceAll("^\\.", "")
-                .replaceAll("\\.$", "")
-                .replaceAll("https?://[^\\s]+", " <url> ")
-                .replaceAll("[,.?!@#$%^&*():|]", " ")
-                .replaceAll("[\"'`‘“´]", " ' ")
-                .replaceAll("\\s+", " ");
+            .replaceAll("^RT ", "")
+            //.replaceAll("^\\.", "")
+            //.replaceAll("\\.$", "")
+            .replaceAll("https?://[^\\s]+", " <url> ")
+            .replaceAll("[,.?_!@#$%^&*():|/\\\\]", " ")
+            .replaceAll("[\"'`‘“´]", " ' ")
+            .replaceAll("\\s+", " ");
         if (noCase) {
             processedText = processedText.toLowerCase();
         }
@@ -92,9 +94,43 @@ public abstract class TextProcessor implements JsonObjectProcessor, Serializable
         return new Tuple3<>(id, userId, prepareString(processedText.trim()));
     }
 
+    private String cleanAndSeparateEmoji(String source) {
+        StringBuilder buffer = new StringBuilder();
+        AtomicBoolean prevEmoji = new AtomicBoolean(false);
+
+        source.codePoints().forEach(value -> {
+            if ((value >= 0x1F3FB && value <= 0x1F3FF) // Fitzpatrick diversity modifiers (skip)
+                    || value == 0x200D) { // Glue character (skip)
+                return;
+            }
+
+            if ((value >= 0x1F600 && value <= 0x1F64F) // Emoticons
+                    || (value >= 0x1F900 && value <= 0x1F9FF) // Supplemental Symbols and Pictograms
+                    || (value >= 0x2600 && value <= 0x26FF) // Miscellaneous Symbols
+                    || (value >= 0x2700 && value <= 0x27BF) // Dingbats
+                    || (value >= 0x1F300 && value <= 0x1F5FF) // Miscellaneous Symbols And Pictographs (Emoji)
+                    || (value >= 0x1F1E6 && value <= 0x1F1FF)) // Flags
+            {
+                if (!prevEmoji.get()) {
+                    buffer.append(' ');
+                }
+                prevEmoji.set(true);
+            } else {
+                prevEmoji.set(false);
+            }
+
+            if (prevEmoji.get()) {
+                buffer.append(' ');
+            }
+            buffer.appendCodePoint(value);
+        });
+
+        return buffer.toString();
+    }
+
     private String breakHashtag(String hashtag) {
         StringBuilder sb = new StringBuilder();
-        sb.append(" <shash> ");
+        sb.append(" -shash- ");
         final boolean[] prevUppercase = {false};
         hashtag.codePoints().forEachOrdered(value -> {
             if (Character.isUpperCase(value)) {
@@ -107,7 +143,7 @@ public abstract class TextProcessor implements JsonObjectProcessor, Serializable
             }
             sb.appendCodePoint(value);
         });
-        sb.append(" <ehash> ");
+        sb.append(" -ehash- ");
 
         return sb.toString();
     }

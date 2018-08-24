@@ -1,9 +1,11 @@
 package eu.fbk.fm.vectorize.preprocessing.text;
 
+import com.google.gson.JsonObject;
 import eu.fbk.fm.alignments.index.utils.Deserializer;
 import eu.fbk.fm.alignments.utils.flink.GzipTextOutputFormat;
 import eu.fbk.fm.alignments.utils.flink.RobustTsvOutputFormat;
 import eu.fbk.fm.alignments.utils.flink.TextInputFormat;
+import eu.fbk.fm.vectorize.preprocessing.conversations.LanguageFilter;
 import eu.fbk.utils.core.CommandLine;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.operators.Order;
@@ -30,6 +32,9 @@ public class ExtractTextFromTweets {
 
     private static final String TWEETS_PATH = "tweets-path";
     private static final String OUTPUT_PATH = "output-path";
+    private static final String LANGUAGE = "language";
+
+    private String language = null;
 
     private DataSet<String> getInput(ExecutionEnvironment env, Path input) {
         return getInput(env, input, new Configuration());
@@ -50,9 +55,16 @@ public class ExtractTextFromTweets {
         final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
         //Deserialize and convert
-        DataSet<String> tweets =
+        DataSet<JsonObject> objects =
             getInput(env, input)
-                .flatMap(new Deserializer())
+                .flatMap(new Deserializer());
+
+        if (language != null) {
+            objects = objects.filter(new LanguageFilter(language));
+        }
+
+        DataSet<String> tweets =
+            objects
                 .flatMap(new TextExtractor(true))
                 .filter((FilterFunction<String>) value -> value.split("\\s+").length > 3);
 
@@ -73,7 +85,7 @@ public class ExtractTextFromTweets {
             .output(new RobustTsvOutputFormat<>(new Path(output, "dict.tsv.gz"), true)).setParallelism(1);
 
         tweets
-            .output(new GzipTextOutputFormat<>(new Path(output, "tweet_text")));
+            .output(new GzipTextOutputFormat<>(new Path(output, "tweet_text.txt.gz"))).setParallelism(1);
 
 
         env.execute();
@@ -92,6 +104,9 @@ public class ExtractTextFromTweets {
                         CommandLine.Type.STRING, true, false, true)
                 .withOption("o", OUTPUT_PATH,
                         "output directory", "DIRECTORY",
+                        CommandLine.Type.STRING, true, false, true)
+                .withOption("l", LANGUAGE,
+                        "only include specified language", "LANGUAGE",
                         CommandLine.Type.STRING, true, false, false);
     }
 
@@ -105,11 +120,19 @@ public class ExtractTextFromTweets {
             final String tweetsPath = cmd.getOptionValue(TWEETS_PATH, String.class);
             final String outputPath = cmd.getOptionValue(OUTPUT_PATH, String.class);
 
+            if (cmd.hasOption(LANGUAGE)) {
+                extractor.setLanguage(cmd.getOptionValue(LANGUAGE, String.class));
+            }
+
             //noinspection ConstantConditions
             extractor.tweets(new Path(tweetsPath), new Path(outputPath));
         } catch (final Throwable ex) {
             // Handle exception
             CommandLine.fail(ex);
         }
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
     }
 }
