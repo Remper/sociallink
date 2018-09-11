@@ -50,8 +50,8 @@ public abstract class TextProcessor implements JsonObjectProcessor, Serializable
 
         replacements.addAll(addReplacements(entities, "hashtags", hashtag -> breakHashtag(hashtag.get("text").getAsString())));
         replacements.addAll(addReplacements(entities, "user_mentions", mention -> mention.get("name").getAsString()));
-        replacements.addAll(addReplacements(entities, "urls", url -> " \uD83D\uDD17 "));
-        replacements.addAll(addReplacements(entities, "media", media -> " \uD83D\uDDBC️ "));
+        replacements.addAll(addReplacements(entities, "urls", url -> " <url> "));
+        replacements.addAll(addReplacements(entities, "media", media -> " <media> "));
 
         // Sorting replacements
         replacements.sort(Comparator.comparingInt(r -> r.start));
@@ -130,7 +130,7 @@ public abstract class TextProcessor implements JsonObjectProcessor, Serializable
 
     private String breakHashtag(String hashtag) {
         StringBuilder sb = new StringBuilder();
-        sb.append(" -shash- ");
+        sb.append(" <shash> ");
         final boolean[] prevUppercase = {false};
         hashtag.codePoints().forEachOrdered(value -> {
             if (Character.isUpperCase(value)) {
@@ -143,7 +143,7 @@ public abstract class TextProcessor implements JsonObjectProcessor, Serializable
             }
             sb.appendCodePoint(value);
         });
-        sb.append(" -ehash- ");
+        sb.append(" <ehash> ");
 
         return sb.toString();
     }

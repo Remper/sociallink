@@ -114,6 +114,7 @@ public class BuildUserIndex implements JsonObjectProcessor {
             LOGGER.info("Enabling text");
             DataSet<Tuple2<Long, String>> reducedTweets = tweets
                 .flatMap(new TextExtractorWithId(true))
+                .filter(tweet -> tweet.f2.length() > 5)
                 .groupBy(0).reduce((value1, value2) -> value1)
                 .project(1, 2);
 
