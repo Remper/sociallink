@@ -15,6 +15,7 @@ import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.Utils;
 import org.apache.flink.api.java.operators.DataSource;
+import org.apache.flink.api.java.operators.UnsortedGrouping;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.Path;
@@ -35,6 +36,7 @@ public class ExtractSocialGraph {
     private static final String TWEETS_PATH = "tweets-path";
 
     private OutputFormat<Tuple3<Long, Long, Float>> forwardOutputFormat;
+    private OutputFormat<Tuple3<Long, String, String>> forwardCondensedPGFormat;
     private OutputFormat<Tuple3<Long, Long, Float>> backwardOutputFormat;
 
     private void start(Path input, Path output) throws Exception {
@@ -42,6 +44,7 @@ public class ExtractSocialGraph {
         parameters.setString("db.file", output.getPath());
 
         forwardOutputFormat = new PostgresFileSink<Tuple3<Long, Long, Float>>("forward").testFile(parameters);
+        forwardCondensedPGFormat = new PostgresFileSink<Tuple3<Long, String, String>>("forward.pg").testFile(parameters);
         backwardOutputFormat = new PostgresFileSink<Tuple3<Long, Long, Float>>("backward").testFile(parameters);
 
         startPipeline(input, parameters);
@@ -75,10 +78,16 @@ public class ExtractSocialGraph {
                 .sum(2)
                 .filter(new GraphFilter(2));
 
-        jointEdges
-                .groupBy(0)
+        UnsortedGrouping<Tuple3<Long, Long, Integer>> forwardGrouped = jointEdges
+                .groupBy(0);
+
+        forwardGrouped
                 .reduceGroup(new EdgeNormalizer())
                 .output(forwardOutputFormat).withParameters(parameters);
+
+        forwardGrouped
+                .reduceGroup(new CondenseAndNormalizeGraph())
+                .output(forwardCondensedPGFormat).setParallelism(1).withParameters(parameters);
 
         jointEdges
                 .groupBy(1)
@@ -122,6 +131,45 @@ public class ExtractSocialGraph {
                 }
                 out.collect(new Tuple3<>(id, mentionId, 1));
             }
+        }
+    }
+
+    private static class CondenseAndNormalizeGraph implements GroupReduceFunction<Tuple3<Long, Long, Integer>, Tuple3<Long, String, String>> {
+        @Override
+        public void reduce(Iterable<Tuple3<Long, Long, Integer>> edges, Collector<Tuple3<Long, String, String>> out) throws Exception {
+            int sum = 0;
+
+            LinkedList<Tuple3<Long, Long, Integer>> listedEdges = new LinkedList<>();
+            for (Tuple3<Long, Long, Integer> edge : edges) {
+                sum += edge.f2;
+                listedEdges.add(edge);
+            }
+
+            StringBuilder ids = new StringBuilder();
+            StringBuilder weights = new StringBuilder();
+            Long id = null;
+            for (Tuple3<Long, Long, Integer> edge : listedEdges) {
+                id = edge.f0;
+                if (ids.length() > 0) {
+                    ids.append(',');
+                }
+                ids.append(edge.f1.toString());
+
+                if (weights.length() > 0) {
+                    weights.append(',');
+                }
+                weights.append(String.valueOf((float) edge.f2 / sum));
+
+            }
+            if (id == null) {
+                return;
+            }
+
+            out.collect(new Tuple3<>(
+                id,
+                "{"+ids.toString()+"}",
+                "{"+weights.toString()+"}"
+            ));
         }
     }
 

@@ -34,7 +34,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class UserText extends TableImpl<UserTextRecord> {
 
-    private static final long serialVersionUID = -708992843;
+    private static final long serialVersionUID = 436441581;
 
     /**
      * The reference instance of <code>public.user_text</code>
@@ -55,9 +55,9 @@ public class UserText extends TableImpl<UserTextRecord> {
     public final TableField<UserTextRecord, Long> UID = createField("uid", org.jooq.impl.SQLDataType.BIGINT.nullable(false), this, "");
 
     /**
-     * The column <code>public.user_text.lsa</code>.
+     * The column <code>public.user_text.text</code>.
      */
-    public final TableField<UserTextRecord, Object> LSA = createField("lsa", org.jooq.impl.DefaultDataType.getDefaultDataType("USER-DEFINED"), this, "");
+    public final TableField<UserTextRecord, String> TEXT = createField("text", org.jooq.impl.SQLDataType.CLOB.nullable(false), this, "");
 
     /**
      * Create a <code>public.user_text</code> table reference

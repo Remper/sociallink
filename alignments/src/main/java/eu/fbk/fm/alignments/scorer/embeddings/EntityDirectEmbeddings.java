@@ -7,8 +7,6 @@ import javax.sql.DataSource;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 
-import static eu.fbk.fm.alignments.index.db.Tables.KB_INDEX;
-
 /**
  * Queries embeddings endpoint based on Wikidata URI of an entity
  *

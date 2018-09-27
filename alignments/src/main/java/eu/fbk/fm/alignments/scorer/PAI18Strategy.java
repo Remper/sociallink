@@ -1,22 +1,16 @@
 package eu.fbk.fm.alignments.scorer;
 
 import eu.fbk.fm.alignments.DBpediaResource;
-import eu.fbk.fm.alignments.scorer.embeddings.EmbeddingsProvider;
 import eu.fbk.fm.alignments.scorer.embeddings.EntityDirectEmbeddings;
-import eu.fbk.fm.alignments.scorer.embeddings.EntityEmbeddings;
 import eu.fbk.fm.alignments.scorer.embeddings.SocialGraphEmbeddings;
-import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
 import eu.fbk.fm.alignments.scorer.text.MemoryEmbeddingsProvider;
 import eu.fbk.fm.alignments.scorer.text.VectorProvider;
-import eu.fbk.utils.lsa.LSM;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import twitter4j.User;
 
 import javax.sql.DataSource;
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.*;
 
 /**

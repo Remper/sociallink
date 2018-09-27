@@ -48,11 +48,15 @@ public class PostgresFileSink<T extends Tuple> implements OutputFormat<T> {
     }
 
     private File prepareFile() {
-        return prepareFile(0, 0);
+        return prepareFile(0, 1);
     }
 
     private File prepareFile(int taskNumber, int numTasks) {
-        return new File(filename, appendix + "-" + taskNumber + "-" + numTasks);
+        if (numTasks == 1) {
+            return new File(filename, appendix);
+        } else {
+            return new File(filename, appendix + "-" + taskNumber + "-" + numTasks);
+        }
     }
 
     @Override

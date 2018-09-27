@@ -134,7 +134,7 @@ public class ISWC17Strategy extends AbstractScoringStrategy implements FeatureVe
             if (source == null) {
                 providers.add(new TextScorer(scorer).all().userData());
             } else {
-                providers.add(new DBTextScorer(source, textVectorProvider));
+                providers.add(new DBTextScorerv2(source, scorer));
             }
         }
 

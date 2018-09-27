@@ -1,9 +1,12 @@
 package eu.fbk.fm.alignments.pipeline;
 
+import eu.fbk.fm.alignments.evaluation.DatasetEntry;
 import eu.fbk.fm.alignments.index.FillFromIndex;
 import eu.fbk.fm.alignments.index.db.tables.records.AlignmentsRecord;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
+import eu.fbk.fm.alignments.scorer.FullyResolvedEntry;
+import eu.fbk.fm.alignments.scorer.UserData;
 import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.utils.core.CommandLine;
 import org.jooq.DSLContext;
@@ -19,6 +22,7 @@ import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static eu.fbk.fm.alignments.index.db.tables.Alignments.ALIGNMENTS;
 
@@ -37,7 +41,6 @@ public class SubmitEntities {
 
     private final DataSource source;
     private final FillFromIndex index;
-    private final FillFromIndex fallbackIndex;
 
 
     public SubmitEntities(DataSource source, Endpoint endpoint) {
@@ -45,9 +48,6 @@ public class SubmitEntities {
         this.index = new FillFromIndex(endpoint, new AllNamesStrategy(), source);
         this.index.setTimeout(20);
         this.index.turnOffVerbose();
-        this.fallbackIndex = new FillFromIndex(endpoint, new AllNamesStrategy(1), source);
-        this.fallbackIndex.setTimeout(20);
-        this.fallbackIndex.turnOffVerbose();
     }
 
     public void run(String input) throws IOException {
@@ -55,10 +55,9 @@ public class SubmitEntities {
         Files.lines(Paths.get(input)).parallel().forEach(line -> {
             //Populating list of candidates
             line = line.substring(1, line.length()-1);
-            List<Long> uids = index.getUids(line);
-            if (uids.size() == 0) {
-                uids = fallbackIndex.getUids(line);
-            }
+            FullyResolvedEntry entry = new FullyResolvedEntry(new DatasetEntry(line));
+            index.fill(entry);
+            List<Long> uids = entry.candidates.stream().map(UserData::getId).collect(Collectors.toList());
 
             //Saving everything to the database
             DSLContext context = DSL.using(source, SQLDialect.POSTGRES);

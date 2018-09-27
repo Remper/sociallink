@@ -4,15 +4,13 @@ import eu.fbk.fm.alignments.DBpediaResource;
 import twitter4j.User;
 
 import javax.sql.DataSource;
-import java.io.Serializable;
 import java.net.URISyntaxException;
-
-import static eu.fbk.fm.alignments.index.db.Tables.KB_INDEX;
 
 /**
  * Queries kb_index table in the database and then queries embeddings endpoint
  *
  * @author Yaroslav Nechaev (remper@me.com)
+ * @deprecated
  */
 public class EntityEmbeddings extends EmbeddingsProvider {
 
@@ -25,7 +23,8 @@ public class EntityEmbeddings extends EmbeddingsProvider {
 
     @Override
     public double[] _getFeatures(User user, DBpediaResource resource) {
-        Long userVectorRaw = context
+        throw new UnsupportedOperationException("This way of querying embeddings is currently disabled, please do not use it");
+        /*Long userVectorRaw = context
                 .select(KB_INDEX.KBID)
                 .from(KB_INDEX)
                 .where(KB_INDEX.URI.eq(resource.getIdentifier()))
@@ -38,6 +37,6 @@ public class EntityEmbeddings extends EmbeddingsProvider {
         Long[] result = new Long[1];
         result[0] = userVectorRaw;
 
-        return predict((Serializable[]) result);
+        return predict((Serializable[]) result);*/
     }
 }

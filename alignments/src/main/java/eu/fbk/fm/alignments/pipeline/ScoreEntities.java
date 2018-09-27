@@ -8,9 +8,14 @@ import eu.fbk.fm.alignments.index.db.tables.records.AlignmentsRecord;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.scorer.ISWC17Strategy;
+import eu.fbk.fm.alignments.scorer.PAI18Strategy;
 import eu.fbk.fm.alignments.scorer.ScoringStrategy;
+import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
+import eu.fbk.fm.alignments.scorer.text.MemoryEmbeddingsProvider;
+import eu.fbk.fm.alignments.scorer.text.VectorProvider;
 import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.utils.core.CommandLine;
+import eu.fbk.utils.lsa.LSM;
 import eu.fbk.utils.math.Scaler;
 import org.jooq.Cursor;
 import org.jooq.Record;
@@ -25,6 +30,8 @@ import twitter4j.User;
 import javax.sql.DataSource;
 import java.io.FileReader;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.LinkedList;
@@ -48,6 +55,7 @@ public class ScoreEntities {
     private static final String DB_PASSWORD = "db-password";
     private static final String ENDPOINT = "endpoint";
     private static final String LSA_PATH = "lsa-path";
+    private static final String EMBEDDINGS_PATH = "embeddings-path";
 
     private final DataSource source;
     private final Endpoint endpoint;
@@ -152,7 +160,10 @@ public class ScoreEntities {
                         CommandLine.Type.STRING, true, false, true)
                 .withOption(null, LSA_PATH,
                         "path to LSA model", "DIRECTORY",
-                        CommandLine.Type.STRING, true, false, true);
+                        CommandLine.Type.STRING, true, false, true)
+                .withOption(null, EMBEDDINGS_PATH,
+                        "path to embeddings to use along with LSA", "DIRECTORY",
+                        CommandLine.Type.STRING, true, false, false);
     }
 
     public static void main(String[] args) throws Exception {
@@ -165,10 +176,30 @@ public class ScoreEntities {
             final String dbPassword = cmd.getOptionValue(DB_PASSWORD, String.class);
             final String endpointUri = cmd.getOptionValue(ENDPOINT, String.class);
             final String lsaPath = cmd.getOptionValue(LSA_PATH, String.class);
+            final String embeddingsPath = cmd.getOptionValue(EMBEDDINGS_PATH, String.class);
 
             DataSource source = DBUtils.createPGDataSource(dbConnection, dbUser, dbPassword);
             Endpoint endpoint = new Endpoint(endpointUri);
-            ScoringStrategy strategy = ISWC17Strategy.builder().source(source).lsaPath(lsaPath).build();
+
+            PAI18Strategy strategy = new PAI18Strategy(source);
+            LSM lsm = new LSM(lsaPath + "/X", 100, true);
+            VectorProvider textVectorProvider = new LSAVectorProvider(lsm);
+            List<VectorProvider> allVectorProviders = new LinkedList<>();
+            allVectorProviders.add(textVectorProvider);
+            if (embeddingsPath != null) {
+                LinkedList<VectorProvider> embProviders = new LinkedList<>();
+                Files.list(Paths.get(embeddingsPath)).forEach((path) -> {
+                    try {
+                        embProviders.add(new MemoryEmbeddingsProvider(path.toString(), lsaPath));
+                    } catch (Exception e) {
+                        LOGGER.error("Error while loading embedding", e);
+                    }
+                });
+                LOGGER.info("Loaded {} embedding models", embProviders.size());
+                allVectorProviders.addAll(embProviders);
+            }
+            strategy.addProvider(ISWC17Strategy.builder().source(source).vectorProviders(allVectorProviders).build());
+
             ScoreEntities script = new ScoreEntities(source, endpoint, strategy);
 
             script.run();

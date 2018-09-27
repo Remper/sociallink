@@ -5,12 +5,11 @@ package eu.fbk.fm.alignments.index.db;
 
 
 import eu.fbk.fm.alignments.index.db.tables.Alignments;
-import eu.fbk.fm.alignments.index.db.tables.KbIndex;
 import eu.fbk.fm.alignments.index.db.tables.UserIndex;
 import eu.fbk.fm.alignments.index.db.tables.UserObjects;
 import eu.fbk.fm.alignments.index.db.tables.UserSg;
 import eu.fbk.fm.alignments.index.db.tables.UserText;
-import eu.fbk.fm.alignments.index.db.tables.UserTextArr;
+import eu.fbk.fm.alignments.index.db.udt.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +19,7 @@ import javax.annotation.Generated;
 
 import org.jooq.Catalog;
 import org.jooq.Table;
+import org.jooq.UDT;
 import org.jooq.impl.SchemaImpl;
 
 
@@ -36,7 +36,7 @@ import org.jooq.impl.SchemaImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Public extends SchemaImpl {
 
-    private static final long serialVersionUID = 275761985;
+    private static final long serialVersionUID = 2094861583;
 
     /**
      * The reference instance of <code>public</code>
@@ -47,11 +47,6 @@ public class Public extends SchemaImpl {
      * The table <code>public.alignments</code>.
      */
     public final Alignments ALIGNMENTS = eu.fbk.fm.alignments.index.db.tables.Alignments.ALIGNMENTS;
-
-    /**
-     * The table <code>public.kb_index</code>.
-     */
-    public final KbIndex KB_INDEX = eu.fbk.fm.alignments.index.db.tables.KbIndex.KB_INDEX;
 
     /**
      * The table <code>public.user_index</code>.
@@ -72,11 +67,6 @@ public class Public extends SchemaImpl {
      * The table <code>public.user_text</code>.
      */
     public final UserText USER_TEXT = eu.fbk.fm.alignments.index.db.tables.UserText.USER_TEXT;
-
-    /**
-     * The table <code>public.user_text_arr</code>.
-     */
-    public final UserTextArr USER_TEXT_ARR = eu.fbk.fm.alignments.index.db.tables.UserTextArr.USER_TEXT_ARR;
 
     /**
      * No further instances allowed
@@ -104,11 +94,21 @@ public class Public extends SchemaImpl {
     private final List<Table<?>> getTables0() {
         return Arrays.<Table<?>>asList(
             Alignments.ALIGNMENTS,
-            KbIndex.KB_INDEX,
             UserIndex.USER_INDEX,
             UserObjects.USER_OBJECTS,
             UserSg.USER_SG,
-            UserText.USER_TEXT,
-            UserTextArr.USER_TEXT_ARR);
+            UserText.USER_TEXT);
+    }
+
+    @Override
+    public final List<UDT<?>> getUDTs() {
+        List result = new ArrayList();
+        result.addAll(getUDTs0());
+        return result;
+    }
+
+    private final List<UDT<?>> getUDTs0() {
+        return Arrays.<UDT<?>>asList(
+            Test.TEST);
     }
 }

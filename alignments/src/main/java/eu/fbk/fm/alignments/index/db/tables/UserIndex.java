@@ -4,12 +4,8 @@
 package eu.fbk.fm.alignments.index.db.tables;
 
 
-import eu.fbk.fm.alignments.index.db.Keys;
 import eu.fbk.fm.alignments.index.db.Public;
 import eu.fbk.fm.alignments.index.db.tables.records.UserIndexRecord;
-
-import java.util.Arrays;
-import java.util.List;
 
 import javax.annotation.Generated;
 
@@ -17,7 +13,6 @@ import org.jooq.Field;
 import org.jooq.Schema;
 import org.jooq.Table;
 import org.jooq.TableField;
-import org.jooq.UniqueKey;
 import org.jooq.impl.TableImpl;
 
 
@@ -34,7 +29,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class UserIndex extends TableImpl<UserIndexRecord> {
 
-    private static final long serialVersionUID = -450306696;
+    private static final long serialVersionUID = -486765049;
 
     /**
      * The reference instance of <code>public.user_index</code>
@@ -92,22 +87,6 @@ public class UserIndex extends TableImpl<UserIndexRecord> {
     @Override
     public Schema getSchema() {
         return Public.PUBLIC;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public UniqueKey<UserIndexRecord> getPrimaryKey() {
-        return Keys.USER_INDEX_PKEY;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public List<UniqueKey<UserIndexRecord>> getKeys() {
-        return Arrays.<UniqueKey<UserIndexRecord>>asList(Keys.USER_INDEX_PKEY);
     }
 
     /**

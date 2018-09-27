@@ -73,7 +73,7 @@ WITH (
 CREATE TABLE public.user_text
 (
   uid bigint NOT NULL,
-  lsa real[] NOT NULL,
+  text text NOT NULL,
   CONSTRAINT user_text_pkey PRIMARY KEY (uid)
 )
 WITH (
@@ -101,3 +101,18 @@ WITH (
 CREATE INDEX kb_index_uri
     ON public.kb_index USING btree
     (uri);
+
+-- Table: public.alignments
+
+-- DROP TABLE public.alignments;
+
+CREATE TABLE public.alignments (
+    resource_id character varying(255) NOT NULL,
+    uid bigint NOT NULL,
+    score real NOT NULL,
+    is_alignment boolean NOT NULL,
+    version smallint NOT NULL,
+    CONSTRAINT alignments_pkey PRIMARY KEY (resource_id, uid)
+);
+
+CREATE INDEX alignments_version_idx ON public.alignments USING btree (version);

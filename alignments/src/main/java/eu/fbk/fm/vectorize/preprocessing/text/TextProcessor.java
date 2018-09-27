@@ -44,14 +44,12 @@ public abstract class TextProcessor implements JsonObjectProcessor, Serializable
         final LinkedList<Replacement> replacements = new LinkedList<>();
 
         JsonObject entities = status.getAsJsonObject("entities");
-        if (entities == null) {
-            return new Tuple3<>(id, userId, prepareString(originalText));
+        if (entities != null) {
+            replacements.addAll(addReplacements(entities, "hashtags", hashtag -> breakHashtag(hashtag.get("text").getAsString())));
+            replacements.addAll(addReplacements(entities, "user_mentions", mention -> mention.get("name").getAsString()));
+            replacements.addAll(addReplacements(entities, "urls", url -> " <url> "));
+            replacements.addAll(addReplacements(entities, "media", media -> " <media> "));
         }
-
-        replacements.addAll(addReplacements(entities, "hashtags", hashtag -> breakHashtag(hashtag.get("text").getAsString())));
-        replacements.addAll(addReplacements(entities, "user_mentions", mention -> mention.get("name").getAsString()));
-        replacements.addAll(addReplacements(entities, "urls", url -> " <url> "));
-        replacements.addAll(addReplacements(entities, "media", media -> " <media> "));
 
         // Sorting replacements
         replacements.sort(Comparator.comparingInt(r -> r.start));
@@ -84,8 +82,8 @@ public abstract class TextProcessor implements JsonObjectProcessor, Serializable
             //.replaceAll("^\\.", "")
             //.replaceAll("\\.$", "")
             .replaceAll("https?://[^\\s]+", " <url> ")
-            .replaceAll("[,.?_!@#$%^&*():|/\\\\]", " ")
-            .replaceAll("[\"'`‘“´]", " ' ")
+            //.replaceAll("[,.?_!@#$%^&*():|/\\\\]", " ")
+            //.replaceAll("[\"'`‘“´]", " ' ")
             .replaceAll("\\s+", " ");
         if (noCase) {
             processedText = processedText.toLowerCase();

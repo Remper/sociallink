@@ -16,11 +16,10 @@ import javax.sql.DataSource;
 
 import java.util.List;
 
-import static eu.fbk.fm.alignments.index.db.Tables.USER_TEXT_ARR;
-import static eu.fbk.fm.alignments.index.db.tables.UserText.USER_TEXT;
-
 /**
  * Compares entity's text to the precomputed LSA in the DB
+ *
+ * @deprecated
  */
 public class DBTextScorer implements FeatureProvider {
 
@@ -38,7 +37,8 @@ public class DBTextScorer implements FeatureProvider {
 
     @Override
     public double getFeature(User user, DBpediaResource resource) {
-        PGobject userVectorRaw;
+        throw new UnsupportedOperationException("This way of requesting entity's text is no longer supported");
+        /*PGobject userVectorRaw;
         try {
             userVectorRaw = DSL.using(source, SQLDialect.POSTGRES)
                 .select(USER_TEXT.LSA)
@@ -57,7 +57,7 @@ public class DBTextScorer implements FeatureProvider {
             return 0.0d;
         }
 
-        return process(cubeToFloat(userVectorRaw), resource);
+        return process(cubeToFloat(userVectorRaw), resource);*/
     }
 
     protected double process(float[] user, DBpediaResource resource) {
@@ -110,7 +110,7 @@ public class DBTextScorer implements FeatureProvider {
             super(source, lsaVectorProvider);
         }
 
-        @Override
+        /*@Override
         public double getFeature(User user, DBpediaResource resource) {
             Float[] userVectorRaw = DSL.using(source, SQLDialect.POSTGRES)
                     .select(USER_TEXT_ARR.LSA)
@@ -127,7 +127,7 @@ public class DBTextScorer implements FeatureProvider {
             }
 
             return process(DBTextScorer.numberToFloat(userVectorRaw), resource);
-        }
+        }*/
 
     }
 

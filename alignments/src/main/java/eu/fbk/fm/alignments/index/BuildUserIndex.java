@@ -119,7 +119,7 @@ public class BuildUserIndex implements JsonObjectProcessor {
                 .project(1, 2);
 
             reducedTweets
-                .groupBy(1).reduce((value1, value2) -> new Tuple2<>(value1.f0, value1.f1 + "\n" + value2.f1))
+                .groupBy(0).reduce((value1, value2) -> new Tuple2<>(value1.f0, value1.f1 + "\n" + value2.f1))
                 .output(textOutputFormat).withParameters(parameters);
         }
 
