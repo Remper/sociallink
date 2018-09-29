@@ -34,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +81,8 @@ public class ScoreEntities {
         while (batch.size() > 0 || !started) {
             started = true;
             batch.clear();
+            AtomicInteger strongMatches = new AtomicInteger();
+            HashMap<String, DBpediaResource> stupidCache = new HashMap<>();
             DSL.using(source, SQLDialect.POSTGRES)
                     .select(ALIGNMENTS.fields())
                     .select(USER_OBJECTS.OBJECT)
@@ -119,13 +122,25 @@ public class ScoreEntities {
                         }
 
                         // Getting entity from the KB
-                        DBpediaResource resource = endpoint.getResourceById(alignment.getResourceId());
+                        DBpediaResource resource;
+                        synchronized (stupidCache) {
+                            resource = stupidCache.get(alignment.getResourceId());
+                        }
+                        if (resource == null) {
+                            resource = endpoint.getResourceById(alignment.getResourceId());
+                            synchronized (stupidCache) {
+                                stupidCache.put(alignment.getResourceId(), resource);
+                            }
+                        }
 
                         // Scoring and rescaling
                         Map<String, double[]> features = strategy.getScore(user, resource);
 
                         // Classifying
                         double result = modelEndpoint.predict(features)[1];
+                        if (result >= 0.9) {
+                            strongMatches.getAndIncrement();
+                        }
 
                         alignment.setScore((float) result);
                         alignment.setVersion((short) 2);
@@ -133,9 +148,11 @@ public class ScoreEntities {
                         int curProcessed = processed.incrementAndGet();
                         if (curProcessed % 10000 == 0) {
                             LOGGER.info(String.format(
-                                    "Processed %d entities (%.2f ent/s)",
+                                    "Processed %7d entities (%.2f ent/s, strong matches: %d, stupid cache size: %d)",
                                     curProcessed,
-                                    (double) 10000 / watch.elapsed(TimeUnit.SECONDS)));
+                                    (double) 10000 / watch.elapsed(TimeUnit.SECONDS),
+                                    strongMatches.get(),
+                                    stupidCache.size()));
                             watch.reset().start();
                         }
                     });

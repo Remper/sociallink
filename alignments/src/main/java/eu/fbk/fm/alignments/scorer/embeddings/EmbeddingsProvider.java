@@ -24,6 +24,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Provides different types of embeddings from the embeddings API
@@ -48,6 +49,10 @@ public abstract class EmbeddingsProvider implements FeatureVectorProvider, JsonO
     protected DSLContext context;
 
     private boolean enableWeights = true;
+
+    private final AtomicInteger requests = new AtomicInteger();
+    private final AtomicInteger resolved = new AtomicInteger();
+    private final AtomicInteger zeroes = new AtomicInteger();
 
     public EmbeddingsProvider(DataSource source, String embName) throws URISyntaxException {
         if (embName.length() == 0) {
@@ -99,6 +104,19 @@ public abstract class EmbeddingsProvider implements FeatureVectorProvider, JsonO
             JsonArray results = get(object, JsonArray.class, "data", "embedding");
             if (results == null) {
                 throw new IOException("Incorrect response: "+gson.toJson(object));
+            }
+            int curResolved = get(object, Integer.class, "data", "resolved");
+            int totalResolved = resolved.getAndAdd(curResolved);
+            int totalZeroes;
+            if (curResolved == 0) {
+                totalZeroes = zeroes.getAndIncrement();
+            } else {
+                totalZeroes = zeroes.get();
+            }
+
+            int curRequests = requests.getAndIncrement();
+            if (curRequests % 50000 == 0 && curRequests > 0) {
+                logger.info(String.format("[Subspace: %s] Processed %5d requests (%5d zeroes, %.2f avg. resolved)", getSubspaceId(), curRequests, totalZeroes, (float) totalResolved / curRequests));
             }
             result = new double[results.size()];
             int pointer = 0;
