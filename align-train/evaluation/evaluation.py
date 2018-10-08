@@ -609,6 +609,18 @@ def precision_recall_curve(expected, predicted, scores):
         p = tpc / (tpc + fpc)
         r = tpc / (tpc + fnc)
 
+    # Print thresholds and p/r for p >= 90%
+    high_p_idx = p >= 0.9
+    high_p = p[high_p_idx]
+    high_r = r[high_p_idx]
+    high_score = scores[high_p_idx]
+
+    #print("Thresholds:")
+    print("P:        ", high_p[-5:])
+    print("R:        ", high_r[-5:])
+    print("Threshold:", high_score[-5:])
+    print()
+
     # Discard NAN precision values and (precision, recall) pairs after recall reaches 1
     idx = ~np.isnan(p) & ~np.isnan(r) & (np.diff(np.append(r, 2)) > 0)
     scores = scores[idx]
@@ -878,14 +890,14 @@ if __name__ == "__main__":
     entities = entity_table(candidates, 0.0)
 
     _plot_calibration = False
-    _plot_acquisition = True
-    _plot_overall = True
-    _plot_selection = True
-    _plot_internal = True
+    _plot_acquisition = False
+    _plot_overall = False
+    _plot_selection = False
+    _plot_internal = False
 
     _table_acquisition = False
     _table_overall = True
-    _table_selection = True
+    _table_selection = False
     _table_pairwise = False  # broken, should use cross-entropy and convince readers  it is appropriate
 
     #    _method = "emb_extra_layer@iswc17+emb_kb200_rdf2vec_w+emb_sg300_w"
@@ -918,9 +930,11 @@ if __name__ == "__main__":
         compute(entities[entities.type == "org"], "Organisations")
         compute(entities, "All entities")
 
+    print("Table overall:")
     if (_table_overall):
         pr_table(entities, moverall, True)
 
+    print("Table selection:")
     if (_table_selection):
         pr_table(entities, mselection, False)
 

@@ -131,6 +131,7 @@ def main(workdir):
 
                 # Rescaling scores using Francesco's approach
                 scores_sum = sample_scores.sum()
+                raise ArithmeticError("There is a bug here — rewrite, sample_scores are not sortered yet")
                 if scores_sum > 0:
                     sample_scores = sample_scores[-1] * sample_scores / scores_sum
 

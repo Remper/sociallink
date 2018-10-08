@@ -35,21 +35,26 @@ import java.util.Map;
  */
 public class Endpoint implements ResourceEndpoint {
     private static final Logger logger = LoggerFactory.getLogger(Endpoint.class.getName());
-    private static final String PROPERTIES_FOR_ENTITY = "" +
-            "select " +
-            "  ?relation ?property " +
-            "where { " +
-            "  <:resourceId> ?relation ?property " +
-            "  FILTER (!ISLITERAL(?property) || LANG(?property) = '' || LANG(?property) = 'en') " +
-            "} " +
-            "group by ?property ?relation";
+    private static final String[] PROPERTIES_FOR_ENTITY = new String[]{"" +
+        "select " +
+        "  ?relation ?property " +
+        "where { " +
+        "  <:resourceId> ?relation ?property ",
+        "} " +
+        "group by ?property ?relation"};
+    private static final String LANGUAGE_FILTER = "  FILTER (!ISLITERAL(?property) || LANG(?property) = '' || LANG(?property) = 'en') ";
 
     private URI url;
     private CloseableHttpClient client = null;
+    private boolean englishOnly = true;
 
     public Endpoint(String endpointURL) throws URISyntaxException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         url = new URIBuilder(endpointURL).build();
         init();
+    }
+
+    public void setEnglishOnly(boolean englishOnly) {
+        this.englishOnly = englishOnly;
     }
 
     private void init() throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
@@ -88,7 +93,7 @@ public class Endpoint implements ResourceEndpoint {
         Map<String, List<String>> properties = new HashMap<>();
         CloseableHttpResponse response = null;
         try {
-            response = executeQuery(PROPERTIES_FOR_ENTITY.replace(":resourceId", resourceId));
+            response = executeQuery(getQuery().replace(":resourceId", resourceId));
 
             for (CSVRecord record : process(response)) {
                 List<String> propertyContainer = properties.getOrDefault(record.get("relation"), new LinkedList<>());
@@ -111,5 +116,17 @@ public class Endpoint implements ResourceEndpoint {
 
     public URIBuilder getBuilder() {
         return new URIBuilder(url);
+    }
+
+    public String getQuery() {
+        assert PROPERTIES_FOR_ENTITY.length == 2;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(PROPERTIES_FOR_ENTITY[0]);
+        if (!englishOnly) {
+            sb.append(LANGUAGE_FILTER);
+        }
+        sb.append(PROPERTIES_FOR_ENTITY[1]);
+        return sb.toString();
     }
 }
