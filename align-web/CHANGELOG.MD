@@ -1,3 +1,10 @@
+Version 3.0
+---------------------
+
+ - takes into account social media data up to mid 2018
+ - performance and reliability improvements based on the latest paper published in Progress in Artificial Intelligence journal
+
+
 Version 2.0
 ---------------------
 
