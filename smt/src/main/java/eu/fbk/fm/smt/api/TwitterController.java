@@ -20,7 +20,7 @@ import java.util.List;
  * @author Yaroslav Nechaev (remper@me.com)
  */
 @Path("recode")
-public class RecodeController {
+public class TwitterController {
     @Inject
     private TwitterService twitter;
 
