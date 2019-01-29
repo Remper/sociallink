@@ -11,6 +11,8 @@ import eu.fbk.fm.alignments.evaluation.DatasetEntry;
 import eu.fbk.fm.alignments.index.FillFromIndex;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
+import eu.fbk.fm.alignments.persistence.sparql.InMemoryEndpoint;
+import eu.fbk.fm.alignments.persistence.sparql.ResourceEndpoint;
 import eu.fbk.fm.alignments.query.*;
 import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
 import eu.fbk.fm.alignments.scorer.*;
@@ -46,8 +48,12 @@ import javax.sql.DataSource;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -561,7 +567,7 @@ public class PrepareTrainingSet {
     public static Configuration loadConfiguration(String[] args) {
         Options options = new Options();
         options.addOption(
-                Option.builder("e").desc("Url to SPARQL endpoint")
+                Option.builder("e").desc("Url or path to SPARQL endpoint")
                         .required().hasArg().argName("file").longOpt("endpoint").build()
         );
         options.addOption(
@@ -1098,6 +1104,21 @@ public class PrepareTrainingSet {
 
     public static class Configuration {
         String endpoint;
+
+        ResourceEndpoint createEndpoint() throws Exception {
+            if (endpoint.startsWith("http")) {
+                return new Endpoint(endpoint);
+            }
+
+            File rdfPath =  new File(endpoint);
+            if (!rdfPath.exists()) {
+                throw new IOException("The endpoint at path \""+endpoint+"\" doesn't exist");
+            }
+
+            logger.info("The SPARQL endpoint looks like a file, loading into memory");
+            return InMemoryEndpoint.uncompressAndLoad(rdfPath, new String[]{"en", "it", "de", "fr", "br", "en-ca", "en-gb", "ca", "pt"}, false);
+        }
+
         String dbConnection;
         String dbUser;
         String dbPassword;

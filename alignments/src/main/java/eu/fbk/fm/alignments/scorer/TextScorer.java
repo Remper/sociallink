@@ -35,8 +35,8 @@ public class TextScorer implements FeatureProvider {
     }
 
     public static final BiFunction<User, DBpediaResource, String> DBPEDIA_TEXT_EXTRACTOR =
-        (user, resource) -> TextScorer
-            .getResourceTexts(resource)
+        (user, resource) -> resource
+            .getDescriptions()
             .stream()
             .reduce("", (text1, text2) -> text1 + " " + text2);
 
@@ -108,16 +108,9 @@ public class TextScorer implements FeatureProvider {
             .reduce("", (text1, text2) -> text1 + " " + text2);
     }
 
-    public static List<String> getResourceTexts(DBpediaResource resource) {
-        List<String> texts = resource.getProperty(DBpediaResource.ABSTRACT_PROPERTY);
-        texts.addAll(resource.getProperty(DBpediaResource.COMMENT_PROPERTY));
-
-        return texts;
-    }
-
     @Override
     public double getFeature(User user, DBpediaResource resource) {
-        List<String> resourceTexts = getResourceTexts(resource);
+        List<String> resourceTexts = resource.getDescriptions();
         String userText;
         if (userMode == USER_DATA) {
             userText = getUserDataText(user);

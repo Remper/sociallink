@@ -72,6 +72,13 @@ public class DBpediaResource {
         return attributes;
     }
 
+    /**
+     * Returns all subjects for a particular property
+     * DO NOT USE IT UNLESS STRICTLY NECESSARY, use convenience methods (like .getNames) if possible
+     *
+     * @param property predicate/property
+     * @return list of subjects (literals and URIs mixed up)
+     */
     public List<String> getProperty(String property) {
         return new LinkedList<>(attributes.getOrDefault(property, new LinkedList<>()));
     }
@@ -164,6 +171,13 @@ public class DBpediaResource {
 
     public List<String> getSurnames() {
         return getProperty(ATTRIBUTE_SURNAME);
+    }
+
+    public List<String> getDescriptions() {
+        List<String> texts = getProperty(DBpediaResource.ABSTRACT_PROPERTY);
+        texts.addAll(getProperty(DBpediaResource.COMMENT_PROPERTY));
+
+        return texts;
     }
 
     @Override

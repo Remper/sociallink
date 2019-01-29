@@ -59,7 +59,7 @@ public class DBTextScorerv2 implements FeatureProvider {
     }
 
     protected double process(String userText, DBpediaResource resource) {
-        List<String> resourceTexts = TextScorer.getResourceTexts(resource);
+        List<String> resourceTexts = resource.getDescriptions();
 
         double topScore = 0.0d;
         for (String text : resourceTexts) {

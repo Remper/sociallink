@@ -15,7 +15,7 @@ import java.util.Map;
 public class StrictStrategy implements QueryAssemblyStrategy {
     @Override
     public String getQuery(DBpediaResource resource) {
-        List<String> names = resource.getProperty(DBpediaResource.ATTRIBUTE_NAME);
+        List<String> names = resource.getNames();
         String cleanId = resource.getCleanResourceId();
         if (cleanId.length() > 0) {
             names.add(cleanId);

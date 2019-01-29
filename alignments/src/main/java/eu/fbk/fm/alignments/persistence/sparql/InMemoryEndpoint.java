@@ -1,10 +1,14 @@
 package eu.fbk.fm.alignments.persistence.sparql;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.SoweegoResource;
 import eu.fbk.fm.profiling.FilterUserData;
 import eu.fbk.utils.core.CommandLine;
 import org.apache.commons.compress.compressors.CompressorException;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
+import org.apache.commons.lang.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,22 +28,33 @@ import java.util.regex.Pattern;
  */
 public class InMemoryEndpoint extends FakeEndpoint {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(FilterUserData.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(InMemoryEndpoint.class);
+    private static final Gson GSON = new GsonBuilder().create();
+
     private static final String RDF_PATH = "rdf-path";
     private static final Pattern RDF_PATTERN = Pattern.compile("^<([^<>]+)>\\s+<([^<>]+)>\\s+((\"(.+)\"(((@[A-Za-z\\-]+)?)|((\\^\\^<([^<>]+)>)?)))|(<([^<>]+)>))\\s?\\.");
+    private static final int CUTOFF = 500000;
 
     public InMemoryEndpoint(File path) throws IOException {
         this(path, stream -> stream);
     }
 
     public InMemoryEndpoint(File path, Function<InputStream, InputStream> uncompressor) throws IOException {
-        load(uncompressor.apply(new BufferedInputStream(new FileInputStream(path))));
+        this(path, uncompressor, null, false);
     }
 
-    public void load(InputStream rawRDF) throws IOException {
+    public InMemoryEndpoint(File path,
+                            Function<InputStream, InputStream> uncompressor,
+                            String[] languages,
+                            boolean restrictLiterals) throws IOException {
+        load(uncompressor.apply(new BufferedInputStream(new FileInputStream(path))), languages, restrictLiterals);
+    }
+
+    public void load(InputStream rawRDF, String[] languages, boolean restrictLiterals) throws IOException {
         HashMap<String, Map<String, List<String>>> resources = new HashMap<>();
         int accepted = 0;
         int skipped = 0;
+        int filtered = 0;
         try (LineNumberReader reader = new LineNumberReader(new InputStreamReader(rawRDF))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -50,16 +65,32 @@ public class InMemoryEndpoint extends FakeEndpoint {
                     continue;
                 }
                 accepted++;
-                if (accepted % 500000 == 0) {
+                if (accepted % CUTOFF == 0) {
                     info(String.format("Accepted RDF entries: %.1fm. Entities: %d",((float)accepted/1000000), resources.size()));
+                    break;
                 }
 
                 String object = m.group(1);
                 String predicate = m.group(2);
                 String subject = m.group(5);
-                // Means subject is not a literal but a URI
                 if (subject == null) {
+                    // Means subject is not a literal but a URI
+                    if (restrictLiterals) {
+                        filtered++;
+                        continue;
+                    }
                     subject = m.group(13);
+                } else {
+                    // Check if we should filter out based on language
+                    String language = m.group(8);
+                    if (languages != null && language != null && !ArrayUtils.contains(languages, language.substring(1))) {
+                        filtered++;
+                        continue;
+                    }
+
+                    // If it is a literal, we need to unescape the Unicode symbols
+                    //TODO: find a better solution
+                    subject = GSON.fromJson("\""+subject+"\"", String.class);
                 }
 
                 Map<String, List<String>> resource;
@@ -79,10 +110,10 @@ public class InMemoryEndpoint extends FakeEndpoint {
                 values.add(subject);
             }
         }
-        info(String.format("Total accepted RDF entries: %.3fm. Entities: %d. Skipped: %d", ((float)accepted/1000000), resources.size(), skipped));
+        info(String.format("Total accepted RDF entries: %.1fm. Entities: %d. Skipped: %d. Filtered: %.1fk", ((float)accepted/1000000), resources.size(), skipped, ((float)filtered/1000)));
         info("Finalizing");
         for (Map.Entry<String, Map<String, List<String>>> rawResource : resources.entrySet()) {
-            DBpediaResource resource = new DBpediaResource(rawResource.getKey(), rawResource.getValue());
+            DBpediaResource resource = new SoweegoResource(rawResource.getKey(), rawResource.getValue());
             register(resource);
         }
         resources.clear();
@@ -90,10 +121,10 @@ public class InMemoryEndpoint extends FakeEndpoint {
     }
 
     private void info(String message) {
-        LOGGER.info("["+this.getClass().getSimpleName()+"] "+message);
+        LOGGER.info(message);
     }
 
-    public static InMemoryEndpoint uncompressAndLoad(File path) throws IOException {
+    public static InMemoryEndpoint uncompressAndLoad(File path, String[] languages, boolean restrictLiterals) throws IOException {
         return new InMemoryEndpoint(
             path,
             stream -> {
@@ -103,7 +134,9 @@ public class InMemoryEndpoint extends FakeEndpoint {
                     LOGGER.warn("Uncompressor failed, trying plain text: ", e);
                 }
                 return stream;
-            }
+            },
+            languages,
+            restrictLiterals
         );
     }
 
@@ -122,7 +155,11 @@ public class InMemoryEndpoint extends FakeEndpoint {
             //noinspection ConstantConditions
             final String rdfPath = cmd.getOptionValue(RDF_PATH, String.class);
 
-            InMemoryEndpoint endpoint = uncompressAndLoad(new File(rdfPath));
+            InMemoryEndpoint endpoint = uncompressAndLoad(
+                new File(rdfPath),
+                new String[]{"en", "it", "de", "fr", "br", "en-ca", "en-gb", "ca", "pt"},
+                false
+            );
         } catch (final Throwable ex) {
             // Handle exception
             CommandLine.fail(ex);

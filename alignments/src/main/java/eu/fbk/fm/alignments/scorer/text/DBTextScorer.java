@@ -62,7 +62,7 @@ public class DBTextScorer implements FeatureProvider {
 
     protected double process(float[] user, DBpediaResource resource) {
         DenseVector userVector = new DenseVector(user);
-        List<String> resourceTexts = TextScorer.getResourceTexts(resource);
+        List<String> resourceTexts = resource.getDescriptions();
 
         double topScore = 0.0d;
         for (String text : resourceTexts) {
