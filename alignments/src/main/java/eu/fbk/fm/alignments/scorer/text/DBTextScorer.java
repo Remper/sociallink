@@ -1,134 +1,85 @@
 package eu.fbk.fm.alignments.scorer.text;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import com.google.common.util.concurrent.AtomicDouble;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.scorer.FeatureProvider;
-import eu.fbk.fm.alignments.scorer.TextScorer;
-import eu.fbk.utils.math.DenseVector;
-import eu.fbk.utils.math.Vector;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
-import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import twitter4j.User;
 
 import javax.sql.DataSource;
-
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static eu.fbk.fm.alignments.index.db.tables.UserText.USER_TEXT;
 
 /**
- * Compares entity's text to the precomputed LSA in the DB
- *
- * @deprecated
+ * Compares entity's text to the text contained in the DB
  */
 public class DBTextScorer implements FeatureProvider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DBTextScorer.class);
 
     protected DataSource source;
-    protected VectorProvider vectorProvider;
+    protected SimilarityScorer scorer;
 
     protected boolean verbose = false;
 
-    public DBTextScorer(DataSource source, VectorProvider vectorProvider) {
+    protected AtomicInteger requests = new AtomicInteger();
+    protected AtomicLong avgDescLength = new AtomicLong();
+    protected AtomicDouble avgScore = new AtomicDouble();
+
+    public DBTextScorer(DataSource source, SimilarityScorer scorer) {
         this.source = source;
-        this.vectorProvider = vectorProvider;
+        this.scorer = scorer;
     }
 
     @Override
-    public double getFeature(User user, DBpediaResource resource) {
-        throw new UnsupportedOperationException("This way of requesting entity's text is no longer supported");
-        /*PGobject userVectorRaw;
+    public double getFeature(User user, KBResource resource) {
+        String userTextRaw;
         try {
-            userVectorRaw = DSL.using(source, SQLDialect.POSTGRES)
-                .select(USER_TEXT.LSA)
+             userTextRaw = DSL.using(source, SQLDialect.POSTGRES)
+                .select(USER_TEXT.TEXT)
                 .from(USER_TEXT)
                 .where(USER_TEXT.UID.eq(user.getId()))
-                .fetchOne(USER_TEXT.LSA, PGobject.class);
+                .fetchOne(USER_TEXT.TEXT);
         } catch (Exception e) {
             LOGGER.error("Something happened while querying user "+user.getScreenName(), e);
             throw e;
         }
 
-        if (userVectorRaw == null) {
+        if (userTextRaw == null) {
             if (verbose) {
-                LOGGER.debug("Can't find LSA for user: @"+user.getScreenName()+" ("+user.getId()+")");
+                LOGGER.debug("Can't find text for user: @"+user.getScreenName()+" ("+user.getId()+")");
             }
             return 0.0d;
         }
-
-        return process(cubeToFloat(userVectorRaw), resource);*/
-    }
-
-    protected double process(float[] user, DBpediaResource resource) {
-        DenseVector userVector = new DenseVector(user);
-        List<String> resourceTexts = resource.getDescriptions();
-
-        double topScore = 0.0d;
-        for (String text : resourceTexts) {
-            Vector textVector = vectorProvider.toVector(text);
-            double curScore = cosineSimilarity(userVector, (DenseVector) textVector);
-            if (curScore > topScore) {
-                topScore = curScore;
-            }
-        }
-        return topScore;
-    }
-
-    private static float[] cubeToFloat(PGobject object) {
-        String cubeString = object.getValue();
-        String[] cubeArray = cubeString.substring(1, cubeString.length() - 1).split(", ");
-        float[] target = new float[cubeArray.length];
-        for (int i = 0; i < cubeArray.length; i++) {
-            target[i] = Float.valueOf(cubeArray[i]);
+        if (verbose && userTextRaw.length() <= 5) {
+            LOGGER.warn("Extremely short text for user: @"+user.getScreenName()+" ("+user.getId()+")");
         }
 
-        return target;
+        return process(userTextRaw, resource);
     }
 
-    private static float[] numberToFloat(Number[] source) {
-        float[] target = new float[source.length];
-        for (int i = 0; i < target.length; i++) {
-            target[i] = source[i].floatValue();
-        }
+    protected double process(String userText, KBResource resource) {
+        String resourceText = resource.getDescriptions().stream().reduce((s1, s2) -> s1+" "+s2).orElse("");
 
-        return target;
+        double curScore = scorer.score(userText, resourceText);
+        avgDescLength.getAndAdd(resourceText.length());
+        avgScore.getAndAdd(curScore);
+        int curRequests = requests.getAndIncrement()+1;
+        if (curRequests % 50000 == 0 && curRequests > 0) {
+            LOGGER.info(String.format("[Subspace: %s] Processed %5d requests (avg. desc. length: %.2f, avg. sim. score: %.2f)", getSubspaceId(), curRequests, ((double)avgDescLength.get())/curRequests, avgScore.get()/curRequests));
+            LOGGER.info(String.format("[%s] [%s] [%s] [%s] [%s]", resource.getClass().getSimpleName(), resource.getIdentifier(), join(resource.getNames()), join(resource.getLabels()), join(resource.getDescriptions())));
+        }
+        return curScore;
     }
 
-    private static double cosineSimilarity(DenseVector v1, DenseVector v2) {
-        double norm = Math.sqrt(v1.dotProduct(v1) * v2.dotProduct(v2));
-        if (norm == 0.0d) {
-            return 0.0d;
-        }
-
-        return v1.dotProduct(v2) / norm;
-    }
-
-    public static class DBTextScorerArr extends DBTextScorer {
-
-        public DBTextScorerArr(DataSource source, LSAVectorProvider lsaVectorProvider) {
-            super(source, lsaVectorProvider);
-        }
-
-        /*@Override
-        public double getFeature(User user, DBpediaResource resource) {
-            Float[] userVectorRaw = DSL.using(source, SQLDialect.POSTGRES)
-                    .select(USER_TEXT_ARR.LSA)
-                    .from(USER_TEXT_ARR)
-                    .where(USER_TEXT_ARR.UID.eq(user.getId()))
-                    .fetchOne(USER_TEXT_ARR.LSA, Float[].class);
-
-
-            if (userVectorRaw == null) {
-                if (verbose) {
-                    LOGGER.debug("Can't find LSA for user: @"+user.getScreenName()+" ("+user.getId()+")");
-                }
-                return 0.0d;
-            }
-
-            return process(DBTextScorer.numberToFloat(userVectorRaw), resource);
-        }*/
-
+    protected String join(List<String> list) {
+        return list.stream().reduce((v1, v2) -> v1+", "+v2).orElse("<empty>");
     }
 
     public void setVerbose(boolean verbose) {

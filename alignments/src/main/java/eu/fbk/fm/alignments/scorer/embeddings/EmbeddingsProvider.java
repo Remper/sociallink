@@ -1,7 +1,7 @@
 package eu.fbk.fm.alignments.scorer.embeddings;
 
 import com.google.gson.*;
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.scorer.FeatureVectorProvider;
 import eu.fbk.fm.alignments.utils.flink.JsonObjectProcessor;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -149,12 +149,12 @@ public abstract class EmbeddingsProvider implements FeatureVectorProvider, JsonO
         return result;
     }
 
-    private String usrRsrcKey(User user, DBpediaResource resource) {
+    private String usrRsrcKey(User user, KBResource resource) {
         return Long.toString(user.getId()) + resource.getIdentifier();
     }
 
     @Override
-    public double[] getFeatures(User user, DBpediaResource resource) {
+    public double[] getFeatures(User user, KBResource resource) {
         String key = usrRsrcKey(user, resource);
         if (cache.containsKey(key)) {
             return cache.get(key);
@@ -170,5 +170,5 @@ public abstract class EmbeddingsProvider implements FeatureVectorProvider, JsonO
         return features;
     }
 
-    public abstract double[] _getFeatures(User user, DBpediaResource resource);
+    public abstract double[] _getFeatures(User user, KBResource resource);
 }

@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.scorer;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.utils.core.strings.EditDistance;
 import eu.fbk.utils.core.strings.LevenshteinDistance;
 import twitter4j.User;
@@ -35,11 +35,11 @@ public class NameScorer implements FeatureProvider {
     }
 
     @Override
-    public double getFeature(User user, DBpediaResource resource) {
+    public double getFeature(User user, KBResource resource) {
         return getFeatureForString(user.getName(), resource);
     }
 
-    protected double getFeatureForString(String compareString, DBpediaResource resource) {
+    protected double getFeatureForString(String compareString, KBResource resource) {
         List<String> names = resource.getNames();
         if (names.size() == 0) {
             names.add(resource.getCleanResourceId());
@@ -79,7 +79,7 @@ public class NameScorer implements FeatureProvider {
         }
 
         @Override
-        public double getFeature(User user, DBpediaResource resource) {
+        public double getFeature(User user, KBResource resource) {
             return getFeatureForString(user.getScreenName(), resource);
         }
     }

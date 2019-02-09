@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.twitter;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.query.QueryAssemblyStrategy;
 import org.apache.log4j.Logger;
 import twitter4j.*;
@@ -24,7 +24,7 @@ public class SearchRunner implements Runnable {
 
     //Side-effects
     private Thread curThread;
-    private List<DBpediaResource> batch;
+    private List<KBResource> batch;
     private Date limitReset = null;
     private int limitLeft = 0;
     private String screenName = "";
@@ -37,13 +37,13 @@ public class SearchRunner implements Runnable {
     }
 
     public interface BatchProvider {
-        List<DBpediaResource> provideNextBatch();
+        List<KBResource> provideNextBatch();
 
         void printStats(Date startDate, int processed);
     }
 
     public interface ResultReceiver {
-        void processResult(List<User> candidates, DBpediaResource task);
+        void processResult(List<User> candidates, KBResource task);
     }
 
     @Override
@@ -59,7 +59,7 @@ public class SearchRunner implements Runnable {
             e.printStackTrace();
         }
         List<User> users = new LinkedList<>();
-        for (DBpediaResource resource : batch) {
+        for (KBResource resource : batch) {
             String query = qaStrategy.getQuery(resource);
             //Random delay to ensure that we don't destroy twitter
             try {
@@ -107,7 +107,7 @@ public class SearchRunner implements Runnable {
         limitReset = new Date((status.getResetTimeInSeconds() + 2) * 1000L);
     }
 
-    public void startWithBatch(List<DBpediaResource> batch) {
+    public void startWithBatch(List<KBResource> batch) {
         if (!isReady()) {
             return;
         }
@@ -159,7 +159,7 @@ public class SearchRunner implements Runnable {
 
             //Check runner status and warp in time according to limits
             Date latestReadyDate = new Date(new Date().getTime() + 5000);
-            List<DBpediaResource> batch = null;
+            List<KBResource> batch = null;
             if (alive == 0) {
                 batch = provider.provideNextBatch();
                 if (batch.size() == 0) {

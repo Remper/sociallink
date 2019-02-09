@@ -1,7 +1,7 @@
 package eu.fbk.fm.alignments.scorer;
 
 import com.google.common.base.Stopwatch;
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.scorer.text.*;
 import eu.fbk.utils.core.strings.JaroWinklerDistance;
 import eu.fbk.utils.lsa.LSM;
@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import twitter4j.User;
 
 import javax.sql.DataSource;
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -53,14 +52,14 @@ public class ISWC17Strategy extends AbstractScoringStrategy implements FeatureVe
     }
 
     @Override
-    public Map<String, double[]> getScore(User user, DBpediaResource resource, int order) {
+    public Map<String, double[]> getScore(User user, KBResource resource, int order) {
         return new HashMap<String, double[]>() {{
             put(getSubspaceId(), getFeatures(user, resource));
         }};
     }
 
     @Override
-    public double[] getFeatures(User user, DBpediaResource resource) {
+    public double[] getFeatures(User user, KBResource resource) {
         Objects.requireNonNull(user);
         Objects.requireNonNull(resource);
 
@@ -134,7 +133,7 @@ public class ISWC17Strategy extends AbstractScoringStrategy implements FeatureVe
             if (source == null) {
                 providers.add(new TextScorer(scorer).all().userData());
             } else {
-                providers.add(new DBTextScorerv2(source, scorer));
+                providers.add(new DBTextScorer(source, scorer));
             }
         }
 

@@ -2,7 +2,7 @@ package eu.fbk.fm.alignments.index;
 
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.evaluation.DatasetEntry;
 import eu.fbk.fm.alignments.index.db.tables.UserIndex;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
@@ -96,7 +96,7 @@ public class FillFromIndex implements AutoCloseable {
                 .limit(1000).asTable("a");
     }
 
-    public List<UserData> queryCandidates(DBpediaResource resource) {
+    public List<UserData> queryCandidates(KBResource resource) {
         List<UserData> result = new LinkedList<>();
         int attempt = 0;
         String oldQuery = null;
@@ -195,7 +195,7 @@ public class FillFromIndex implements AutoCloseable {
     public List<Long> getUids(String resourceId) {
         initWatch();
         List<Long> candidates = new LinkedList<>();
-        DBpediaResource resource = endpoint.getResourceById(resourceId);
+        KBResource resource = endpoint.getResourceById(resourceId);
 
         String query = qaStrategy.getQuery(resource);
         if (query.length() < 4) {

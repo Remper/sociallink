@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.query;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 
 /**
  * Defines a way to assemble a query
@@ -8,8 +8,8 @@ import eu.fbk.fm.alignments.DBpediaResource;
  * @author Yaroslav Nechaev (remper@me.com)
  */
 public interface QueryAssemblyStrategy {
-    String getQuery(DBpediaResource resource);
-    default String getQuery(DBpediaResource resource, int option) {
+    String getQuery(KBResource resource);
+    default String getQuery(KBResource resource, int option) {
         return getQuery(resource);
     }
 }

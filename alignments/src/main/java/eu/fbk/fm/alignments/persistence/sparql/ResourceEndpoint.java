@@ -1,10 +1,10 @@
 package eu.fbk.fm.alignments.persistence.sparql;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 
 /**
  * Provides DBpediaResource object by resource Id
  */
 public interface ResourceEndpoint {
-    DBpediaResource getResourceById(String resourceId);
+    KBResource getResourceById(String resourceId);
 }

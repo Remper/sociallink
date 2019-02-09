@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.scorer;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import twitter4j.User;
 
 import java.util.Date;
@@ -28,7 +28,7 @@ public class ActivityScorer implements FeatureProvider {
     }
 
     @Override
-    public double getFeature(User user, DBpediaResource resource) {
+    public double getFeature(User user, KBResource resource) {
         return unScaledFeature(user);
     }
 }

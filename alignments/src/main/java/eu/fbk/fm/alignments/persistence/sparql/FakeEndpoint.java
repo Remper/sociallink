@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.persistence.sparql;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 
 import java.util.HashMap;
 
@@ -8,17 +8,21 @@ import java.util.HashMap;
  * Provides preconstructed DBpedia resource from the pool of preregistered ones
  */
 public class FakeEndpoint implements ResourceEndpoint {
-    HashMap<String, DBpediaResource> pool = new HashMap<>();
+    HashMap<String, KBResource> pool = new HashMap<>();
 
     @Override
-    public DBpediaResource getResourceById(String resourceId) {
+    public KBResource getResourceById(String resourceId) {
         if (!pool.containsKey(resourceId)) {
-            throw new RuntimeException("Resource should be registered before being requested");
+            return getDefault(resourceId);
         }
         return pool.get(resourceId);
     }
 
-    public void register(DBpediaResource resource) {
+    protected KBResource getDefault(String resourceId) {
+        throw new RuntimeException("Resource should be registered before being requested");
+    }
+
+    public void register(KBResource resource) {
         pool.put(resource.getIdentifier(), resource);
     }
 

@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.scorer.embeddings;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import org.jooq.Record2;
 import twitter4j.User;
 
@@ -25,7 +25,7 @@ public class SocialGraphEmbeddings extends EmbeddingsProvider {
     }
 
     @Override
-    public double[] _getFeatures(User user, DBpediaResource resource) {
+    public double[] _getFeatures(User user, KBResource resource) {
         Record2<Long[], Float[]> userVectorRaw = getUserVectorFromDb(user.getId());
 
         if (userVectorRaw == null) {

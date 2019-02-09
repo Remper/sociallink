@@ -1,6 +1,6 @@
 package eu.fbk.fm.smt.services;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.index.FillFromIndex;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
 import eu.fbk.fm.alignments.persistence.sparql.FakeEndpoint;
@@ -67,7 +67,7 @@ public class OnlineAlignmentsService {
         }
     }
 
-    public List<ScoreBundle> compare(DBpediaResource resource, List<User> candidates) {
+    public List<ScoreBundle> compare(KBResource resource, List<User> candidates) {
         List<ScoreBundle> result = new LinkedList<>();
         SimilarityScorer[] scorers = null;
         try {
@@ -88,7 +88,7 @@ public class OnlineAlignmentsService {
         return result;
     }
 
-    public CandidatesBundle.Resolved performCALive(DBpediaResource resource) {
+    public CandidatesBundle.Resolved performCALive(KBResource resource) {
         if (qaStrategy == null) {
             init();
         }
@@ -106,7 +106,7 @@ public class OnlineAlignmentsService {
         return result;
     }
 
-    public CandidatesBundle.Resolved performCASocialLink(DBpediaResource resource) {
+    public CandidatesBundle.Resolved performCASocialLink(KBResource resource) {
         init();
         List<UserData> users = index.queryCandidates(resource);
 
@@ -115,7 +115,7 @@ public class OnlineAlignmentsService {
         return result;
     }
 
-    public ScoreBundle performCSSocialLink(DBpediaResource resource, List<User> candidates) {
+    public ScoreBundle performCSSocialLink(KBResource resource, List<User> candidates) {
         ScoreBundle result = new ScoreBundle("sociallink");
         candidates.forEach(user -> {
             double[] prediction = endpoint.predict(scoringStrategy.getScore(user, resource));
@@ -126,7 +126,7 @@ public class OnlineAlignmentsService {
         return result;
     }
 
-    public ScoreBundle compareWithDefault(DBpediaResource resource, List<User> candidates) {
+    public ScoreBundle compareWithDefault(KBResource resource, List<User> candidates) {
         try {
             SimilarityScorer scorer = mlService.getDefaultScorer();
             return new ScoreBundle(scorer.toString(), match(resource, candidates, scorer, false));
@@ -136,7 +136,7 @@ public class OnlineAlignmentsService {
         }
     }
 
-    public List<Score> match(DBpediaResource resource, List<User> candidates, SimilarityScorer scorer, boolean debug) {
+    public List<Score> match(KBResource resource, List<User> candidates, SimilarityScorer scorer, boolean debug) {
         List<Score> scores = new LinkedList<>();
         if (candidates.size() == 0) {
             return scores;

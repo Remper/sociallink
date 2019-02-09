@@ -3,7 +3,8 @@ package eu.fbk.fm.smt.api;
 import com.google.gson.JsonArray;
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.DBpediaSpec;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.PrepareTrainingSet;
 import eu.fbk.fm.alignments.scorer.TextScorer;
 import eu.fbk.fm.alignments.scorer.UserData;
@@ -100,13 +101,13 @@ public class AnnotationController {
         return errors;
     }
 
-    private String processTwitterAnnotationWithComparator(String token, String ner, String text, BiFunction<DBpediaResource, List<User>, List<ScoreBundle>> func) {
+    private String processTwitterAnnotationWithComparator(String token, String ner, String text, BiFunction<KBResource, List<User>, List<ScoreBundle>> func) {
         List<String> errors = errorsForFinalStage(token, ner, text);
         if (errors.size() > 0) {
             return new InvalidAttributeResponse(errors).respond();
         }
 
-        DBpediaResource resource = toResource(new Annotation(token, ner), text);
+        KBResource resource = toResource(new Annotation(token, ner), text);
         SingleAnnotation response = new SingleAnnotation();
         response.token = token;
         response.tokenClass = ner;
@@ -138,7 +139,7 @@ public class AnnotationController {
         return Response.success(response).respond();
     }
 
-    public List<CandidatesBundle.Resolved> getCandidates(DBpediaResource resource) {
+    public List<CandidatesBundle.Resolved> getCandidates(KBResource resource) {
         return new LinkedList<CandidatesBundle.Resolved>(){{
             add(onlineAlign.performCALive(resource));
             add(onlineAlign.performCASocialLink(resource));
@@ -193,7 +194,7 @@ public class AnnotationController {
             return new InvalidAttributeResponse(errors).respond();
         }
 
-        DBpediaResource resource = kbAccessService.getResource(resourceId);
+        KBResource resource = kbAccessService.getResource(resourceId);
         User user = alignmentsService.getUserById(uid);
 
         double score = 0.0d;
@@ -214,20 +215,20 @@ public class AnnotationController {
         return false;
     }
 
-    private static DBpediaResource toResource(Annotation annotation, String text) {
+    private static KBResource toResource(Annotation annotation, String text) {
         Map<String, List<String>> attributes = new HashMap<>();
-        attributes.put(DBpediaResource.ATTRIBUTE_NAME, Collections.singletonList(annotation.token));
-        attributes.put(DBpediaResource.COMMENT_PROPERTY, Collections.singletonList(text));
+        attributes.put(DBpediaSpec.ATTRIBUTE_NAME, Collections.singletonList(annotation.token));
+        attributes.put(DBpediaSpec.COMMENT_PROPERTY, Collections.singletonList(text));
         switch (annotation.nerClass) {
             default:
             case "PERSON":
-                attributes.put(DBpediaResource.ATTRIBUTE_TYPE, Collections.singletonList(DBpediaResource.TYPE_PERSON));
+                attributes.put(DBpediaSpec.ATTRIBUTE_TYPE, Collections.singletonList(DBpediaSpec.ALIGNMENTS_PERSON));
                 break;
             case "ORGANIZATION":
-                attributes.put(DBpediaResource.ATTRIBUTE_TYPE, Collections.singletonList(DBpediaResource.TYPE_ORGANISATION));
+                attributes.put(DBpediaSpec.ATTRIBUTE_TYPE, Collections.singletonList(DBpediaSpec.ALIGNMENTS_ORGANISATION));
                 break;
         }
-        return new DBpediaResource("http://fake.db.futuro.media/"+annotation.token.replace(' ', '_'), attributes);
+        return new KBResource("http://fake.db.futuro.media/"+annotation.token.replace(' ', '_'), new DBpediaSpec(), attributes);
     }
 
     private static class AnnotationResponse {

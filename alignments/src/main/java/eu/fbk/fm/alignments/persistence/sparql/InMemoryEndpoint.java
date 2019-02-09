@@ -2,9 +2,8 @@ package eu.fbk.fm.alignments.persistence.sparql;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import eu.fbk.fm.alignments.DBpediaResource;
-import eu.fbk.fm.alignments.SoweegoResource;
-import eu.fbk.fm.profiling.FilterUserData;
+import eu.fbk.fm.alignments.kb.KBResource;
+import eu.fbk.fm.alignments.kb.WikidataSpec;
 import eu.fbk.utils.core.CommandLine;
 import org.apache.commons.compress.compressors.CompressorException;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
@@ -66,7 +65,7 @@ public class InMemoryEndpoint extends FakeEndpoint {
                 }
                 accepted++;
                 if (accepted % CUTOFF == 0) {
-                    info(String.format("Accepted RDF entries: %.1fm. Entities: %d",((float)accepted/1000000), resources.size()));
+                    info(String.format("Accepted RDF entries: %.1fm. Entities: %.1fk", ((float)accepted/1000000), ((float)resources.size()/1000)));
                     break;
                 }
 
@@ -110,14 +109,21 @@ public class InMemoryEndpoint extends FakeEndpoint {
                 values.add(subject);
             }
         }
-        info(String.format("Total accepted RDF entries: %.1fm. Entities: %d. Skipped: %d. Filtered: %.1fk", ((float)accepted/1000000), resources.size(), skipped, ((float)filtered/1000)));
+        info(String.format("Total accepted RDF entries: %.1fm. Entities: %.2fm. Skipped: %d. Filtered: %.1fk", ((float)accepted/1000000), ((float)resources.size()/1000000), skipped, ((float)filtered/1000)));
         info("Finalizing");
+        WikidataSpec spec = new WikidataSpec();
         for (Map.Entry<String, Map<String, List<String>>> rawResource : resources.entrySet()) {
-            DBpediaResource resource = new SoweegoResource(rawResource.getKey(), rawResource.getValue());
+            KBResource resource = new KBResource(rawResource.getKey(), spec, rawResource.getValue());
             register(resource);
         }
         resources.clear();
         info("Done");
+    }
+
+    @Override
+    protected KBResource getDefault(String resourceId) {
+        LOGGER.warn("Dummy resource has been requested for entity id "+resourceId);
+        return new KBResource(resourceId, new WikidataSpec(), new HashMap<>());
     }
 
     private void info(String message) {

@@ -1,9 +1,7 @@
 package eu.fbk.fm.alignments.pipeline;
 
 import com.google.common.base.Stopwatch;
-import com.google.gson.Gson;
-import eu.fbk.fm.alignments.DBpediaResource;
-import eu.fbk.fm.alignments.FileProvider;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.index.db.tables.records.AlignmentsRecord;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
@@ -16,9 +14,6 @@ import eu.fbk.fm.alignments.scorer.text.VectorProvider;
 import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.utils.core.CommandLine;
 import eu.fbk.utils.lsa.LSM;
-import eu.fbk.utils.math.Scaler;
-import org.jooq.Cursor;
-import org.jooq.Record;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import org.slf4j.Logger;
@@ -28,11 +23,9 @@ import twitter4j.TwitterObjectFactory;
 import twitter4j.User;
 
 import javax.sql.DataSource;
-import java.io.FileReader;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -82,7 +75,7 @@ public class ScoreEntities {
             started = true;
             batch.clear();
             AtomicInteger strongMatches = new AtomicInteger();
-            HashMap<String, DBpediaResource> stupidCache = new HashMap<>();
+            HashMap<String, KBResource> stupidCache = new HashMap<>();
             DSL.using(source, SQLDialect.POSTGRES)
                     .select(ALIGNMENTS.fields())
                     .select(USER_OBJECTS.OBJECT)
@@ -122,7 +115,7 @@ public class ScoreEntities {
                         }
 
                         // Getting entity from the KB
-                        DBpediaResource resource;
+                        KBResource resource;
                         synchronized (stupidCache) {
                             resource = stupidCache.get(alignment.getResourceId());
                         }

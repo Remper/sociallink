@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.scorer;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.scorer.embeddings.SocialGraphEmbeddings;
 import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
 import eu.fbk.fm.alignments.scorer.text.VectorProvider;
@@ -44,16 +44,16 @@ public class SMTStrategy extends PAI18Strategy {
     public static class TextProvider implements FeatureVectorProvider {
         final String suffix;
         final VectorProvider provider;
-        final BiFunction<User, DBpediaResource, String> textExtractor;
+        final BiFunction<User, KBResource, String> textExtractor;
 
-        public TextProvider(String suffix, VectorProvider provider, BiFunction<User, DBpediaResource, String> textExtractor) {
+        public TextProvider(String suffix, VectorProvider provider, BiFunction<User, KBResource, String> textExtractor) {
             this.suffix = suffix;
             this.provider = provider;
             this.textExtractor = textExtractor;
         }
 
         @Override
-        public double[] getFeatures(User user, DBpediaResource resource) {
+        public double[] getFeatures(User user, KBResource resource) {
             Vector vector = provider.toVector(textExtractor.apply(user, resource));
             double[] result = new double[vector.size()];
             for (int i = 0; i < vector.size(); i++) {

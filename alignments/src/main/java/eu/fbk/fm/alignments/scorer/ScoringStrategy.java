@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.scorer;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import twitter4j.User;
 
 import java.util.Map;
@@ -13,9 +13,9 @@ import java.util.Map;
 public interface ScoringStrategy {
     void fillScore(FullyResolvedEntry entry);
 
-    default Map<String, double[]> getScore(User user, DBpediaResource resource) {
+    default Map<String, double[]> getScore(User user, KBResource resource) {
         return getScore(user, resource, 0);
     }
 
-    Map<String, double[]> getScore(User user, DBpediaResource resource, int order);
+    Map<String, double[]> getScore(User user, KBResource resource, int order);
 }

@@ -1,6 +1,7 @@
 package eu.fbk.fm.alignments.persistence.sparql;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.DBpediaSpec;
+import eu.fbk.fm.alignments.kb.KBResource;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -89,7 +90,7 @@ public class Endpoint implements ResourceEndpoint {
         );
     }
 
-    public DBpediaResource getResourceById(String resourceId) {
+    public KBResource getResourceById(String resourceId) {
         Map<String, List<String>> properties = new HashMap<>();
         CloseableHttpResponse response = null;
         try {
@@ -111,7 +112,7 @@ public class Endpoint implements ResourceEndpoint {
                 }
             }
         }
-        return new DBpediaResource(resourceId, properties);
+        return new KBResource(resourceId, new DBpediaSpec(), properties);
     }
 
     public URIBuilder getBuilder() {

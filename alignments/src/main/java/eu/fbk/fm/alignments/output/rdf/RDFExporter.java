@@ -1,4 +1,4 @@
-package eu.fbk.fm.alignments.rdf;
+package eu.fbk.fm.alignments.output.rdf;
 
 import java.io.BufferedReader;
 import java.io.FileOutputStream;

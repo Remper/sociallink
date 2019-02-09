@@ -1,6 +1,8 @@
 package eu.fbk.fm.alignments.scorer;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
+import eu.fbk.fm.alignments.kb.ResourceSpec;
+import eu.fbk.fm.alignments.kb.ResourceSpec.EntityType;
 import twitter4j.User;
 
 import java.util.LinkedList;
@@ -14,21 +16,21 @@ public class EntityTypeScorer implements FeatureProvider {
         COMPANY, PERSON, OTHER
     }
 
-    private Type type;
+    private EntityType type;
 
-    public EntityTypeScorer(Type type) {
+    public EntityTypeScorer(EntityType type) {
         this.type = type;
     }
 
     @Override
-    public double getFeature(User user, DBpediaResource resource) {
+    public double getFeature(User user, KBResource resource) {
         switch (type) {
             case COMPANY:
                 return resource.isCompany() ? 1.0d : 0.0d;
             case PERSON:
                 return resource.isPerson() ? 1.0d : 0.0d;
             case OTHER:
-                return !resource.isPerson() && !resource.isCompany() ? 1.0d : 0.0d;
+                return resource.isOther() ? 1.0d : 0.0d;
             default:
                 throw new IllegalArgumentException("Unknown entity type");
         }
@@ -36,9 +38,9 @@ public class EntityTypeScorer implements FeatureProvider {
 
     public static List<FeatureProvider> createProviders() {
         return new LinkedList<FeatureProvider>(){{
-            add(new EntityTypeScorer(Type.PERSON));
-            add(new EntityTypeScorer(Type.COMPANY));
-            add(new EntityTypeScorer(Type.OTHER));
+            add(new EntityTypeScorer(EntityType.PERSON));
+            add(new EntityTypeScorer(EntityType.COMPANY));
+            add(new EntityTypeScorer(EntityType.OTHER));
         }};
     }
 }

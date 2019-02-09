@@ -3,6 +3,7 @@ package eu.fbk.fm.alignments.index;
 import eu.fbk.fm.alignments.evaluation.DatasetEntry;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
+import eu.fbk.fm.alignments.scorer.text.CosineScorer;
 import eu.fbk.fm.alignments.scorer.text.DBTextScorer;
 import eu.fbk.fm.alignments.scorer.FullyResolvedEntry;
 import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
@@ -46,14 +47,11 @@ public class UserLSAInteractive {
         index.fill(entry);
 
         LOGGER.info("List of candidates for entity: "+entry.entry.resourceId);
-        DBTextScorer scorer = new DBTextScorer(source, new LSAVectorProvider(lsm));
-        DBTextScorer scorer2 = new DBTextScorer.DBTextScorerArr(source, new LSAVectorProvider(lsm));
+        DBTextScorer scorer = new DBTextScorer(source, new CosineScorer(new LSAVectorProvider(lsm)));
         scorer.setVerbose(true);
-        scorer2.setVerbose(true);
         for (User candidate : entry.candidates) {
             LOGGER.info("  "+candidate.getName()+" (@"+candidate.getScreenName()+")");
-            LOGGER.info("     Similarity (cube): " + scorer.getFeature(candidate, entry.resource));
-            LOGGER.info("     Similarity (arr):  " + scorer2.getFeature(candidate, entry.resource));
+            LOGGER.info("     Similarity: " + scorer.getFeature(candidate, entry.resource));
         }
     }
 

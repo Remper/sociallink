@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.scorer;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import twitter4j.User;
 
 /**
@@ -11,7 +11,7 @@ import twitter4j.User;
 public abstract class AbstractUserScorer implements FeatureProvider {
     public abstract double score(User user);
 
-    public double getFeature(User user, DBpediaResource resource) {
+    public double getFeature(User user, KBResource resource) {
         return score(user);
     }
 }

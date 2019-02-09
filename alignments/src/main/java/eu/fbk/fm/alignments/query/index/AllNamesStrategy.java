@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.query.index;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.query.QueryAssemblyStrategy;
 
 import java.util.*;
@@ -26,16 +26,16 @@ public class AllNamesStrategy implements QueryAssemblyStrategy {
     }
 
     @Override
-    public String getQuery(DBpediaResource resource, int option) {
+    public String getQuery(KBResource resource, int option) {
         return constructQuery(resource, this.excludeNames+option);
     }
 
     @Override
-    public String getQuery(DBpediaResource resource) {
+    public String getQuery(KBResource resource) {
         return constructQuery(resource, this.excludeNames);
     }
 
-    private String constructQuery(DBpediaResource resource, int excludeNames) {
+    private String constructQuery(KBResource resource, int excludeNames) {
         Map<String, Integer> names = complileListOfNames(resource);
         LinkedList<Map.Entry<String, Integer>> sortedNames = new LinkedList<>(names.entrySet());
         Comparator<Map.Entry<String, Integer>> comparator = Comparator.comparing(Map.Entry::getValue);
@@ -65,7 +65,7 @@ public class AllNamesStrategy implements QueryAssemblyStrategy {
         return "(" + query.toString() + ")";
     }
 
-    private Map<String, Integer> complileListOfNames(DBpediaResource resource) {
+    private Map<String, Integer> complileListOfNames(KBResource resource) {
         List<String> names = resource.getNames();
         names.addAll(resource.getLabels());
         List<String> givenNames = lowercaseNames(resource.getGivenNames());

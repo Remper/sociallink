@@ -1,6 +1,8 @@
 package eu.fbk.fm.smt.services;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.DBpediaSpec;
+import eu.fbk.fm.alignments.kb.KBResource;
+import eu.fbk.fm.alignments.kb.ResourceSpec;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +31,7 @@ public class KBAccessService {
 
     private Endpoint endpoint;
     private LinkedList<String> cacheOrder = new LinkedList<>();
-    private HashMap<String, DBpediaResource> cache = new HashMap<>(CACHE_SIZE);
+    private HashMap<String, KBResource> cache = new HashMap<>(CACHE_SIZE);
 
 
     @Inject
@@ -39,29 +41,18 @@ public class KBAccessService {
     }
 
     public String getType(String resourceId) {
-        List<String> types = getResource(resourceId).getProperty(DBpediaResource.ATTRIBUTE_TYPE);
-        for (String type : types) {
-            if (type.equals(DBpediaResource.TYPE_PERSON)) {
-                return type;
-            }
-            if (type.equals(DBpediaResource.TYPE_COMPANY) || type.equals(DBpediaResource.TYPE_ORGANISATION)) {
-                return type;
-            }
-        }
-        if (types.size() != 1) {
-            return null;
-        }
-        return types.get(0);
+       KBResource resource = getResource(resourceId);
+       return resource.getType().toString();
     }
 
-    public synchronized DBpediaResource getResource(String resourceId) {
+    public synchronized KBResource getResource(String resourceId) {
         if (cache.containsKey(resourceId)) {
             logger.debug("KB cache("+cache.size()+"): hit");
             return cache.get(resourceId);
         }
 
         logger.debug("KB cache("+cache.size()+"): miss");
-        DBpediaResource resource = endpoint.getResourceById(resourceId);
+        KBResource resource = endpoint.getResourceById(resourceId);
         if (cache.size() == CACHE_SIZE) {
             String deleteId = cacheOrder.pollLast();
             cache.remove(deleteId);

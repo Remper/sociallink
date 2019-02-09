@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.scorer;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import twitter4j.User;
 
 /**
@@ -9,7 +9,7 @@ import twitter4j.User;
  * @author Yaroslav Nechaev (remper@me.com)
  */
 public interface FeatureVectorProvider {
-    double[] getFeatures(User user, DBpediaResource resource);
+    double[] getFeatures(User user, KBResource resource);
 
     default String getSubspaceId() {
         return this.getClass().getSimpleName();

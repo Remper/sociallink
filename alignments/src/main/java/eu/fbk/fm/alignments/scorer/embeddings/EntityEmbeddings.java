@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.scorer.embeddings;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import twitter4j.User;
 
 import javax.sql.DataSource;
@@ -22,7 +22,7 @@ public class EntityEmbeddings extends EmbeddingsProvider {
     }
 
     @Override
-    public double[] _getFeatures(User user, DBpediaResource resource) {
+    public double[] _getFeatures(User user, KBResource resource) {
         throw new UnsupportedOperationException("This way of querying embeddings is currently disabled, please do not use it");
         /*Long userVectorRaw = context
                 .select(KB_INDEX.KBID)

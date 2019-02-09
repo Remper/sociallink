@@ -1,4 +1,4 @@
-package eu.fbk.fm.alignments.rdf;
+package eu.fbk.fm.alignments.output.rdf;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Namespace;

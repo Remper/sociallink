@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.scorer.embeddings;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import twitter4j.User;
 
 import javax.sql.DataSource;
@@ -22,7 +22,7 @@ public class EntityDirectEmbeddings extends EmbeddingsProvider {
     }
 
     @Override
-    public double[] _getFeatures(User user, DBpediaResource resource) {
+    public double[] _getFeatures(User user, KBResource resource) {
         return predict((Serializable[]) new String[]{resource.getIdentifier()});
     }
 }

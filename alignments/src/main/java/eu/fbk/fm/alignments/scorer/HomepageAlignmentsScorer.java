@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.scorer;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.utils.ResourcesService;
 import eu.fbk.utils.data.Configuration;
 import eu.fbk.utils.data.DatasetRepository;
@@ -26,7 +26,7 @@ public abstract class HomepageAlignmentsScorer implements FeatureProvider {
     }
 
     @Override
-    public double getFeature(User user, DBpediaResource resource) {
+    public double getFeature(User user, KBResource resource) {
         HomepageAlignment alignment = alignments.get(resource.getIdentifier());
 
         return alignment == null ? 0.0d : match(user.getScreenName().toLowerCase(), alignment);

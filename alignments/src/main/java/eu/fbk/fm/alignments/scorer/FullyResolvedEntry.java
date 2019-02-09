@@ -1,8 +1,7 @@
 package eu.fbk.fm.alignments.scorer;
 
-import eu.fbk.fm.alignments.DBpediaResource;
 import eu.fbk.fm.alignments.evaluation.DatasetEntry;
-import twitter4j.User;
+import eu.fbk.fm.alignments.kb.KBResource;
 
 import java.io.Serializable;
 import java.util.LinkedList;
@@ -16,7 +15,7 @@ import java.util.Map;
  */
 public class FullyResolvedEntry implements Serializable {
     public DatasetEntry entry;
-    public DBpediaResource resource = null;
+    public KBResource resource = null;
     public List<UserData> candidates = null;
     public List<Map<String, double[]>> features = new LinkedList<>();
 
@@ -24,7 +23,7 @@ public class FullyResolvedEntry implements Serializable {
         this.entry = entry;
     }
 
-    public FullyResolvedEntry(DBpediaResource resource) {
+    public FullyResolvedEntry(KBResource resource) {
         this.entry = new DatasetEntry(resource);
         this.resource = resource;
     }

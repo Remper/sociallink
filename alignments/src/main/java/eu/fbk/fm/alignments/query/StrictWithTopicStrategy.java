@@ -1,7 +1,7 @@
 package eu.fbk.fm.alignments.query;
 
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 
 /**
  * Strict description adding the topic when exists
@@ -10,7 +10,7 @@ import eu.fbk.fm.alignments.DBpediaResource;
  */
 public class StrictWithTopicStrategy extends StrictStrategy {
     @Override
-    public String getQuery(DBpediaResource resource) {
+    public String getQuery(KBResource resource) {
         StringBuilder sb = new StringBuilder();
         sb.append(super.getQuery(resource));
         String topic = resource.getTopicFromResourceId();

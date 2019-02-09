@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.query;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.utils.core.strings.LevenshteinDistance;
 
 import java.util.Arrays;
@@ -14,7 +14,7 @@ import java.util.Comparator;
 public class NoQuotesDupesStrategy implements QueryAssemblyStrategy {
 
     @Override
-    public String getQuery(DBpediaResource resource) {
+    public String getQuery(KBResource resource) {
         String[] names = resource.getNames().toArray(new String[0]);
         StringBuilder sb = new StringBuilder();
         boolean contains = false;

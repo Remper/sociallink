@@ -2,6 +2,7 @@ package eu.fbk.fm.alignments;
 
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -9,6 +10,7 @@ import eu.fbk.fm.alignments.evaluation.CustomEvaluation;
 import eu.fbk.fm.alignments.evaluation.Dataset;
 import eu.fbk.fm.alignments.evaluation.DatasetEntry;
 import eu.fbk.fm.alignments.index.FillFromIndex;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.persistence.sparql.InMemoryEndpoint;
@@ -138,12 +140,12 @@ public class PrepareTrainingSet {
             for (int i = 0; i < 10; i++) {
                 FullyResolvedEntry entry = resolveDataset.get(rnd.nextInt(resolveDataset.size()));
 
-                writer.write(String.format("Entity: %s. True alignment: @%s", entry.entry.resourceId, entry.entry.twitterId));
-                writer.write(String.format("  Names: %s", String.join(", ", entry.resource.getNames())));
-                writer.write(String.format("  Labels: %s", String.join(", ", entry.resource.getLabels())));
+                writer.write(String.format("Entity: %s. True alignment: @%s\n", entry.entry.resourceId, entry.entry.twitterId));
+                writer.write(String.format("  Names: %s\n", String.join(", ", entry.resource.getNames())));
+                writer.write(String.format("  Labels: %s\n", String.join(", ", entry.resource.getLabels())));
 
                 for (QueryAssemblyStrategy strategy : strategies) {
-                    writer.write(String.format("  Strategy: %s. Query: %s", strategy.getClass().getSimpleName(), strategy.getQuery(entry.resource)));
+                    writer.write(String.format("  Strategy: %s. Query: %s\n", strategy.getClass().getSimpleName(), strategy.getQuery(entry.resource)));
                 }
 
                 if (entry.candidates == null || entry.candidates.size() == 0) {
@@ -151,9 +153,9 @@ public class PrepareTrainingSet {
                     continue;
                 }
 
-                writer.write("  Candidates:");
+                writer.write("  Candidates:\n");
                 for (User candidate : entry.candidates) {
-                    writer.write(String.format("    @%s (%s)", candidate.getScreenName(), candidate.getName()));
+                    writer.write(String.format("    @%s (%s)\n", candidate.getScreenName(), candidate.getName()));
                 }
             }
         } catch (IOException e) {
@@ -163,7 +165,6 @@ public class PrepareTrainingSet {
     }
 
     public static void main(String[] args) throws Exception {
-        Gson gson = TwitterDeserializer.getDefault().getBuilder().create();
 
         Configuration configuration = loadConfiguration(args);
         if (configuration == null) {
@@ -175,11 +176,12 @@ public class PrepareTrainingSet {
             return;
         }
 
-        logger.info(String.format("Options %s", gson.toJson(configuration)));
+        logger.info(String.format("Options %s", GSON.toJson(configuration)));
 
         QueryAssemblyStrategy qaStrategy = new AllNamesStrategy();//QueryAssemblyStrategyFactory.get(configuration.strategy);
 
-        Endpoint endpoint = new Endpoint(configuration.endpoint);
+        ResourceEndpoint endpoint = configuration.createEndpoint();
+        Gson gson = TwitterDeserializer.getDefault().getBuilder().create();
         PrepareTrainingSet prepareTrainingSet;
 
         DataSource source = DBUtils.createHikariDataSource(configuration.dbConnection, configuration.dbUser, configuration.dbPassword);
@@ -195,7 +197,7 @@ public class PrepareTrainingSet {
             return;
         }
 
-        /*PAI18Strategy strategy = new PAI18Strategy(source);
+        PAI18Strategy strategy = new PAI18Strategy(source);
         LSM lsm = new LSM(configuration.lsa + "/X", 100, true);
         VectorProvider textVectorProvider = new LSAVectorProvider(lsm);
         List<VectorProvider> allVectorProviders = new LinkedList<>();
@@ -213,16 +215,16 @@ public class PrepareTrainingSet {
             allVectorProviders.addAll(embProviders);
         }
         for (VectorProvider provider : allVectorProviders) {
-            strategy.addProvider(ISWC17Strategy.builder().vectorProvider(provider).build());
+            strategy.addProvider(ISWC17Strategy.builder().source(source).vectorProvider(provider).build());
         }
         if (allVectorProviders.size() > 1) {
-            strategy.addProvider(ISWC17Strategy.builder().vectorProviders(allVectorProviders).build());
+            strategy.addProvider(ISWC17Strategy.builder().source(source).vectorProviders(allVectorProviders).build());
         }
         //logger.info("LSA specified. Enabling PAI18 strategy");
-        prepareTrainingSet.setScoreStrategy(strategy);*/
+        prepareTrainingSet.setScoreStrategy(strategy);
         //logger.info("LSA specified. Enabling SMT strategy");
         //prepareTrainingSet.setScoreStrategy(new PAI18Strategy(new LinkedList<>()));
-        prepareTrainingSet.setScoreStrategy(new SMTStrategy(source, configuration.lsa));
+        //prepareTrainingSet.setScoreStrategy(new SMTStrategy(source, configuration.lsa));
 
         FileProvider files = new FileProvider(configuration.workdir);
         if (!files.gold.exists()) {
@@ -669,7 +671,7 @@ public class PrepareTrainingSet {
             result = resolveDatasetViaIndex(dataset);
         }
 
-        fillAdditionalData(result);
+        //fillAdditionalData(result);
 
         return result;
     }
@@ -768,7 +770,7 @@ public class PrepareTrainingSet {
 
         //Selecting resources
         logger.info("Requesting entry info from knowledge base");
-        Map<DBpediaResource, FullyResolvedEntry> entries = new HashMap<>();
+        Map<KBResource, FullyResolvedEntry> entries = new HashMap<>();
         for (DatasetEntry datasetEntry : dataset) {
             FullyResolvedEntry entry = new FullyResolvedEntry(datasetEntry);
             entry.resource = endpoint.getResourceById(datasetEntry.resourceId);
@@ -790,7 +792,7 @@ public class PrepareTrainingSet {
             private int processed = 0;
 
             @Override
-            public synchronized void processResult(List<User> candidates, DBpediaResource task) {
+            public synchronized void processResult(List<User> candidates, KBResource task) {
                 if (processed < 10) {
                     logger.info(String.format("Query: %s. Candidates: %d", qaStrategy.getQuery(task), candidates.size()));
                     processed++;
@@ -808,8 +810,8 @@ public class PrepareTrainingSet {
 
         SearchRunner.BatchProvider provider = new SearchRunner.BatchProvider() {
             @Override
-            public List<DBpediaResource> provideNextBatch() {
-                List<DBpediaResource> results = new LinkedList<>();
+            public List<KBResource> provideNextBatch() {
+                List<KBResource> results = new LinkedList<>();
                 for (FullyResolvedEntry entry : entries.values()) {
                     if (entry.candidates == null) {
                         results.add(entry.resource);

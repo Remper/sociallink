@@ -1,5 +1,6 @@
 package eu.fbk.fm.alignments;
 
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.pipeline.SubmitEntities;
 import eu.fbk.utils.core.CommandLine;
@@ -30,7 +31,7 @@ public class CleanupGold {
         FileWriter writer = new FileWriter(input+"_out");
         CleanupGold script = this;
         Files.lines(Paths.get(input)).parallel().forEach(line -> {
-            DBpediaResource resource = endpoint.getResourceById(line.split(",")[0]);
+            KBResource resource = endpoint.getResourceById(line.split(",")[0]);
             if (!resource.isPerson() && !resource.isCompany()) {
                 return;
             }

@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.evaluation;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 
 /**
  * A single entity -> twitter_id alignment
@@ -14,7 +14,7 @@ public class DatasetEntry {
         this.twitterId = twitterId;
     }
 
-    public DatasetEntry(DBpediaResource resource) {
+    public DatasetEntry(KBResource resource) {
         this(resource.getIdentifier(), null);
     }
 

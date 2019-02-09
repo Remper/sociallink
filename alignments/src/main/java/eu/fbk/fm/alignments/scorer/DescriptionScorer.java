@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.scorer;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.ml.features.FeatureExtraction;
 import twitter4j.User;
 
@@ -23,13 +23,12 @@ public class DescriptionScorer implements FeatureProvider {
     }
 
     @Override
-    public double getFeature(User user, DBpediaResource resource) {
+    public double getFeature(User user, KBResource resource) {
         return getAverageDescriptionMatch(user, resource);
     }
 
-    private double getAverageDescriptionMatch(User user, DBpediaResource resource) {
-        List<String> descriptions = resource.getProperty(COMMENT_PROPERTY);
-        descriptions.addAll(resource.getProperty(ABSTRACT_PROPERTY));
+    private double getAverageDescriptionMatch(User user, KBResource resource) {
+        List<String> descriptions = resource.getDescriptions();
 
         if (descriptions.size() == 0) {
             return -1;

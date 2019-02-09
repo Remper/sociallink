@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.scorer;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.scorer.embeddings.EntityDirectEmbeddings;
 import eu.fbk.fm.alignments.scorer.embeddings.SocialGraphEmbeddings;
 import eu.fbk.fm.alignments.scorer.text.MemoryEmbeddingsProvider;
@@ -69,7 +69,7 @@ public class PAI18Strategy extends AbstractScoringStrategy {
     }
 
     @Override
-    public Map<String, double[]> getScore(User user, DBpediaResource resource, int order) {
+    public Map<String, double[]> getScore(User user, KBResource resource, int order) {
         Objects.requireNonNull(user);
         Objects.requireNonNull(resource);
 

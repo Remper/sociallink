@@ -1,6 +1,6 @@
 package eu.fbk.fm.alignments.scorer;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.scorer.text.CosineScorer;
 import eu.fbk.fm.alignments.scorer.text.LSAVectorProvider;
 import eu.fbk.fm.alignments.scorer.text.SimilarityScorer;
@@ -28,7 +28,7 @@ public class ProfileFeatureProvider implements FeatureVectorProvider, JsonObject
     }
 
     @Override
-    public double[] getFeatures(User user, DBpediaResource resource) {
+    public double[] getFeatures(User user, KBResource resource) {
         LinkedList<Double> features = new LinkedList<Double>() {{
             add((double) user.getFollowersCount());
             add((double) user.getFriendsCount());

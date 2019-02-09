@@ -1,6 +1,7 @@
 package eu.fbk.fm.alignments.query.index;
 
-import eu.fbk.fm.alignments.DBpediaResource;
+import eu.fbk.fm.alignments.kb.DBpediaSpec;
+import eu.fbk.fm.alignments.kb.KBResource;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -42,9 +43,9 @@ public class AllNamesStrategyTest {
         givenNames.add("test_name5");
 
         Map<String, List<String>> attributes = new HashMap<>();
-        attributes.put(DBpediaResource.ATTRIBUTE_NAME, names);
-        attributes.put(DBpediaResource.ATTRIBUTE_GIVEN_NAME, givenNames);
-        DBpediaResource resource = new DBpediaResource("test", attributes);
+        attributes.put(DBpediaSpec.ATTRIBUTE_NAME, names);
+        attributes.put(DBpediaSpec.ATTRIBUTE_GIVEN_NAME, givenNames);
+        KBResource resource = new KBResource("test", new DBpediaSpec(), attributes);
 
         AllNamesStrategy strategy = new AllNamesStrategy();
 
