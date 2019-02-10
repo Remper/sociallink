@@ -2,7 +2,6 @@ package eu.fbk.fm.alignments;
 
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -27,7 +26,6 @@ import eu.fbk.fm.alignments.twitter.TwitterDeserializer;
 import eu.fbk.fm.alignments.twitter.TwitterService;
 import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.utils.lsa.LSM;
-import eu.fbk.utils.math.Scaler;
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -50,24 +48,18 @@ import javax.sql.DataSource;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import static eu.fbk.fm.alignments.index.db.tables.UserIndex.USER_INDEX;
 import static eu.fbk.fm.alignments.index.db.tables.UserObjects.USER_OBJECTS;
-import static eu.fbk.fm.alignments.scorer.TextScorer.DBPEDIA_TEXT_EXTRACTOR;
 import static org.jooq.impl.DSL.select;
 import static org.jooq.impl.DSL.sum;
 
@@ -335,6 +327,18 @@ public class PrepareTrainingSet {
         });
         //statsPrinter.close();
 
+        // Serializing resources for debug purposes
+        logger.info("Serializing resolved entities");
+        Stopwatch watch = Stopwatch.createStarted();
+        try {
+            Writer resolvedWriter = new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(files.entities)));
+            GSON.toJson(resolveDataset.stream().map(entry -> entry.resource).collect(Collectors.toList()), resolvedWriter);
+            IOUtils.closeQuietly(resolvedWriter);
+        } catch (IOException e) {
+            logger.error("Something bad happened while serializing resolved entities", e);
+        }
+        logger.info(String.format("Done in %.2f seconds", (double) watch.elapsed(TimeUnit.MILLISECONDS) / 1000));
+
         strategiesCheck(resolveDataset, files.strategyCheck);
 
         try {
@@ -460,7 +464,8 @@ public class PrepareTrainingSet {
                 AtomicInteger resolvedNulls = new AtomicInteger(0);
                 resolvedIds.entrySet().parallelStream().map(entry -> {
                     Table<Record2<Long, BigDecimal>> subquery =
-                            select(USER_INDEX.UID, sum(USER_INDEX.FREQ).as("freq"))
+                            DSL.using(source, SQLDialect.POSTGRES)
+                                    .select(USER_INDEX.UID, sum(USER_INDEX.FREQ).as("freq"))
                                     .from(USER_INDEX)
                                     .where(USER_INDEX.UID.eq(entry.getValue()))
                                     .groupBy(USER_INDEX.UID)
@@ -540,7 +545,7 @@ public class PrepareTrainingSet {
             }
             statsPrinter.close();
 
-            Stopwatch watch = Stopwatch.createStarted();
+            watch = Stopwatch.createStarted();
             logger.info("Dumping full experimental setting to JSON");
             FileWriter resolvedWriter = new FileWriter(files.dataset);
             FileWriter filteredGoldWriter = new FileWriter(files.goldFiltered);

@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,6 +34,8 @@ public class InMemoryEndpoint extends FakeEndpoint {
     private static final String RDF_PATH = "rdf-path";
     private static final Pattern RDF_PATTERN = Pattern.compile("^<([^<>]+)>\\s+<([^<>]+)>\\s+((\"(.+)\"(((@[A-Za-z\\-]+)?)|((\\^\\^<([^<>]+)>)?)))|(<([^<>]+)>))\\s?\\.");
     private static final int CUTOFF = 500000;
+
+    private static final AtomicInteger dummys = new AtomicInteger();
 
     public InMemoryEndpoint(File path) throws IOException {
         this(path, stream -> stream);
@@ -66,7 +69,6 @@ public class InMemoryEndpoint extends FakeEndpoint {
                 accepted++;
                 if (accepted % CUTOFF == 0) {
                     info(String.format("Accepted RDF entries: %.1fm. Entities: %.1fk", ((float)accepted/1000000), ((float)resources.size()/1000)));
-                    break;
                 }
 
                 String object = m.group(1);
@@ -122,7 +124,7 @@ public class InMemoryEndpoint extends FakeEndpoint {
 
     @Override
     protected KBResource getDefault(String resourceId) {
-        LOGGER.warn("Dummy resource has been requested for entity id "+resourceId);
+        LOGGER.warn(String.format("Dummy resource has been requested for entity id %s (%d requested so far)", resourceId, dummys.incrementAndGet()));
         return new KBResource(resourceId, new WikidataSpec(), new HashMap<>());
     }
 

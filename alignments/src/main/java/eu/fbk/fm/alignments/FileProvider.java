@@ -14,7 +14,7 @@ public class FileProvider {
     public final File
         gold, goldFiltered, input,
         trueDist, totalDist, strategyCheck,
-        resolved, manifest,
+        resolved, manifest, entities,
         dataset, datasetStats, evaluationResult, evaluationRawResult;
 
     public FileProvider(String workdir) {
@@ -33,6 +33,7 @@ public class FileProvider {
         goldFiltered = folder.apply("gold_filtered.csv");
         resolved = folder.apply("resolved");
         manifest = folder.apply("manifest.json");
+        entities = folder.apply("entities.json.gz");
         trueDist = folder.apply("ca-true-distribution.txt");
         totalDist = folder.apply("ca-total-distribution.txt");
         strategyCheck = folder.apply("strategy-check.txt");
