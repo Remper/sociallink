@@ -3,6 +3,7 @@ package eu.fbk.fm.alignments.pipeline;
 import com.google.common.base.Stopwatch;
 import eu.fbk.fm.alignments.kb.KBResource;
 import eu.fbk.fm.alignments.index.db.tables.records.AlignmentsRecord;
+import eu.fbk.fm.alignments.kb.WikidataSpec;
 import eu.fbk.fm.alignments.persistence.ModelEndpoint;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.scorer.ISWC17Strategy;
@@ -14,6 +15,7 @@ import eu.fbk.fm.alignments.scorer.text.VectorProvider;
 import eu.fbk.fm.alignments.utils.DBUtils;
 import eu.fbk.utils.core.CommandLine;
 import eu.fbk.utils.lsa.LSM;
+import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import org.slf4j.Logger;
@@ -64,93 +66,97 @@ public class ScoreEntities {
     }
 
     public void run() throws SQLException {
-        AtomicInteger processed = new AtomicInteger(0);
+        DSLContext context = DSL.using(source, SQLDialect.POSTGRES);
+        AtomicInteger processed = new AtomicInteger(context.fetchCount(ALIGNMENTS, ALIGNMENTS.VERSION.eq((short) 2)));
+        int left = context.fetchCount(ALIGNMENTS, ALIGNMENTS.VERSION.eq((short) 0));
+        LOGGER.info("Scoring entities. Scored: "+processed.get()+". Left: "+left);
+
         Stopwatch watch = Stopwatch.createStarted();
         boolean started = false;
-
         List<AlignmentsRecord> batch = new LinkedList<>();
+        AtomicInteger strongMatches = new AtomicInteger();
         final ScoreEntities script = this;
 
         while (batch.size() > 0 || !started) {
             started = true;
             batch.clear();
-            AtomicInteger strongMatches = new AtomicInteger();
             HashMap<String, KBResource> stupidCache = new HashMap<>();
-            DSL.using(source, SQLDialect.POSTGRES)
-                    .select(ALIGNMENTS.fields())
-                    .select(USER_OBJECTS.OBJECT)
-                    .from(ALIGNMENTS)
-                    .leftJoin(USER_OBJECTS)
-                    .on(USER_OBJECTS.UID.eq(ALIGNMENTS.UID))
-                    .where(ALIGNMENTS.VERSION.eq((short) 0))
-                    .limit(10000)
-                    .fetch()
-                    .parallelStream()
-                    .forEach((record) -> {
-                        // Parsing the result of the query
-                        AlignmentsRecord alignment = new AlignmentsRecord(
-                                record.get(ALIGNMENTS.RESOURCE_ID),
-                                record.get(ALIGNMENTS.UID),
-                                record.get(ALIGNMENTS.SCORE),
-                                record.get(ALIGNMENTS.IS_ALIGNMENT),
-                                (short) 1);
+            context
+                .select(ALIGNMENTS.fields())
+                .select(USER_OBJECTS.OBJECT)
+                .from(ALIGNMENTS)
+                .leftJoin(USER_OBJECTS)
+                .on(USER_OBJECTS.UID.eq(ALIGNMENTS.UID))
+                .where(ALIGNMENTS.VERSION.eq((short) 0))
+                .limit(10000)
+                .fetch()
+                .parallelStream()
+                .forEach((record) -> {
+                    // Parsing the result of the query
+                    AlignmentsRecord alignment = new AlignmentsRecord(
+                            record.get(ALIGNMENTS.RESOURCE_ID),
+                            record.get(ALIGNMENTS.UID),
+                            record.get(ALIGNMENTS.SCORE),
+                            record.get(ALIGNMENTS.IS_ALIGNMENT),
+                            (short) 1);
 
-                        // Adding to a batch for update
-                        synchronized (script) {
-                            batch.add(alignment);
-                        }
+                    // Adding to a batch for update
+                    synchronized (script) {
+                        batch.add(alignment);
+                    }
 
-                        // Exiting if we are unhappy with the user object
-                        Object userObj = record.get(USER_OBJECTS.OBJECT);
-                        if (userObj == null) {
-                            return;
-                        }
+                    // Exiting if we are unhappy with the user object
+                    Object userObj = record.get(USER_OBJECTS.OBJECT);
+                    if (userObj == null) {
+                        return;
+                    }
 
-                        User user;
-                        try {
-                            user = TwitterObjectFactory.createUser(userObj.toString());
-                        } catch (TwitterException e) {
-                            LOGGER.error("Error while deserializing user", e);
-                            return;
-                        }
+                    User user;
+                    try {
+                        user = TwitterObjectFactory.createUser(userObj.toString());
+                    } catch (TwitterException e) {
+                        LOGGER.error("Error while deserializing user", e);
+                        return;
+                    }
 
-                        // Getting entity from the KB
-                        KBResource resource;
+                    // Getting entity from the KB
+                    KBResource resource;
+                    synchronized (stupidCache) {
+                        resource = stupidCache.get(alignment.getResourceId());
+                    }
+                    if (resource == null) {
+                        resource = endpoint.getResourceById(alignment.getResourceId());
                         synchronized (stupidCache) {
-                            resource = stupidCache.get(alignment.getResourceId());
+                            stupidCache.put(alignment.getResourceId(), resource);
                         }
-                        if (resource == null) {
-                            resource = endpoint.getResourceById(alignment.getResourceId());
-                            synchronized (stupidCache) {
-                                stupidCache.put(alignment.getResourceId(), resource);
-                            }
-                        }
+                    }
 
-                        // Scoring and rescaling
-                        Map<String, double[]> features = strategy.getScore(user, resource);
+                    // Scoring and rescaling
+                    Map<String, double[]> features = strategy.getScore(user, resource);
 
-                        // Classifying
-                        double result = modelEndpoint.predict(features)[1];
-                        if (result >= 0.9) {
-                            strongMatches.getAndIncrement();
-                        }
+                    // Classifying
+                    double result = modelEndpoint.predict(features)[1];
+                    if (result >= 0.8) {
+                        strongMatches.getAndIncrement();
+                    }
 
-                        alignment.setScore((float) result);
-                        alignment.setVersion((short) 2);
+                    alignment.setScore((float) result);
+                    alignment.setVersion((short) 2);
 
-                        int curProcessed = processed.incrementAndGet();
-                        if (curProcessed % 10000 == 0) {
-                            LOGGER.info(String.format(
-                                    "Processed %7d entities (%.2f ent/s, strong matches: %d, stupid cache size: %d)",
-                                    curProcessed,
-                                    (double) 10000 / watch.elapsed(TimeUnit.SECONDS),
-                                    strongMatches.get(),
-                                    stupidCache.size()));
-                            watch.reset().start();
-                        }
-                    });
+                    processed.incrementAndGet();
+                });
 
-            DSL.using(source, SQLDialect.POSTGRES).batchUpdate(batch).execute();
+            context.batchUpdate(batch).execute();
+            left = context.fetchCount(ALIGNMENTS, ALIGNMENTS.VERSION.eq((short) 0));
+            int curProcessed = processed.get();
+            LOGGER.info(String.format(
+                "Processed %7d entities (%.2f ent/s, %.1f%%, strong matches: %d, stupid cache size: %d)",
+                curProcessed,
+                10000.0f / watch.elapsed(TimeUnit.SECONDS),
+                ((float)curProcessed)/(curProcessed+left),
+                strongMatches.get(),
+                stupidCache.size()));
+            watch.reset().start();
         }
     }
 
@@ -189,7 +195,7 @@ public class ScoreEntities {
             final String embeddingsPath = cmd.getOptionValue(EMBEDDINGS_PATH, String.class);
 
             DataSource source = DBUtils.createPGDataSource(dbConnection, dbUser, dbPassword);
-            Endpoint endpoint = new Endpoint(endpointUri);
+            Endpoint endpoint = new Endpoint(endpointUri, new WikidataSpec());
 
             PAI18Strategy strategy = new PAI18Strategy(source);
             LSM lsm = new LSM(lsaPath + "/X", 100, true);

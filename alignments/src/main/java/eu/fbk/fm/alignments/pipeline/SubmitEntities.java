@@ -1,8 +1,10 @@
 package eu.fbk.fm.alignments.pipeline;
 
+import com.google.common.base.Stopwatch;
 import eu.fbk.fm.alignments.evaluation.DatasetEntry;
 import eu.fbk.fm.alignments.index.FillFromIndex;
 import eu.fbk.fm.alignments.index.db.tables.records.AlignmentsRecord;
+import eu.fbk.fm.alignments.kb.WikidataSpec;
 import eu.fbk.fm.alignments.persistence.sparql.Endpoint;
 import eu.fbk.fm.alignments.query.index.AllNamesStrategy;
 import eu.fbk.fm.alignments.scorer.FullyResolvedEntry;
@@ -21,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -52,15 +55,24 @@ public class SubmitEntities {
 
     public void run(String input) throws IOException {
         AtomicInteger counter = new AtomicInteger(0);
+        AtomicInteger dead = new AtomicInteger(0);
+        Stopwatch watch = Stopwatch.createStarted();
+        DSLContext context = DSL.using(source, SQLDialect.POSTGRES);
         Files.lines(Paths.get(input)).parallel().forEach(line -> {
-            //Populating list of candidates
+            // Populating list of candidates
             line = line.substring(1, line.length()-1);
             FullyResolvedEntry entry = new FullyResolvedEntry(new DatasetEntry(line));
             index.fill(entry);
+
+            // Checking if it is dead
+            if (entry.resource.isDead()) {
+                dead.incrementAndGet();
+                return;
+            }
+
             List<Long> uids = entry.candidates.stream().map(UserData::getId).collect(Collectors.toList());
 
             //Saving everything to the database
-            DSLContext context = DSL.using(source, SQLDialect.POSTGRES);
             List<AlignmentsRecord> records = new LinkedList<>();
             for (Long candidate : uids) {
                 AlignmentsRecord record = context.newRecord(ALIGNMENTS);
@@ -80,7 +92,9 @@ public class SubmitEntities {
             }
             int processed = counter.incrementAndGet();
             if (processed % 10000 == 0) {
-                LOGGER.info("Processed "+processed+" entities");
+                long elapsed = watch.elapsed(TimeUnit.SECONDS);
+                watch.reset().start();
+                LOGGER.info(String.format("Processed %d entities (%.2f ent/sec, %d dead)", processed, 10000.0/elapsed, dead.get()));
             }
         });
     }
@@ -116,7 +130,7 @@ public class SubmitEntities {
             final String input = cmd.getOptionValue(INPUT, String.class);
 
             DataSource source = DBUtils.createPGDataSource(dbConnection, dbUser, dbPassword);
-            Endpoint endpoint = new Endpoint(endpointUri);
+            Endpoint endpoint = new Endpoint(endpointUri, new WikidataSpec());
             SubmitEntities script = new SubmitEntities(source, endpoint);
 
             script.run(input);

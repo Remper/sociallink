@@ -90,6 +90,10 @@ public class DBpediaSpec implements ResourceSpec {
 
     @Override
     public EntityStatus extractStatus(Map<String, List<String>> attributes) {
+        // Nothing can be told about this entity
+        if (attributes.size() == 0) {
+            return EntityStatus.DEAD;
+        }
         for (String attribute : DEAD_PERSON_ATTRIBUTES) {
             if (attributes.containsKey(attribute)) {
                 return EntityStatus.DEAD;

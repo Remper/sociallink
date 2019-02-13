@@ -58,6 +58,6 @@ public class WikidataSpec extends DBpediaSpec {
 
     @Override
     public EntityStatus extractStatus(Map<String, List<String>> attributes) {
-        return EntityStatus.ALIVE;
+        return super.extractStatus(attributes);
     }
 }

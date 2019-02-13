@@ -2,6 +2,7 @@ package eu.fbk.fm.alignments.persistence.sparql;
 
 import eu.fbk.fm.alignments.kb.DBpediaSpec;
 import eu.fbk.fm.alignments.kb.KBResource;
+import eu.fbk.fm.alignments.kb.ResourceSpec;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -47,10 +48,16 @@ public class Endpoint implements ResourceEndpoint {
 
     private URI url;
     private CloseableHttpClient client = null;
-    private boolean englishOnly = true;
+    private boolean englishOnly = false;
+    private final ResourceSpec resourceSpec;
 
     public Endpoint(String endpointURL) throws URISyntaxException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+        this(endpointURL, new DBpediaSpec());
+    }
+
+    public Endpoint(String endpointURL, ResourceSpec spec) throws URISyntaxException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         url = new URIBuilder(endpointURL).build();
+        resourceSpec = spec;
         init();
     }
 
@@ -112,7 +119,7 @@ public class Endpoint implements ResourceEndpoint {
                 }
             }
         }
-        return new KBResource(resourceId, new DBpediaSpec(), properties);
+        return new KBResource(resourceId, resourceSpec, properties);
     }
 
     public URIBuilder getBuilder() {
@@ -124,7 +131,7 @@ public class Endpoint implements ResourceEndpoint {
 
         StringBuilder sb = new StringBuilder();
         sb.append(PROPERTIES_FOR_ENTITY[0]);
-        if (!englishOnly) {
+        if (englishOnly) {
             sb.append(LANGUAGE_FILTER);
         }
         sb.append(PROPERTIES_FOR_ENTITY[1]);

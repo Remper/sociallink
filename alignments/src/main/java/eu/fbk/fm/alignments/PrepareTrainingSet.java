@@ -33,6 +33,7 @@ import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullWriter;
+import org.jooq.DSLContext;
 import org.jooq.Record2;
 import org.jooq.SQLDialect;
 import org.jooq.Table;
@@ -463,21 +464,22 @@ public class PrepareTrainingSet {
                 AtomicInteger nulls = new AtomicInteger(0);
                 AtomicInteger resolvedNulls = new AtomicInteger(0);
                 resolvedIds.entrySet().parallelStream().map(entry -> {
+                    DSLContext context = DSL.using(source, SQLDialect.POSTGRES);
                     Table<Record2<Long, BigDecimal>> subquery =
-                            DSL.using(source, SQLDialect.POSTGRES)
-                                    .select(USER_INDEX.UID, sum(USER_INDEX.FREQ).as("freq"))
-                                    .from(USER_INDEX)
-                                    .where(USER_INDEX.UID.eq(entry.getValue()))
-                                    .groupBy(USER_INDEX.UID)
-                                    .asTable("a");
+                        context
+                            .select(USER_INDEX.UID, sum(USER_INDEX.FREQ).as("freq"))
+                            .from(USER_INDEX)
+                            .where(USER_INDEX.UID.eq(entry.getValue()))
+                            .groupBy(USER_INDEX.UID)
+                            .asTable("a");
 
                     Optional<Record2> result = Optional.ofNullable(
-                            DSL.using(source, SQLDialect.POSTGRES)
-                                    .select(USER_OBJECTS.OBJECT, subquery.field("freq"))
-                                    .from(subquery)
-                                    .join(USER_OBJECTS)
-                                    .on(subquery.field(USER_INDEX.UID).eq(USER_OBJECTS.UID))
-                                    .fetchOne()
+                        context
+                            .select(USER_OBJECTS.OBJECT, subquery.field("freq"))
+                            .from(subquery)
+                            .join(USER_OBJECTS)
+                            .on(subquery.field(USER_INDEX.UID).eq(USER_OBJECTS.UID))
+                            .fetchOne()
                     );
 
                     try {
