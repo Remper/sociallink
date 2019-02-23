@@ -15,6 +15,7 @@ public interface ResourceSpec {
     String DBPEDIA_ONTOLOGY = "http://dbpedia.org/ontology/";
     String DBPEDIA_PROPERTY = "http://dbpedia.org/property/";
     String WIKIDATA_ENTITY = "http://www.wikidata.org/entity/";
+    String WIKIDATA_DIRECT_PROP = "http://www.wikidata.org/prop/direct/";
     String ALIGNMENTS_ONTOLOGY = "http://alignments.futuro.media/ontology#";
     String FOAF_ONTOLOGY = "http://xmlns.com/foaf/0.1/";
     String SCHEMA_ORG_ONTOLOGY = "http://schema.org/";

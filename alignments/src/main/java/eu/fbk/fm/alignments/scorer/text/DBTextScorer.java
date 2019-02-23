@@ -61,6 +61,18 @@ public class DBTextScorer implements FeatureProvider {
             LOGGER.warn("Extremely short text for user: @"+user.getScreenName()+" ("+user.getId()+")");
         }
 
+        int curRequests = requests.getAndIncrement()+1;
+        if (curRequests % 50000 == 0 && curRequests > 0) {
+            LOGGER.info(String.format("[Subspace: %s] Processed %5d requests (avg. desc. length: %.2f, avg. sim. score: %.2f)", getSubspaceId(), curRequests, ((double)avgDescLength.get())/curRequests, avgScore.get()/curRequests));
+            LOGGER.info(String.format("  [%s] [%s] [%s] [%s] [%s]", resource.getClass().getSimpleName(), resource.getIdentifier(), join(resource.getNames()), join(resource.getLabels()), join(resource.getDescriptions())));
+            LOGGER.info(String.format(
+                "  [@%s] [%d symbols: %s]",
+                user.getScreenName(),
+                userTextRaw.length(),
+                userTextRaw.length() > 100 ? userTextRaw.substring(0, 100) : userTextRaw.length()
+            ));
+        }
+
         return process(userTextRaw, resource);
     }
 
@@ -70,11 +82,6 @@ public class DBTextScorer implements FeatureProvider {
         double curScore = scorer.score(userText, resourceText);
         avgDescLength.getAndAdd(resourceText.length());
         avgScore.getAndAdd(curScore);
-        int curRequests = requests.getAndIncrement()+1;
-        if (curRequests % 50000 == 0 && curRequests > 0) {
-            LOGGER.info(String.format("[Subspace: %s] Processed %5d requests (avg. desc. length: %.2f, avg. sim. score: %.2f)", getSubspaceId(), curRequests, ((double)avgDescLength.get())/curRequests, avgScore.get()/curRequests));
-            LOGGER.info(String.format("[%s] [%s] [%s] [%s] [%s]", resource.getClass().getSimpleName(), resource.getIdentifier(), join(resource.getNames()), join(resource.getLabels()), join(resource.getDescriptions())));
-        }
         return curScore;
     }
 

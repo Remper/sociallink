@@ -136,7 +136,7 @@ public class ScoreEntities {
 
                     // Classifying
                     double result = modelEndpoint.predict(features)[1];
-                    if (result >= 0.8) {
+                    if (result >= 0.85) {
                         strongMatches.getAndIncrement();
                     }
 
@@ -150,10 +150,10 @@ public class ScoreEntities {
             left = context.fetchCount(ALIGNMENTS, ALIGNMENTS.VERSION.eq((short) 0));
             int curProcessed = processed.get();
             LOGGER.info(String.format(
-                "Processed %7d entities (%.2f ent/s, %.1f%%, strong matches: %d, stupid cache size: %d)",
-                curProcessed,
+                "Processed %7.0fk entities (%.1f%%). %.2f ent/s. strong matches: %d. stupid cache size: %d.",
+                (float)curProcessed/1000,
+                (float)curProcessed*100/(curProcessed+left),
                 10000.0f / watch.elapsed(TimeUnit.SECONDS),
-                ((float)curProcessed)/(curProcessed+left),
                 strongMatches.get(),
                 stupidCache.size()));
             watch.reset().start();

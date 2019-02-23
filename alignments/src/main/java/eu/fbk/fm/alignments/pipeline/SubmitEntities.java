@@ -56,9 +56,23 @@ public class SubmitEntities {
     public void run(String input) throws IOException {
         AtomicInteger counter = new AtomicInteger(0);
         AtomicInteger dead = new AtomicInteger(0);
+        AtomicInteger candidateNum = new AtomicInteger(0);
         Stopwatch watch = Stopwatch.createStarted();
         DSLContext context = DSL.using(source, SQLDialect.POSTGRES);
         Files.lines(Paths.get(input)).parallel().forEach(line -> {
+            int processed = counter.incrementAndGet();
+            if (processed % 10000 == 0) {
+                long elapsed = watch.elapsed(TimeUnit.SECONDS)+1;
+                watch.reset().start();
+                LOGGER.info(String.format(
+                    "Processed %4.0fk entities (%.2f ent/sec, %d dead, %.2f avg. candidates)",
+                    (float)processed/1000,
+                    10000.0/elapsed,
+                    dead.get(),
+                    (float)candidateNum.get()/(processed-dead.get())
+                ));
+            }
+
             // Populating list of candidates
             line = line.substring(1, line.length()-1);
             FullyResolvedEntry entry = new FullyResolvedEntry(new DatasetEntry(line));
@@ -71,6 +85,7 @@ public class SubmitEntities {
             }
 
             List<Long> uids = entry.candidates.stream().map(UserData::getId).collect(Collectors.toList());
+            candidateNum.addAndGet(uids.size());
 
             //Saving everything to the database
             List<AlignmentsRecord> records = new LinkedList<>();
@@ -89,12 +104,6 @@ public class SubmitEntities {
                 context.batchInsert(records).execute();
             } catch (Exception e) {
                 LOGGER.error("Something terrible happened during the insert", e);
-            }
-            int processed = counter.incrementAndGet();
-            if (processed % 10000 == 0) {
-                long elapsed = watch.elapsed(TimeUnit.SECONDS);
-                watch.reset().start();
-                LOGGER.info(String.format("Processed %d entities (%.2f ent/sec, %d dead)", processed, 10000.0/elapsed, dead.get()));
             }
         });
     }
