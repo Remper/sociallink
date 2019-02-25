@@ -254,6 +254,20 @@
             <version>${fbk-utils-version}</version>
         </dependency>
 
+		<!-- RDFpro -->
+		<dependency>
+			<!-- TODO: update once released -->
+            <groupId>eu.fbk.rdfpro</groupId>
+            <artifactId>rdfpro-core</artifactId>
+            <version>0.7-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+			<!-- TODO: update once released -->
+            <groupId>eu.fbk.rdfpro</groupId>
+            <artifactId>rdfpro-tql</artifactId>
+            <version>0.7-SNAPSHOT</version>
+        </dependency>
+        
 		<!-- RDF4J -->
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
@@ -301,7 +315,7 @@
         <grizzly-version>2.3.25</grizzly-version>
         <fbk-utils-version>3.1.1</fbk-utils-version>
         <flink-version>1.4.2</flink-version>
-        <rdf4j-version>2.2.1</rdf4j-version>
+        <rdf4j-version>2.4.1</rdf4j-version>
         <akka-version>2.5.11</akka-version>
     </properties>
 
@@ -373,6 +387,14 @@
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                                     <resource>reference.conf</resource>
+                                </transformer>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/services/org.eclipse.rdf4j.rio.RDFParserFactory</resource>
+                                </transformer>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/services/org.eclipse.rdf4j.rio.RDFWriterFactory</resource>
                                 </transformer>
                             </transformers>
                             <filters>

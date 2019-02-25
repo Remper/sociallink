@@ -1,3 +1,9 @@
+.project
+.settings
+*/.project
+*/.classpath
+*/.factorypath
+*/.settings
 smt-ui/app/*.js.map
 smt-ui/app/*.js
 smt-ui/app/*/*.js.map
