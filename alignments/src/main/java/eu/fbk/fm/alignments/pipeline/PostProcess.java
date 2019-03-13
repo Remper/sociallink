@@ -36,6 +36,8 @@ public class PostProcess {
     private static final String DB_USER = "db-user";
     private static final String DB_PASSWORD = "db-password";
     private static final String GOLD = "gold";
+    private static final String VERIFIED = "verified";
+    private static final String ONETOONE = "onetoone";
 
     private static final String ASSIGNMENT_PROCEDURE_V3 = "" +
         "UPDATE alignments SET is_alignment = true " +
@@ -52,13 +54,32 @@ public class PostProcess {
         "  WHERE b.max / b.normal_factor > ?) AS c " +
         "WHERE alignments.resource_id = c.resource_id AND alignments.score = c.max;";
 
+    private static final String ONETOONE_PROCEDURE = "" +
+        "UPDATE alignments SET is_alignment = false " +
+        "FROM ( " +
+        "  SELECT a.uid, a.resource_id, a.score, count(a.uid) OVER w, row_number() OVER w FROM ( " +
+        "    SELECT * FROM alignments WHERE is_alignment = true " +
+        "  ) AS a " +
+        "  WINDOW w AS (PARTITION BY a.uid ORDER BY a.score DESC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) " +
+        ") AS sub " +
+        "WHERE alignments.uid = sub.uid AND alignments.resource_id = sub.resource_id AND sub.row_number > 1;";
+
+    private static final String VERIFIED_PROCEDURE = "" +
+        "UPDATE alignments SET is_alignment = false " +
+        "FROM ( " +
+        "  SELECT a.* FROM alignments AS a " +
+        "  LEFT JOIN user_objects AS uo ON a.uid = uo.uid " +
+        "  WHERE is_alignment = true AND (uo.object->>'verified')::bool = false " +
+        ") AS b " +
+        "WHERE alignments.uid = b.uid AND alignments.resource_id = b.resource_id;";
+
     private final DataSource source;
 
     public PostProcess(DataSource source) {
         this.source = source;
     }
 
-    public void run(float threshold, List<String> goldStandard) {
+    public void run(Configuration configuration, List<String> goldStandard) {
         DSLContext context = DSL.using(source, SQLDialect.POSTGRES);
 
         // Run some statistics on the computed dataset
@@ -92,30 +113,45 @@ public class PostProcess {
         LOGGER.info(String.format("Found %.2fm scored records (%d unique entities)", (float)datasetSize/1000000, entities));
 
         // Assign alignment flags
-        LOGGER.info("Assigning alignment flags with threshold: "+threshold);
-        int updated = context.execute(ASSIGNMENT_PROCEDURE_V3, threshold);
+        LOGGER.info("Assigning alignment flags with threshold: "+configuration.threshold);
+        int updated = context.execute(ASSIGNMENT_PROCEDURE_V3, configuration.threshold);
         LOGGER.info(String.format("The amount of alignments: %d", updated));
 
         // Filter out gold standard entities
-        if (goldStandard.size() == 0) {
-            LOGGER.info("Gold standard hasn't been loaded, skipping");
-            return;
-        }
-        LOGGER.info("Filtering out gold standard entities from the database (gold size: "+goldStandard.size()+")");
-        AtomicInteger deleted =  new AtomicInteger();
-        AtomicInteger processed = new AtomicInteger();
-        goldStandard.forEach(sample -> {
-            int deletedRows = context.delete(ALIGNMENTS).where(ALIGNMENTS.RESOURCE_ID.eq(sample)).execute();
-            if (deletedRows > 0) {
-                deleted.getAndIncrement();
-            }
+        if (goldStandard.size() > 0) {
+            LOGGER.info("Filtering out gold standard entities from the database (gold size: "+goldStandard.size()+")");
+            AtomicInteger deleted =  new AtomicInteger();
+            AtomicInteger processed = new AtomicInteger();
+            goldStandard.forEach(sample -> {
+                int deletedRows = context.delete(ALIGNMENTS).where(ALIGNMENTS.RESOURCE_ID.eq(sample)).execute();
+                if (deletedRows > 0) {
+                    deleted.getAndIncrement();
+                }
 
-            int curProcessed = processed.incrementAndGet();
-            if (curProcessed % 1000 == 0) {
-                LOGGER.info(String.format("Processed %.0fk samples (filtered %d)", (float)curProcessed/1000, deleted.get()));
-            }
-        });
-        LOGGER.info(String.format("Done. %.2fk samples (filtered %d)", (float)processed.get()/1000, deleted.get()));
+                int curProcessed = processed.incrementAndGet();
+                if (curProcessed % 5000 == 0) {
+                    LOGGER.info(String.format("Processed %.0fk samples (filtered %d)", (float)curProcessed/1000, deleted.get()));
+                }
+            });
+            LOGGER.info(String.format("Done. %.2fk samples (filtered %d)", (float)processed.get()/1000, deleted.get()));
+        } else {
+            LOGGER.info("Gold standard hasn't been loaded, skipping filtering");
+        }
+
+        if (configuration.onetoone) {
+            LOGGER.info("Enforcing 1-1 alignments");
+            updated = context.execute(ONETOONE_PROCEDURE);
+            LOGGER.info(String.format("Removed alignments to preserve one-to-one: %d", updated));
+        }
+
+        if (configuration.verified) {
+            LOGGER.info("Leaving only verified twitter accounts as alignments");
+            updated = context.execute(VERIFIED_PROCEDURE);
+            LOGGER.info(String.format("Removed alignments that do not lead to verified accounts: %d", updated));
+        }
+
+        int finalNumber = context.fetchCount(ALIGNMENTS, ALIGNMENTS.IS_ALIGNMENT.eq(true));
+        LOGGER.info("Final alignments: "+finalNumber);
     }
 
     private static CommandLine.Parser provideParameterList() {
@@ -131,7 +167,17 @@ public class PostProcess {
                         CommandLine.Type.STRING, true, false, true)
                 .withOption(null, GOLD,
                         "path to gold standard dataset", "PATH",
-                        CommandLine.Type.STRING, true, false, false);
+                        CommandLine.Type.STRING, true, false, false)
+                .withOption(null, VERIFIED,
+                        "only include verified alignments")
+                .withOption(null, ONETOONE,
+                        "enforce 1-1 alignments");
+    }
+
+    private static class Configuration {
+        float threshold = 0.3f;
+        boolean onetoone = false;
+        boolean verified = false;
     }
 
     public static void main(String[] args) {
@@ -144,6 +190,10 @@ public class PostProcess {
             final String dbPassword = cmd.getOptionValue(DB_PASSWORD, String.class);
             final String goldPath = cmd.getOptionValue(GOLD, String.class);
 
+            Configuration configuration = new Configuration();
+            configuration.onetoone = cmd.hasOption(ONETOONE);
+            configuration.verified = cmd.hasOption(VERIFIED);
+
             DataSource source = DBUtils.createPGDataSource(dbConnection, dbUser, dbPassword);
 
             PostProcess script = new PostProcess(source);
@@ -153,7 +203,7 @@ public class PostProcess {
                 goldStandard = Files.lines(Paths.get(goldPath)).map(line -> line.split(",")[0]).collect(Collectors.toList());
             }
 
-            script.run(0.3f, goldStandard);
+            script.run(configuration, goldStandard);
         } catch (final Throwable ex) {
             // Handle exception
             CommandLine.fail(ex);
